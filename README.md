@@ -11,6 +11,8 @@ app/                 ← ciò che viene pubblicato (Netlify: publish = "app")
   js/pwa.js          service worker e aggiornamenti
   icons/
 tools/stamp.js       aggiorna il numero di build (da eseguire prima di ogni pubblicazione)
+tests/               verifiche automatiche: tests/esegui.sh (tutte) · tests/esegui.sh rapido (solo frasi)
+CLAUDE.md            contesto completo del progetto, decisioni e lavoro aperto
 .claude/agents/      revisore esterno usato a cicli
 ```
 
@@ -19,7 +21,8 @@ Restano sul dispositivo (IndexedDB). L'unica connessione è per i prezzi delle c
 
 ## Pubblicare una nuova versione
 1. `node tools/stamp.js` (nuovo numero di build → i telefoni ricevono «Aggiornamento disponibile»)
-2. commit e push su `main` → Netlify pubblica `app/`.
+2. `tests/esegui.sh` → tutto deve passare (compreso il test di aggiornamento con dati reali)
+3. commit e push su `main` → Netlify pubblica `app/`.
 
 ## Provarla in locale
 ```

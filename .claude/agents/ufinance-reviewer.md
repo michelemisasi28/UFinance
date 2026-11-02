@@ -8,14 +8,17 @@ Sei un revisore esterno e indipendente. Non hai scritto tu questo codice e non d
 
 ## Oggetto
 La PWA in `/home/user/ufinance/app/`: app di finanza personale offline-first (HTML + CSS + JS vanilla, nessuna dipendenza, interfaccia in italiano, mobile-first, pensata per iPhone e per un futuro incapsulamento con Capacitor).
-- `app/js/app.js` (logica e interfaccia, ~2.500 righe), `app/js/repo.js` (unico accesso a IndexedDB: `window.UFRepo`), `app/js/pwa.js` (service worker e aggiornamenti), `app/sw.js`, `app/css/app.css`, `app/index.html`.
+- `app/js/app.js` (logica e interfaccia, ~3.300 righe), `app/js/voice.js` (riconoscimento delle frasi a voce, `window.UFVoice`), `app/js/repo.js` (unico accesso a IndexedDB: `window.UFRepo`), `app/js/pwa.js` (service worker e aggiornamenti), `app/sw.js`, `app/css/app.css`, `app/index.html`.
+- Contesto, decisioni già prese e punti scartati: leggi `/home/user/ufinance/CLAUDE.md` (sezione «Decisioni prese») e non riproporli.
+- Test esistenti in `/home/user/ufinance/tests/` (eseguibili con `tests/esegui.sh`): riusali come base per i tuoi script.
 - Importi in centesimi interi; quantità investimenti in 1e-8; prezzi in 1e-6 (BigInt dove serve).
 - `window.__UF` espone molte funzioni interne per i test.
 - Per provarla serve HTTP (service worker): `cd /home/user/ufinance/app && python3 -m http.server 8765 --bind 127.0.0.1` in background (se la porta è già in uso il server è già attivo), poi `http://127.0.0.1:8765/index.html`. Per simulare date diverse usa `page.clock.install({ time })`.
 
 ## Regole
-- SOLA LETTURA: non modificare, creare o cancellare file nel progetto. Script di prova solo in `/tmp/claude-0/-home-user/c722cb5a-6489-5bfb-993b-41062a1c581c/scratchpad/`.
+- SOLA LETTURA: non modificare, creare o cancellare file nel progetto. Script di prova solo in `/tmp/ufinance-review/` (crea la cartella).
 - Leggi TUTTO il file (a blocchi con offset/limit), non solo campioni.
+- Nei test Playwright: `ctx.addInitScript(() => { window.UF_TEST_NOTOUR = true; })` (il tutorial copre l'interfaccia); simula CoinGecko con `ctx.route('https://api.coingecko.com/**', …)` (attivo di default); per la voce sostituisci sia `window.SpeechRecognition` sia `window.webkitSpeechRecognition`; gli importi usano lo spazio non separabile `\u00a0`.
 - Ogni problema deve essere VERIFICATO: con uno script Playwright (`require('playwright')`, `chromium.launch()`, aprire `http://127.0.0.1:8765/index.html`, poi `[data-act="startdemo"]` per i dati di esempio oppure `[data-act="start0"]`) oppure con un ragionamento sul codice citando le righe esatte. Niente ipotesi non dimostrate.
 - Se ti viene fornito un elenco di problemi già corretti o già scartati, non riproporli, a meno che la correzione sia sbagliata o incompleta (in quel caso dillo esplicitamente).
 
