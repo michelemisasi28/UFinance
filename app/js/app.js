@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · 277e0094';
+window.UF_BUILD = '2026-11-02 · c29bd0f2';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -706,8 +706,8 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
     else { var t = L[L.length - 1]; if (t.refresh) t.refresh(); }
     return lay;
   }
-  // Pagina sotto le schermate bloccata. Il documento torna in cima (la pagina resta visivamente dov'era grazie al
-  // margine negativo): così su iPhone, aprendo la tastiera, Safari non ha nulla da far scorrere.
+  // Pagina sotto le schermate bloccata: html e body alti quanto lo schermo e senza scorrimento (il documento non ha
+  // nulla da far scorrere, nemmeno su iPhone); la posizione della pagina si conserva scorrendo il body dall'interno.
   var lockY = null;
   function lockPage(on) {
     var r = document.documentElement, b = document.body;
@@ -715,10 +715,10 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
       if (lockY !== null) return;
       lockY = window.scrollY || 0;
       r.classList.add('lock'); b.classList.add('lock');
-      b.style.marginTop = lockY ? -lockY + 'px' : ''; if (lockY) window.scrollTo(0, 0);
+      b.scrollTop = lockY; if (window.scrollY) window.scrollTo(0, 0);
       return;
     }
-    r.classList.remove('lock'); b.classList.remove('lock'); b.style.marginTop = '';
+    r.classList.remove('lock'); b.classList.remove('lock'); b.scrollTop = 0;
     if (lockY) window.scrollTo(0, lockY);
     lockY = null;
   }
@@ -923,19 +923,18 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
     var a = id ? acc(id) : null;
     var st = { id: id || null, type: a ? a.type : 'liquidita', sub: a ? (a.sub || '') : ((subsOf('liquidita')[0] || {}).id || ''), icon: a ? a.icon : ICONS[3], col: a ? a.color : COLORS[0], n: a ? accTxCount(id) : 0 };
     var html = scrHead(a ? 'Modifica conto' : 'Nuovo conto', false) +
-      '<div class="scrb"><div class="card prev" id="af-prev"></div>' +
+      '<div class="scrb pform"><button type="button" class="card prev pickico" id="af-prev" data-act="aicopen" aria-label="Cambia icona e colore"></button>' +
       '<div class="fld"><label for="af-name">Nome</label><input id="af-name" maxlength="30" autocomplete="off" data-in="accname" placeholder="Es. Conto Revolut" value="' + esc(a ? a.name : '') + '"></div>' +
       '<div class="fld"><span class="lab">Tipo</span><div class="wrapchips" id="af-types"></div></div>' +
-      '<div class="fld"><span class="lab">Sottotipologia</span><div class="wrapchips" id="af-subs"></div><p class="hint">Per raggruppare i conti (es. Vacanze).</p></div>' +
-      '<div class="fld"><label for="af-open" id="af-ol">Saldo iniziale</label><input id="af-open" inputmode="decimal" autocomplete="off" data-in="accopen" placeholder="0,00" value="' + (a && a.opening !== 0 ? amtStr(Math.abs(a.opening)) : '') + '">' + (a ? '<p class="hint" id="af-eff"></p><p class="hint">Modifica anche lo storico. Per allinearti al saldo reale usa «Correggi saldo».</p>' : '') + '</div>' +
-      '<div class="fld"><label for="af-date">Data del saldo</label><input type="date" id="af-date" max="' + TODAY + '" value="' + (a ? a.openDate : TODAY) + '"><p class="hint">Il saldo che avevi all’inizio di quel giorno. Potrai registrare i movimenti da quella data in poi: per inserire spese passate, scegli una data precedente.</p></div>' +
+      '<div class="fld"><span class="lab">Sottotipologia</span><div class="wrapchips" id="af-subs"></div></div>' +
+      '<div class="fld"><div class="fgrid">' +
+      fld('<span id="af-ol">Saldo iniziale</span>', '<input id="af-open" inputmode="decimal" autocomplete="off" data-in="accopen" placeholder="0,00" value="' + (a && a.opening !== 0 ? amtStr(Math.abs(a.opening)) : '') + '">', 'af-open') +
+      fld('Data del saldo', '<input type="date" id="af-date" max="' + TODAY + '" value="' + (a ? a.openDate : TODAY) + '">', 'af-date') + '</div>' +
+      (a ? '<p class="hint" id="af-eff"></p>' : '<p class="hint">Il saldo all’inizio di quel giorno: potrai registrare movimenti da quella data in poi.</p>') + '</div>' +
       '<div class="fld" id="af-goal"><span class="lab">Obiettivo di risparmio <span class="opt">facoltativo</span></span><div class="fgrid">' +
-      fld('Importo da raggiungere', '<input id="af-gc" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + (a && a.goal ? amtStr(a.goal.cents) : '') + '">', 'af-gc') +
-      fld('Entro il', '<input type="date" id="af-gd" min="' + TODAY + '" value="' + (a && a.goal ? a.goal.date || '' : '') + '">', 'af-gd') + '</div><p class="hint">Con una data, l’app calcola quanto mettere da parte ogni mese.</p></div>' +
-      '<div class="fld"><span class="lab">Icona</span><div class="grid" id="af-ico">' + ICONS.map(function (ic, k) { return '<button type="button" data-act="aicon" data-i="' + k + '" aria-label="Icona ' + (k + 1) + '">' + ic + '</button>'; }).join('') + '</div></div>' +
-      '<div class="fld"><span class="lab">Colore</span><div class="grid cols" id="af-col">' + COLORS.map(function (c, k) { return '<button type="button" data-act="acol" data-i="' + k + '" style="--c:' + c + '" aria-label="Colore ' + (k + 1) + '"></button>'; }).join('') + '</div></div></div>' +
-      '<div class="scrf"><p class="msg" id="af-msg" role="alert"></p><button class="btn" data-act="saveacc">' + (a ? 'Salva modifiche' : 'Crea conto') + '</button>' +
-      (a ? '<button class="btn danger" data-act="delaccopen" data-id="' + a.id + '">Elimina conto…</button>' : '') + '</div>';
+      fld('Importo', '<input id="af-gc" inputmode="decimal" autocomplete="off" placeholder="Importo" value="' + (a && a.goal ? amtStr(a.goal.cents) : '') + '">', 'af-gc') +
+      fld('Entro il', '<input type="date" id="af-gd" min="' + TODAY + '" value="' + (a && a.goal ? a.goal.date || '' : '') + '">', 'af-gd') + '</div></div></div>' +
+      '<div class="scrf"><p class="msg" id="af-msg" role="alert"></p>' + (a ? '<div class="btnrow"><button class="btn danger" data-act="delaccopen" data-id="' + a.id + '">Elimina…</button><button class="btn" data-act="saveacc">Salva</button></div>' : '<button class="btn" data-act="saveacc">Crea conto</button>') + '</div>';
     pushLayer('screen', 'acc', html, st, { refresh: syncAcc });
     syncAcc();
   }
@@ -943,20 +942,19 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
     var lay = layerOf('acc'); if (!lay) return;
     var st = lay.st, el = lay.el, a = st.id ? acc(st.id) : null, al = allowedTypes(a);
     var nm = el.querySelector('#af-name').value.trim(), sb = sub(st.sub);
-    el.querySelector('#af-prev').innerHTML = '<span class="ico" style="--c:' + st.col + '">' + st.icon + '</span><span class="mid"><span class="nm">' + esc(nm || 'Nome del conto') + '</span><span class="sb">' + TYPES[st.type] + (sb ? ' · ' + esc(sb.name) : '') + '</span></span>';
+    el.querySelector('#af-prev').innerHTML = '<span class="ico" style="--c:' + st.col + '">' + st.icon + '</span><span class="mid"><span class="nm">' + esc(nm || 'Nome del conto') + '</span><span class="sb">' + TYPES[st.type] + (sb ? ' · ' + esc(sb.name) : '') + '</span></span><span class="chg">Icona ›</span>';
     el.querySelector('#af-types').innerHTML = TYPE_ORDER.map(function (t) { return '<button type="button" class="chip ' + (st.type === t ? 'on' : '') + '" data-act="atype" data-t="' + t + '"' + (al.indexOf(t) < 0 ? ' disabled' : '') + '>' + TYPE_ICON[t] + ' ' + TYPES[t] + '</button>'; }).join('');
     el.querySelector('#af-subs').innerHTML = '<button type="button" class="chip ' + (st.sub === '' ? 'on' : '') + '" data-act="asub" data-id="">Nessuna</button>' +
       subsOf(st.type).map(function (s) { return '<button type="button" class="chip ' + (st.sub === s.id ? 'on' : '') + '" data-act="asub" data-id="' + s.id + '">' + esc(s.name) + '</button>'; }).join('') +
       '<button type="button" class="chip add" data-act="newsubacc">+ Nuova</button>';
-    Array.prototype.forEach.call(el.querySelectorAll('#af-ico button'), function (b) { b.classList.toggle('on', ICONS[+b.dataset.i] === st.icon); });
-    Array.prototype.forEach.call(el.querySelectorAll('#af-col button'), function (b) { b.classList.toggle('on', COLORS[+b.dataset.i] === st.col); });
+    icoMark();
     var ol = el.querySelector('#af-ol'); if (ol) ol.textContent = st.type === 'debito' ? 'Importo del debito' : 'Saldo iniziale';
     el.querySelector('#af-goal').hidden = !goalOk(st.type);
     var ef = el.querySelector('#af-eff');
     if (ef && a) {
       var raw = el.querySelector('#af-open').value.trim(), c = raw === '' ? 0 : parseCents(raw);
       if (c === null || (st.type !== 'debito' && c < 0)) ef.textContent = 'Importo non valido.';
-      else { var no = st.type === 'debito' ? -Math.abs(c) : c; ef.textContent = 'Saldo attuale: ' + money(balance(a.id)) + ' → ' + money(balance(a.id) - a.opening + no); }
+      else { var no = st.type === 'debito' ? -Math.abs(c) : c; ef.textContent = 'Saldo attuale ' + money(balance(a.id)) + ' → ' + money(balance(a.id) - a.opening + no) + '. Cambia anche lo storico: per allinearti al saldo reale usa «Correggi saldo».'; }
     }
   }
   function saveAcc() {
@@ -1044,10 +1042,10 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
     var c = o.id ? cat(o.id) : null, kind = c ? c.kind : o.kind;
     var st = { id: o.id || null, kind: kind, icon: c ? c.icon : ICONS[19], fromAdd: !!o.fromAdd, n: c ? S.tx.filter(function (t) { return t.catId === c.id; }).length + S.rules.filter(function (r) { return r.catId === c.id; }).length : 0 };
     var html = scrHead(c ? 'Modifica categoria' : (kind === 'spesa' ? 'Nuova categoria di spesa' : 'Nuova categoria di entrata'), !!o.back) +
-      '<div class="scrb"><div class="card prev" id="cf-prev"></div>' +
+      '<div class="scrb pform"><button type="button" class="card prev pickico" id="cf-prev" data-act="cicopen" aria-label="Cambia icona"></button>' +
       '<div class="fld"><label for="cf-name">Nome</label><input id="cf-name" maxlength="24" autocomplete="off" data-in="catname" placeholder="Es. Palestra" value="' + esc(c ? c.name : '') + '"></div>' +
       (kind === 'spesa' ? '<div class="fld"><label for="cf-bud">Budget mensile <span class="opt">facoltativo</span></label><input id="cf-bud" inputmode="decimal" autocomplete="off" placeholder="Nessun limite" value="' + (c && c.budget > 0 ? amtStr(c.budget) : '') + '"></div>' : '') +
-      '<div class="fld"><span class="lab">Icona</span><div class="grid" id="cf-ico">' + ICONS.map(function (ic, k) { return '<button type="button" data-act="cicon" data-i="' + k + '" aria-label="Icona ' + (k + 1) + '">' + ic + '</button>'; }).join('') + '</div></div></div>' +
+      '</div>' +
       '<div class="scrf"><p class="msg" id="cf-msg" role="alert"></p><button class="btn" data-act="savecat">Salva</button>' +
       (c ? '<button class="btn danger" data-act="delcat">Elimina categoria</button>' : '') + '</div>';
     pushLayer('screen', 'cat', html, st, { refresh: syncCat });
@@ -1056,8 +1054,8 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
   function syncCat() {
     var lay = layerOf('cat'); if (!lay) return;
     var st = lay.st, el = lay.el, nm = el.querySelector('#cf-name').value.trim();
-    el.querySelector('#cf-prev').innerHTML = '<span class="ico">' + st.icon + '</span><span class="mid"><span class="nm">' + esc(nm || 'Nome della categoria') + '</span><span class="sb">' + (st.kind === 'spesa' ? 'Spesa' : 'Entrata') + (st.n ? ' · ' + st.n + ' movimenti' : '') + '</span></span>';
-    Array.prototype.forEach.call(el.querySelectorAll('#cf-ico button'), function (b) { b.classList.toggle('on', ICONS[+b.dataset.i] === st.icon); });
+    el.querySelector('#cf-prev').innerHTML = '<span class="ico">' + st.icon + '</span><span class="mid"><span class="nm">' + esc(nm || 'Nome della categoria') + '</span><span class="sb">' + (st.kind === 'spesa' ? 'Spesa' : 'Entrata') + (st.n ? ' · ' + st.n + ' movimenti' : '') + '</span></span><span class="chg">Icona ›</span>';
+    icoMark();
   }
   function saveCat() {
     var lay = layerOf('cat'); if (!lay) return;
@@ -1155,7 +1153,7 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
   }
   function openDelAcc(id) {
     var a = acc(id); if (!a) return;
-    var html = scrHead('Elimina conto', true) + '<div class="scrb"><div class="card prev"><span class="ico" style="--c:' + a.color + '">' + a.icon + '</span><span class="mid"><span class="nm">' + esc(a.name) + '</span><span class="sb" id="dl-sub"></span></span></div>' +
+    var html = scrHead('Elimina conto', true) + '<div class="scrb pform"><div class="card prev"><span class="ico" style="--c:' + a.color + '">' + a.icon + '</span><span class="mid"><span class="nm">' + esc(a.name) + '</span><span class="sb" id="dl-sub"></span></span></div>' +
       '<div class="fld"><span class="lab">Movimenti</span><div class="optl" id="dl-opts"></div></div>' +
       '<div class="card" id="dl-imp"></div></div>' +
       '<div class="scrf"><p class="msg" id="dl-msg" role="alert"></p><button class="btn danger" id="dl-go" data-act="delaccgo"></button></div>';
@@ -1363,6 +1361,22 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
     if (f) { if (!onlyIfMissing) f.px = px; } else p.prices.push({ d: d, px: px });
     p.prices.sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
   }
+  // Icona (e colore per i conti) in un foglio a parte: il modulo resta in una sola schermata, senza scorrere.
+  function openIcoSheet(kind) {
+    var base = layerOf(kind); if (!base) return;
+    var h = shHead(kind === 'acc' ? 'Icona e colore' : 'Icona') +
+      '<div class="grid icos" id="is-ico">' + ICONS.map(function (ic, k) { return '<button type="button" data-act="' + (kind === 'acc' ? 'aicon' : 'cicon') + '" data-i="' + k + '" aria-label="Icona ' + (k + 1) + '">' + ic + '</button>'; }).join('') + '</div>' +
+      (kind === 'acc' ? '<div class="grid cols" id="is-col">' + COLORS.map(function (c, k) { return '<button type="button" data-act="acol" data-i="' + k + '" style="--c:' + c + '" aria-label="Colore ' + (k + 1) + '"></button>'; }).join('') + '</div>' : '') +
+      '<button class="btn" data-act="close">Fatto</button>';
+    pushLayer('sheet', 'icopick', h, { kind: kind });
+    icoMark();
+  }
+  function icoMark() {
+    var sh = layerOf('icopick'); if (!sh) return;
+    var base = layerOf(sh.st.kind); if (!base) return;
+    Array.prototype.forEach.call(sh.el.querySelectorAll('#is-ico button'), function (b) { b.classList.toggle('on', ICONS[+b.dataset.i] === base.st.icon); });
+    Array.prototype.forEach.call(sh.el.querySelectorAll('#is-col button'), function (b) { b.classList.toggle('on', COLORS[+b.dataset.i] === base.st.col); });
+  }
   function accOpts(sel, none) { return (none ? '<option value="">' + none + '</option>' : '') + S.accounts.map(function (a) { return '<option value="' + a.id + '"' + (a.id === sel ? ' selected' : '') + '>' + esc(a.icon + ' ' + a.name) + '</option>'; }).join(''); }
   function fld(label, inner, id) { return '<div class="fld"><label' + (id ? ' for="' + id + '"' : '') + '>' + label + '</label>' + inner + '</div>'; }
   function msgOf(lay, sel) { var m = lay.el.querySelector(sel || '.msg'); return function (t) { m.textContent = t; m.className = 'msg bad'; }; }
@@ -1555,7 +1569,7 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
   }
   function openDelPos(id) {
     var p = posById(id); if (!p) return;
-    pushLayer('screen', 'delpos', scrHead('Elimina investimento', true) + '<div class="scrb"><div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb" id="dp-sub"></span></span></div><div class="fld"><span class="lab">Addebiti sui conti</span><div class="optl" id="dp-opts"></div></div><div class="card" id="dp-imp"></div></div>' +
+    pushLayer('screen', 'delpos', scrHead('Elimina investimento', true) + '<div class="scrb pform"><div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb" id="dp-sub"></span></span></div><div class="fld"><span class="lab">Addebiti sui conti</span><div class="optl" id="dp-opts"></div></div><div class="card" id="dp-imp"></div></div>' +
       '<div class="scrf"><button class="btn danger" id="dp-go" data-act="delposgo"></button></div>', { id: id, mode: 'keep' }, { refresh: syncDelPos });
     syncDelPos();
   }
@@ -1643,16 +1657,15 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
       pushLayer('screen', 'ruleform', html, { id: id }).el.classList.add('fixed');
       return;
     }
-    html = scrHead('Modifica ricorrenza', true) + '<div class="scrb">' + prev +
-      fld('Importo (' + SYM[S.cur] + ')', '<input id="r-amt" inputmode="decimal" autocomplete="off" value="' + amtStr(r.cents) + '">', 'r-amt') +
-      fld(giro ? 'Da conto' : r.kind === 'spesa' ? 'Pagato con' : 'Accreditato su', '<select id="r-acc">' + accOpts(r.accId) + '</select>', 'r-acc') +
-      (giro ? fld('A conto', '<select id="r-to">' + accOpts(r.toId) + '</select>', 'r-to') : '') +
-      (!giro ? fld('Categoria', '<select id="r-cat"><option value="">Senza categoria</option>' + cats.map(function (c) { return '<option value="' + c.id + '"' + (c.id === r.catId ? ' selected' : '') + '>' + esc(c.icon + ' ' + c.name) + '</option>'; }).join('') + '</select>', 'r-cat') : '') +
-      fld('Nota', '<input id="r-note" maxlength="60" autocomplete="off" value="' + esc(r.note || '') + '">', 'r-note') +
-      fld('Frequenza', cadSel('r', r), 'r-freq') + cadCust('r', r) +
-      fld('Fino al (facoltativo)', '<input type="date" id="r-end" value="' + (r.end || '') + '">', 'r-end') +
-      '<div class="card" style="padding:0 16px"><label class="sw" style="border-bottom:0"><span>Attiva</span><input type="checkbox" id="r-act"' + (r.active ? ' checked' : '') + ' aria-label="Attiva"></label></div></div>' +
-      '<div class="scrf"><p class="msg" id="r-msg" role="alert"></p><button class="btn" data-act="saverule">Salva</button><button class="btn danger" data-act="delrule">Elimina</button></div>';
+    // Ricorrenza: anch'essa in una sola schermata ferma, campi affiancati
+    html = scrHead('Modifica ricorrenza', true) + '<div class="scrb pform">' + prev +
+      '<div class="fgrid">' + fld('Importo (' + SYM[S.cur] + ')', '<input id="r-amt" inputmode="decimal" autocomplete="off" value="' + amtStr(r.cents) + '">', 'r-amt') + fld('Frequenza', cadSel('r', r), 'r-freq') + '</div>' + cadCust('r', r) +
+      '<div class="fgrid">' + fld(giro ? 'Da conto' : r.kind === 'spesa' ? 'Pagato con' : 'Accreditato su', '<select id="r-acc">' + accOpts(r.accId) + '</select>', 'r-acc') +
+      (giro ? fld('A conto', '<select id="r-to">' + accOpts(r.toId) + '</select>', 'r-to') : fld('Categoria', '<select id="r-cat"><option value="">Senza categoria</option>' + cats.map(function (c) { return '<option value="' + c.id + '"' + (c.id === r.catId ? ' selected' : '') + '>' + esc(c.icon + ' ' + c.name) + '</option>'; }).join('') + '</select>', 'r-cat')) +
+      '</div>' + fld('Nota', '<input id="r-note" maxlength="60" autocomplete="off" value="' + esc(r.note || '') + '">', 'r-note') +
+      '<div class="fgrid">' + fld('Fino al (opz.)', '<input type="date" id="r-end" value="' + (r.end || '') + '">', 'r-end') +
+      fld('Stato', '<select id="r-act"><option value="1"' + (r.active ? ' selected' : '') + '>Attiva</option><option value="0"' + (r.active ? '' : ' selected') + '>In pausa</option></select>', 'r-act') + '</div></div>' +
+      '<div class="scrf"><p class="msg" id="r-msg" role="alert"></p><div class="btnrow"><button class="btn" data-act="saverule">Salva</button><button class="btn danger" data-act="delrule">Elimina</button></div></div>';
     pushLayer('screen', 'ruleform', html, { id: id });
   }
   function skipToFuture(r) { var g = 0; while (ruleNext(r) && ruleNext(r) < TODAY && g++ < 3000) r.k += 1; }
@@ -3038,8 +3051,9 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
         syncAcc(); break;
       case 'asub': if (st) { st.sub = d.id; syncAcc(); } break;
       case 'newsubacc': if (st) newSubForm(st.type, true); break;
-      case 'aicon': if (st) { st.icon = ICONS[+d.i]; syncAcc(); } break;
-      case 'acol': if (st) { st.col = COLORS[+d.i]; syncAcc(); } break;
+      case 'aicopen': openIcoSheet('acc'); break;
+      case 'aicon': al = layerOf('acc'); if (al) { al.st.icon = ICONS[+d.i]; syncAcc(); } break;
+      case 'acol': al = layerOf('acc'); if (al) { al.st.col = COLORS[+d.i]; syncAcc(); } break;
       case 'saveacc': saveAcc(); break;
       case 'delaccopen': openDelAcc(d.id || (st && st.id)); break;
       case 'delmode': if (st) { st.mode = d.m; syncDel(); } break;
@@ -3049,7 +3063,8 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
       case 'nwreset': nwHead(-1); break;
       case 'savename': saveName(); break;
       case 'delname': delName(el); break;
-      case 'cicon': if (st) { st.icon = ICONS[+d.i]; syncCat(); } break;
+      case 'cicopen': openIcoSheet('cat'); break;
+      case 'cicon': al = layerOf('cat'); if (al) { al.st.icon = ICONS[+d.i]; syncCat(); if (topL() && topL().name === 'icopick') popLayer(); } break;
       case 'savecat': saveCat(); break;
       case 'delcat': delCat(el); break;
       case 'managecats': openManageCats(d.k); break;
@@ -3256,34 +3271,39 @@ window.UF_BUILD = '2026-11-02 · 277e0094';
     if (IOS && kbField(el) && !el.style.transform && !document.documentElement.classList.contains('kb')) noAutoScroll(el); // tastiera non ancora aperta (es. etichetta toccata)
     setTimeout(revealFocus, 350);
   });
-  // Una sola decisione per gesto (consenti/blocca), presa sullo spostamento totale dopo qualche pixel:
-  // un piccolo tremolio iniziale non blocca lo scorrimento (su iPhone bloccare il primo touchmove lo fermerebbe tutto).
+  // Lo scorrimento lo decide il CSS (touch-action). In più, per sicurezza: al primo movimento di ogni gesto, se il dito
+  // non è su un'area che ha davvero contenuto da scorrere, il gesto viene bloccato del tutto.
   var tX = 0, tY = 0, tDec = null, tMoved = false;
   document.addEventListener('touchstart', function (e) { tDec = null; tMoved = e.touches.length > 1; if (e.touches.length === 1) { tX = e.touches[0].clientX; tY = e.touches[0].clientY; } }, { passive: true });
-  function touchDecide(target, dx, dy) {
-    var n = target && target.nodeType === 1 ? target : target && target.parentElement;
-    for (; n && n !== document.body; n = n.parentElement) {
+  function inScroller(target) {
+    for (var n = target && target.nodeType === 1 ? target : target && target.parentElement; n && n !== document.body; n = n.parentElement) {
+      if (n.classList && n.classList.contains('layer')) return false;
       var s = getComputedStyle(n);
-      if (Math.abs(dx) > Math.abs(dy)) { if (/(auto|scroll)/.test(s.overflowX) && n.scrollWidth > n.clientWidth + 1) return 'ok'; }
-      else if (/(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight + 1) {
-        if ((dy > 0 && n.scrollTop <= 0) || (dy < 0 && n.scrollTop + n.clientHeight >= n.scrollHeight - 1)) return 'no'; // al bordo: niente rimbalzo dello schermo
-        return 'ok';
-      }
-      if (n.classList && n.classList.contains('layer')) break;
+      if ((/(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight + 1) || (/(auto|scroll)/.test(s.overflowX) && n.scrollWidth > n.clientWidth + 1)) return true;
     }
-    return 'no';
+    return false;
   }
   document.addEventListener('touchmove', function (e) {
     if (e.touches.length !== 1) { tMoved = true; return; }
     if (!tMoved && (Math.abs(e.touches[0].clientX - tX) > 10 || Math.abs(e.touches[0].clientY - tY) > 10)) tMoved = true;
     if (!L.length) return;
-    if (!tDec) {
-      var t = e.touches[0], dx = t.clientX - tX, dy = t.clientY - tY;
-      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-      tDec = touchDecide(e.target, dx, dy);
-    }
+    if (tDec === null) tDec = inScroller(e.target) ? 'ok' : 'no';
     if (tDec === 'no' && e.cancelable) e.preventDefault();
   }, { passive: false });
+  // Le schermate che non stanno nello schermo (liste, telefoni piccoli, tastiera aperta) ricevono .scrolls.
+  var fitT = 0;
+  function fitCheck() {
+    fitT = 0;
+    for (var i = 0; i < L.length; i++) {
+      var el = L[i].el, sc = el.querySelectorAll('.scrb, .panel, .chips'), over = false;
+      for (var k = 0; k < sc.length && !over; k++) { var n = sc[k]; if (n.clientHeight && (n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1)) over = true; }
+      el.classList.toggle('scrolls', over);
+    }
+  }
+  function fitSoon() { if (!fitT) fitT = requestAnimationFrame(fitCheck); }
+  if (window.MutationObserver) new MutationObserver(function () { if (L.length) fitSoon(); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class', 'style'] });
+  window.addEventListener('resize', fitSoon);
+  if (VV) VV.addEventListener('resize', fitSoon);
   // iPhone: tocco su un campo di testo in una schermata → focus dato da qui, con il campo fuori vista per un
   // fotogramma, così Safari non sposta la schermata per mostrarlo (lo mostra revealFocus scorrendo solo il contenuto).
   document.addEventListener('touchend', function (e) {

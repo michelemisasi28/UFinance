@@ -44,14 +44,14 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(await p.evaluate(() => document.documentElement.classList.contains('lock')), 'pagina sotto bloccata (html.lock)');
   ok(await drag(200, 30, 400), 'Nuovo conto: trascinare l’intestazione non muove lo schermo (touchmove bloccato)');
   ok(await drag(200, 800, 400), 'Nuovo conto: trascinare la barra dei pulsanti non muove lo schermo');
-  ok(await p.evaluate(y => window.scrollY === 0 && document.body.style.marginTop === (y ? -y + 'px' : ''), y0), 'documento in cima e pagina sotto visivamente ferma (margine −' + y0 + ')');
+  ok(await p.evaluate(y => window.scrollY === 0 && document.body.scrollTop === y && document.documentElement.scrollHeight <= document.documentElement.clientHeight, y0), 'documento senza nulla da scorrere e pagina sotto ferma dov’era (' + y0 + ')');
   ok((await layerBox()).top === 0, 'la schermata resta in alto (top 0)');
   const scr = () => p.evaluate(() => __UF.L[__UF.L.length - 1].el.querySelector('.scrb').scrollTop);
-  const over = await p.evaluate(() => { const s = __UF.L[__UF.L.length - 1].el.querySelector('.scrb'); return s.scrollHeight > s.clientHeight; });
-  ok(over, 'il modulo del conto è più alto dello schermo (serve lo scorrimento interno)');
-  ok(await drag(200, 300, 600), 'contenuto già in cima: tirare giù non fa rimbalzare lo schermo');
-  ok(!(await drag(200, 600, 200)), 'trascinare il contenuto lo fa scorrere (non bloccato)');
-  ok((await scr()) > 0, 'il contenuto del modulo è scorso (' + (await scr()) + ' px)');
+  const fit = await p.evaluate(() => { const l = __UF.L[__UF.L.length - 1].el, s = l.querySelector('.scrb'); return { h: s.scrollHeight, c: s.clientHeight, sc: l.classList.contains('scrolls'), ta: getComputedStyle(l).touchAction }; });
+  ok(fit.h <= fit.c + 1 && !fit.sc && fit.ta === 'none', 'il modulo del conto sta tutto nello schermo ed è fermo come «Aggiungi investimento» (' + JSON.stringify(fit) + ')');
+  ok(await drag(200, 300, 600), 'trascinare il contenuto verso il basso non muove nulla');
+  ok(await drag(200, 600, 200), 'trascinare il contenuto verso l’alto non muove nulla');
+  ok((await scr()) === 0, 'il contenuto del modulo non è scorso');
   ok((await p.evaluate(() => window.scrollY)) === 0, 'il documento sotto è ancora fermo in cima');
   ok(!(await drag(200, 300, 600, 2)), 'due dita (zoom) restano permesse');
 
@@ -89,7 +89,8 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(vis, 'il campo «Importo da raggiungere» viene portato in vista sopra la tastiera');
   ok((await hdr()) === h0, 'e l’intestazione resta ferma');
   await p.evaluate(() => __UF.L[0].el.querySelector('.scrb').scrollTop = 99999); await tick(p, 50);
-  ok(await p.evaluate(() => { const g = [...document.querySelectorAll('#af-col button')].pop().getBoundingClientRect(); return g.bottom <= 450; }), 'con la tastiera aperta si arriva fino all’ultimo elemento (Colore) sopra la tastiera');
+  ok(await p.evaluate(() => document.getElementById('af-gd').getBoundingClientRect().bottom <= 450), 'con la tastiera aperta si arriva fino all’ultimo campo (Entro il) sopra la tastiera');
+  ok(await p.evaluate(() => __UF.L[0].el.classList.contains('scrolls')), 'con la tastiera aperta il contenuto può scorrere (serve per i campi sotto la tastiera)');
   await kbd(450, 180); await tick(p, 100);
   lb = await layerBox();
   ok(lb.top === 180, 'se iOS sposta comunque l’area visibile, la schermata la segue (top ' + lb.top + ')');
@@ -137,11 +138,11 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   await kbd(null); await p.evaluate(() => document.activeElement && document.activeElement.blur()); await tick(p, 100);
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
 
-  // ---- Revisione: piccolo tremolio iniziale non blocca lo scorrimento del modulo ----
-  await p.evaluate(() => { const b = document.createElement('button'); b.dataset.id = __UF.S.accounts[0].id; __UF.act('accedit', b); }); await tick(p, 300);
+  // ---- Revisione: piccolo tremolio iniziale non blocca lo scorrimento di una lista lunga ----
+  await p.evaluate(() => __UF.act('txlist', document.createElement('button'))); await tick(p, 300);
   const jit = await p.evaluate(() => {
     const sc = __UF.L[__UF.L.length - 1].el.querySelector('.scrb'); sc.scrollTop = 200;
-    const tgt = sc.querySelector('.fld'), r = tgt.getBoundingClientRect(), x = r.left + 20, y = r.top + 10;
+    const tgt = [...sc.querySelectorAll('button, .card, div')].find(e => { const b = e.getBoundingClientRect(); return b.top > 300 && b.bottom < 700 && b.height > 20; }), r = tgt.getBoundingClientRect(), x = r.left + 20, y = r.top + 10;
     const T = (cx, cy) => new Touch({ identifier: 7, target: tgt, clientX: cx, clientY: cy });
     const send = (type, cx, cy) => { const ev = new TouchEvent(type, { cancelable: true, bubbles: true, touches: type === 'touchend' ? [] : [T(cx, cy)], changedTouches: [T(cx, cy)] }); tgt.dispatchEvent(ev); return ev.defaultPrevented; };
     send('touchstart', x, y);
@@ -150,7 +151,7 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
     send('touchstart', x, y); const d = send('touchmove', x + 1, y - 20); send('touchend', x, y);
     return [a, b2, c, d];
   });
-  ok(JSON.stringify(jit) === '[false,false,false,false]', 'tremolio orizzontale iniziale: lo scorrimento verticale del modulo non viene bloccato (' + JSON.stringify(jit) + ')');
+  ok(JSON.stringify(jit) === '[false,false,false,false]', 'tremolio orizzontale iniziale: lo scorrimento della lista non viene bloccato (' + JSON.stringify(jit) + ')');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
 
   // ---- Revisione: dopo «Elimina tutti i dati» la Home torna scorrevole ----
@@ -168,6 +169,35 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(await p.evaluate(() => { const r = document.getElementById('a-save').getBoundingClientRect(); return r.bottom <= 450 && r.top > 0; }), 'nota del movimento: «Salva» resta sopra la tastiera');
   ok(await p.evaluate(() => Math.round(__UF.L[0].el.querySelector('.scrh').getBoundingClientRect().top) === 0), 'nota del movimento: l’intestazione resta ferma');
   await kbd(null); await p.evaluate(() => document.activeElement.blur()); await tick(p, 100);
+  await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
+
+  // ---- Icona e colore in un foglio a parte ----
+  await open('newacc'); await open('aicopen');
+  ok(await p.evaluate(() => __UF.L.length === 2 && __UF.L[1].name === 'icopick' && getComputedStyle(__UF.L[1].el).touchAction === 'none'), 'foglio «Icona e colore» aperto e fermo');
+  await p.click('#is-ico button[data-i="7"]'); await p.click('#is-col button[data-i="3"]'); await tick(p, 200);
+  ok(await p.evaluate(() => __UF.L[0].st.icon === '🐷' && /1E7A4C/i.test(__UF.L[0].st.col) && document.querySelector('#is-ico button[data-i="7"]').classList.contains('on')), 'icona e colore scelti nel foglio arrivano al conto');
+  await p.click('.layer.sheet .btn[data-act="close"]'); await tick(p, 300);
+  ok(await p.evaluate(() => __UF.L.length === 1 && document.querySelector('#af-prev .ico').textContent === '🐷'), 'chiuso il foglio, l’anteprima del conto mostra la nuova icona');
+  await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
+
+  // ---- Tutte le schermate dei moduli stanno nello schermo e sono ferme (390×844) ----
+  const forms = await p.evaluate(async () => {
+    const U = __UF, btn = o => { const b = document.createElement('button'); Object.assign(b.dataset, o || {}); return b; }, out = [];
+    const pos = U.S.pos[0], a0 = U.S.accounts[0], rule = U.S.rules.find(r => r.type !== 'pac');
+    const cases = [['nuovo conto', 'newacc', {}], ['modifica conto', 'accedit', { id: a0.id }], ['nuovo investimento', 'newpos', {}], ['acquisto', 'lotnew', { id: pos.id, dir: 'buy' }], ['vendita', 'lotnew', { id: pos.id, dir: 'sell' }], ['modifica acquisto', 'lotedit', { pos: pos.id, id: pos.lots[0].id }], ['aggiorna valore', 'pricenew', { id: pos.id }], ['nuova categoria', 'newcatm', { k: 'spesa' }], ['modifica categoria', 'editcat', { id: U.S.cats[0].id }], ['elimina conto', 'delaccopen', { id: a0.id }], ['elimina investimento', 'delposopen', { id: pos.id }], ['nuovo PAC', 'pacnew', { id: pos.id }], ['nuovo movimento', 'add', {}]].concat(rule ? [['modifica ricorrenza', 'ruleopen', { id: rule.id }]] : []);
+    for (const [lab, a, d] of cases) {
+      U.act(a, btn(d)); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const l = U.L[U.L.length - 1].el; out.push([lab, !l.classList.contains('scrolls') && getComputedStyle(l).touchAction === 'none']);
+      while (U.L.length) U.act('close', btn());
+    }
+    return out;
+  });
+  const bad = forms.filter(f => !f[1]).map(f => f[0]);
+  ok(!bad.length, 'tutte le schermate dei moduli sono ferme (' + forms.length + ' controllate)' + (bad.length ? ' — non ferme: ' + bad.join(', ') : ''));
+  // le liste lunghe scorrono, ma senza rimbalzo
+  await p.evaluate(() => __UF.act('txlist', document.createElement('button'))); await tick(p, 300);
+  ok(await p.evaluate(() => { const l = __UF.L[0].el; return l.classList.contains('scrolls') && getComputedStyle(l).touchAction !== 'none' && getComputedStyle(l.querySelector('.scrb')).overscrollBehaviorY === 'none'; }), 'elenco movimenti: scorre (è una lista lunga) ma senza rimbalzo');
+  ok(!(await drag(200, 600, 300)), 'elenco movimenti: il dito fa scorrere la lista');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
 
   ok(!errs.length, 'nessun errore JavaScript' + (errs.length ? ': ' + errs.join(' | ') : ''));
