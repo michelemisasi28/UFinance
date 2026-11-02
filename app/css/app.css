@@ -315,3 +315,15 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
 .guide p { color: var(--muted); font-size: 15px; margin: 0 0 6px; }
 .guide b { color: var(--ink); font-weight: 600; }
 .sech .acts { align-items: center; }
+
+/* ===== Investimenti: scheda, aggiornamento guidato ===== */
+.posh { display: flex; flex-direction: column; gap: 2px; }
+.posh .big { font-size: 34px; }
+.fresh { display: flex; flex-direction: column; gap: 6px; }
+.fresh .fr1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 600; }
+.fresh.old { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 7%, var(--surface)); }
+.bigin { font-size: 30px; font-weight: 600; min-height: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+.wq { font-size: 17px; font-weight: 600; }
+.navrow.card { min-height: 52px; }
+.fresh .tbtn { white-space: nowrap; flex: none; }
+.fresh .fr1 > span { min-width: 0; }

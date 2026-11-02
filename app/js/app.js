@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · 052c44bd';
+window.UF_BUILD = '2026-11-02 · baf6f8be';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -619,14 +619,14 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
     // investimenti
     var tv = 0, ti = 0, tg = 0, stats = S.pos.map(function (p) { var z = posStat(p); tv += z.value; ti += z.k.invested; tg += z.gain; return z; });
     var stale = S.pos.filter(pxStale).length;
-    h += '<section class="sec"><div class="sech"><h2>Investimenti</h2>' + (S.pos.length ? '<button class="tbtn" data-act="pxall">🏷️ Aggiorna prezzi</button>' : '') + '</div>';
-    if (stale) h += '<button class="banner" data-act="pxall" style="text-align:left;width:100%">' + (stale === 1 ? '1 prezzo non aggiornato' : stale + ' prezzi non aggiornati') + ' da più di 7 giorni: il valore potrebbe non essere attuale. Tocca per aggiornarli.</button>';
+    h += '<section class="sec"><div class="sech"><h2>Investimenti</h2>' + (S.pos.length ? '<button class="tbtn" data-act="pxall">🏷️ Aggiorna valori</button>' : '') + '</div>';
+    if (stale) h += '<button class="banner" data-act="pxall" style="text-align:left;width:100%">' + (stale === 1 ? '1 investimento non aggiornato' : stale + ' investimenti non aggiornati') + ' da più di 7 giorni: il guadagno potrebbe non essere attuale. Tocca per aggiornarli (meno di un minuto).</button>';
     if (S.pos.length) {
       h += '<button class="card invsum" data-act="posinv"><div class="three"><div><span class="k">Valore attuale</span><span class="n">' + money(tv) + '</span></div><div><span class="k">Versato</span><span class="n">' + money(ti) + '</span></div><div><span class="k">Guadagno</span><span class="n ' + (tg >= 0 ? 'pos' : 'neg') + '">' + moneyS(tg) + '<br><span class="sb">' + pctS(ti > 0 ? tg / ti : null) + '</span></span></div></div><span class="sparkcap">Andamento ' + svg('right') + '</span></button>';
       h += '<button class="lnk" data-act="invhelp" style="align-self:flex-start">Come leggere valore, versato e guadagno</button>';
       h += '<div class="list">' + S.pos.map(function (p, i) {
         var z = stats[i];
-        return '<button class="row" data-act="posopen" data-id="' + p.id + '"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + (isCry(p) ? '' : esc(p.isin || 'Titolo / ETF') + ' · ') + qtyStr(z.k.qty, p) + ' ' + esc(unitL(p)) + (pxStale(p) ? ' · <span class="stale">prezzo del ' + shortD(z.pxDate) + '</span>' : '') + '</span></span><span class="v">' + money(z.value) + '<br><span class="sb ' + (z.gain >= 0 ? 'pos' : 'neg') + '">' + moneyS(z.gain) + ' · ' + pctS(z.pct) + '</span></span></button>';
+        return '<button class="row" data-act="posopen" data-id="' + p.id + '"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + (isCry(p) ? '' : esc(p.isin || 'Titolo / ETF') + ' · ') + qtyStr(z.k.qty, p) + ' ' + esc(unitL(p)) + (isAuto(p) ? ' · ⚡ auto' : pxStale(p) ? ' · <span class="stale">valore di ' + agoL(z.pxDate) + '</span>' : '') + '</span></span><span class="v">' + money(z.value) + '<br><span class="sb ' + (z.gain >= 0 ? 'pos' : 'neg') + '">' + moneyS(z.gain) + ' · ' + pctS(z.pct) + '</span></span></button>';
       }).join('') + '</div>';
     } else h += '<p class="empty">Nessun investimento. Aggiungi titoli, ETF o cripto.</p>';
     h += '<button class="pick addnew" data-act="newpos"><span class="ico">' + svg('plus') + '</span><span class="mid"><span class="nm">Aggiungi investimento</span></span></button></section>';
@@ -635,7 +635,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
       var p = posById(r.posId), nx = ruleNext(r);
       return '<button class="row" data-act="pacopen" data-id="' + r.id + '"><span class="ico">🔁</span><span class="mid"><span class="nm">' + esc(p ? p.name : 'PAC') + '</span><span class="sb">' + freqL(r) + ' · ' + (!r.active ? 'in pausa' : nx ? 'prossimo ' + dayLabel(nx) : 'terminato') + '</span></span><span class="v">' + money(r.cents) + '</span></button>';
     }).join('') + '</div>' : '<p class="empty">Nessun PAC.</p>') + '<button class="pick addnew" data-act="pacnew" data-id=""><span class="ico">' + svg('plus') + '</span><span class="mid"><span class="nm">Aggiungi PAC</span></span></button></section>';
-    h += '<p class="note">Prezzi inseriti a mano: nessun aggiornamento automatico. «Aggiorna prezzi» li cambia tutti insieme.</p>';
+    h += '<p class="note">Prezzi inseriti a mano: nessun aggiornamento automatico. «Aggiorna valori» li aggiorna tutti in pochi tocchi.</p>';
     return h;
   }
 
@@ -655,6 +655,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
       '<button class="navrow" data-act="managecats" data-k="spesa"><span>Categorie di spesa</span><span class="r">' + nS + svg('right') + '</span></button>' +
       '<button class="navrow" data-act="managecats" data-k="entrata"><span>Categorie di entrata</span><span class="r">' + nE + svg('right') + '</span></button>' +
       '<button class="navrow" data-act="managesubs" style="border-bottom:0"><span>Sottotipologie di conto</span><span class="r">' + S.subs.length + svg('right') + '</span></button></div></section>' +
+      '<section class="sec"><h2>Investimenti</h2><div class="card" style="padding:0 16px"><label class="sw" style="border-bottom:0"><span>Prezzi cripto automatici<br><span class="sb">Da CoinGecko all’apertura dell’app. Viene inviato solo il nome delle cripto, mai le quantità.</span></span><input type="checkbox" data-chg="autocry"' + (S.autoCry ? ' checked' : '') + ' aria-label="Prezzi cripto automatici"></label></div></section>' +
       '<section class="sec"><h2>Aiuto</h2><div class="card" style="padding:0 16px"><button class="navrow" data-act="guide" style="border-bottom:0"><span>Come funziona l’app</span><span class="r">' + svg('right') + '</span></button></div></section>' +
       '<section class="sec"><h2>Privacy</h2><div class="card" style="padding:0 16px"><label class="sw" style="border-bottom:0"><span>Nascondi gli importi<br><span class="sb">Utile in pubblico</span></span><input type="checkbox" data-chg="hide"' + (S.hide ? ' checked' : '') + ' aria-label="Nascondi gli importi"></label></div></section>' +
       '<section class="sec"><h2>Dati</h2><div class="card" style="padding:0 16px">' +
@@ -1291,7 +1292,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
     if (r.clamped && r.from <= r.to) foot = 'Dati dal ' + fullD(r.first) + '.';
     if (foot) h += '<p class="hint nwf">' + foot + '</p>';
     if (st.scope === 'all' && S.pos.length) h += '<button class="chip tog ' + (st.inv ? 'on' : '') + '" data-act="nwinv" aria-pressed="' + st.inv + '">' + (st.inv ? '✓ ' : '') + 'Con investimenti</button>';
-    if (pos1) h += '<div class="btns four"><button class="btn ghost" data-act="lotnew" data-id="' + pos1.id + '" data-dir="buy">Acquisto</button><button class="btn ghost" data-act="lotnew" data-id="' + pos1.id + '" data-dir="sell">Vendita</button><button class="btn ghost" data-act="pricenew" data-id="' + pos1.id + '">Prezzo</button><button class="btn ghost" data-act="poslist" data-id="' + pos1.id + '">Altro</button></div>';
+    if (pos1) h += '<div class="btns four"><button class="btn ghost" data-act="lotnew" data-id="' + pos1.id + '" data-dir="buy">Acquisto</button><button class="btn ghost" data-act="lotnew" data-id="' + pos1.id + '" data-dir="sell">Vendita</button><button class="btn ghost" data-act="pricenew" data-id="' + pos1.id + '">Valore</button><button class="btn ghost" data-act="poslist" data-id="' + pos1.id + '">Altro</button></div>';
     return h;
   }
   // Testata: valore, variazione e data del punto scelto (i = -1: fine periodo). Le altezze sono fisse: il layout non si sposta.
@@ -1435,7 +1436,8 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
       var tx = { id: uid('t'), kind: 'inv', dir: 'buy', cents: lot.tot, accId: accId, posId: p.id, lotId: lot.id, date: lot.d, note: '', ts: Date.now(), rule: '' };
       lot.txId = tx.id; S.tx.push(tx);
     }
-    S.pos.push(p); popLayer(); toast((cry ? 'Cripto aggiunta' : 'Investimento aggiunto')); nwOpen('pos:' + p.id);
+    S.pos.push(p); popLayer(); toast((cry ? 'Cripto aggiunta' : 'Investimento aggiunto')); openPosDetail(p.id);
+    if (cry && S.autoCry) cgLink().then(function () { return cgFetch(true); });
   }
 
   /* acquisto / vendita */
@@ -1498,24 +1500,6 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
   }
 
   /* prezzo */
-  function openPriceForm(posId, date) {
-    var p = posById(posId); if (!p) return;
-    var pt = date ? p.prices.filter(function (x) { return x.d === date; })[0] : null;
-    var html = scrHead(pt ? 'Modifica prezzo' : 'Aggiorna prezzo', !!pt) + '<div class="scrb"><div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + esc(posTag(p)) + '</span></span></div>' +
-      fld('Data', '<input type="date" id="x-date" max="' + TODAY + '" value="' + (pt ? pt.d : TODAY) + '">', 'x-date') +
-      fld('Prezzo per ' + (isCry(p) ? 'unità' : 'quota') + ' (' + SYM[S.cur] + ')', '<input id="x-px" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + (pt ? pxInput(pt.px) : '') + '">', 'x-px') +
-      '</div><div class="scrf"><p class="msg" id="x-msg" role="alert"></p><button class="btn" data-act="saveprice">Salva</button>' + (pt && p.prices.length > 1 ? '<button class="btn danger" data-act="delprice">Elimina</button>' : '') + '</div>';
-    pushLayer('screen', 'price', html, { posId: posId, d0: pt ? pt.d : '' });
-  }
-  function savePrice() {
-    var lay = layerOf('price'); if (!lay) return;
-    var st = lay.st, p = posById(st.posId), err = msgOf(lay, '#x-msg'), d = lay.el.querySelector('#x-date').value, px = parsePx(lay.el.querySelector('#x-px').value);
-    var de = dateOk(d, null); if (de) return err(de);
-    if (px === null || px <= 0) return err('Prezzo non valido.');
-    var snap = snapAll();
-    if (st.d0 && st.d0 !== d) p.prices = p.prices.filter(function (x) { return x.d !== st.d0; });
-    setPrice(p, d, px, false); popLayer(); toast('Prezzo salvato', function () { restoreAll(snap); });
-  }
   function delPrice(el) {
     var lay = layerOf('price'); if (!lay) return; var st = lay.st, p = posById(st.posId);
     if (!twoTap(el, 'px' + st.d0)) return;
@@ -1929,38 +1913,208 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
     deliverFile(csvOf(list), name, ['text/csv', 'text/plain'], 'Movimenti UFinance', function (how) { toast(how === 'share' ? 'File CSV condiviso.' : 'File CSV scaricato.'); });
   }
 
-  /* ---------- aggiornamento rapido dei prezzi di tutti gli investimenti ---------- */
-  function pxStale(p) { return p.prices.length && posQtyAt(p, TODAY) > 0 && p.prices[p.prices.length - 1].d < addDays(TODAY, -7); }
+  /* ---------- aggiornamento dei valori: guidato, un investimento alla volta ---------- */
+  function pxShort(px) { return S.hide ? '•••• ' + SYM[S.cur] : (px / 1e6).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + ' ' + SYM[S.cur]; }
+  function lastPx(p) { return p.prices.length ? p.prices[p.prices.length - 1] : null; }
+  function isAuto(p) { return isCry(p) && !!S.autoCry && !!p.cgId; }
+  function pxStale(p) { var l = lastPx(p); return !!l && posQtyAt(p, TODAY) > 0 && !isAuto(p) && l.d < addDays(TODAY, -7); }
+  function agoL(d) { var n = dn(TODAY) - dn(d); return n <= 0 ? 'oggi' : n === 1 ? 'ieri' : n + ' giorni fa'; }
+  function unitOf(p) { return isCry(p) ? 'unità' : 'quota'; }
   function openPxAll() {
-    var ps = S.pos.filter(function (p) { return posQtyAt(p, TODAY) > 0; });
-    if (!ps.length) { toast('Nessun investimento posseduto.'); return; }
-    var html = scrHead('Aggiorna prezzi', true) + '<div class="scrb"><p class="hint">Prezzo di oggi per 1 quota o unità, in ' + SYM[S.cur] + '. Lascia vuoto ciò che non vuoi cambiare.</p><div class="list">' + ps.map(function (p) {
-      var last = p.prices[p.prices.length - 1];
-      return '<div class="row brow"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><label class="mid" for="px-' + p.id + '"><span class="nm">' + esc(p.name) + '</span><span class="sb' + (pxStale(p) ? ' stale' : '') + '">Ultimo: ' + (last ? pxStr(last.px) + ' · ' + dayLabel(last.d) : '—') + '</span></label>' +
-        '<input id="px-' + p.id + '" inputmode="decimal" autocomplete="off" placeholder="' + (last ? esc(pxInput(last.px)) : '0,00') + '"></div>';
-    }).join('') + '</div></div><div class="scrf"><p class="msg" id="px-msg" role="alert"></p><button class="btn" data-act="savepxall">Salva prezzi di oggi</button></div>';
-    pushLayer('screen', 'pxall', html, {});
+    var ids = S.pos.filter(function (p) { var l = lastPx(p); return posQtyAt(p, TODAY) > 0 && !(isAuto(p) && l && l.d === TODAY); }).map(function (p) { return p.id; });
+    if (!ids.length) { toast(S.pos.length ? 'Valori già aggiornati.' : 'Nessun investimento posseduto.'); return; }
+    var lay = pushLayer('screen', 'pxwiz', scrHead('Aggiorna valori', false) + '<div class="scrb" id="w-body"></div><div class="scrf"><p class="msg" id="w-msg" role="alert"></p><div class="btnrow"><button class="btn ghost" data-act="pxwskip">Salta</button><button class="btn" id="w-next" data-act="pxwnext">Avanti</button></div></div>',
+      { ids: ids, i: 0, mode: 'val', done: 0, snap: snapAll() });
+    lay.el.classList.add('fixed');
+    pxwDraw();
   }
-  function savePxAll() {
-    var lay = layerOf('pxall'); if (!lay) return;
-    var err = msgOf(lay, '#px-msg'), upd = [], bad = '';
-    S.pos.forEach(function (p) {
-      var i = lay.el.querySelector('#px-' + p.id); if (!i || bad) return;
-      var raw = i.value.trim(); if (!raw) return;
-      var v = parsePx(raw); if (v === null || v <= 0 || v > PMAX) bad = p.name; else upd.push([p, v]);
-    });
-    if (bad) return err('Prezzo non valido per «' + bad + '».');
-    if (!upd.length) return err('Inserisci almeno un prezzo.');
+  function pxwDraw() {
+    var lay = layerOf('pxwiz'); if (!lay) return;
+    var st = lay.st, p = posById(st.ids[st.i]); if (!p) { pxwStep(); return; }
+    var q = posQtyAt(p, TODAY), l = lastPx(p), lv = l ? valCents(q, l.px) : 0, val = st.mode === 'val';
+    lay.el.querySelector('#w-body').innerHTML = '<p class="cap" style="text-align:center">' + (st.i + 1) + ' di ' + st.ids.length + '</p>' +
+      '<div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + qtyStr(q, p) + ' ' + esc(unitL(p)) + ' · ' + esc(posTag(p)) + '</span></span></div>' +
+      (l ? '<div class="kv"><span>Ultimo valore</span><span>' + money(lv) + ' · ' + agoL(l.d) + '</span></div>' : '') +
+      '<div class="fld"><label for="w-in" class="wq">' + (val ? 'Quanto vale oggi la posizione?' : 'Prezzo di oggi per 1 ' + unitOf(p)) + '</label>' +
+      '<input id="w-in" class="bigin" data-in="pxw" inputmode="decimal" autocomplete="off" placeholder="' + (l ? esc(val ? amtStr(lv) : pxInput(l.px)) : '0,00') + '">' +
+      '<p class="hint" id="w-hint">' + (val ? 'Il numero che vedi nell’app della banca o del broker.' : '') + '</p></div>' +
+      '<button class="lnk" data-act="pxwmode" style="align-self:flex-start">' + (val ? 'Conosco il prezzo per ' + unitOf(p) : 'Conosco il valore totale') + '</button>';
+    lay.el.querySelector('#w-next').textContent = st.i === st.ids.length - 1 ? 'Salva e chiudi' : 'Avanti';
+    var m = lay.el.querySelector('#w-msg'); m.textContent = ''; m.className = 'msg';
+    var inp = lay.el.querySelector('#w-in'); try { inp.focus({ preventScroll: true }); } catch (e) {}
+  }
+  // prezzo per quota ricavato dall'input (valore totale o prezzo): null se vuoto, -1 se non valido
+  function pxwPx(st, p, raw) {
+    if (!raw) return null;
+    if (st.mode === 'px') { var v = parsePx(raw); return v === null || v <= 0 || v > PMAX ? -1 : v; }
+    var c = parseCents(raw), q = posQtyAt(p, TODAY); if (c === null || c <= 0 || q <= 0) return -1;
+    var x = lotPx(c, q); return x > PMAX ? -1 : x;
+  }
+  function pxwHint() {
+    var lay = layerOf('pxwiz'); if (!lay) return;
+    var st = lay.st, p = posById(st.ids[st.i]); if (!p) return;
+    var raw = lay.el.querySelector('#w-in').value.trim(), px = pxwPx(st, p, raw), h = lay.el.querySelector('#w-hint'), l = lastPx(p), q = posQtyAt(p, TODAY);
+    var wm = lay.el.querySelector('#w-msg'); wm.textContent = ''; wm.className = 'msg';
+    if (px === null) { h.textContent = st.mode === 'val' ? 'Il numero che vedi nell’app della banca o del broker.' : ''; return; }
+    if (px < 0) { h.textContent = 'Importo non valido.'; return; }
+    var nv = valCents(q, px), lv = l ? valCents(q, l.px) : 0;
+    h.textContent = (st.mode === 'val' ? 'Prezzo per ' + unitOf(p) + ': ' + pxShort(px) : 'Valore della posizione: ' + money(nv)) + (lv > 0 ? ' · ' + pctS(chgPct(lv, nv)) + ' dall’ultimo aggiornamento' : '');
+  }
+  function pxwNext(skip) {
+    var lay = layerOf('pxwiz'); if (!lay) return;
+    var st = lay.st, p = posById(st.ids[st.i]);
+    if (!skip && p) {
+      var raw = lay.el.querySelector('#w-in').value.trim(), px = pxwPx(st, p, raw);
+      if (px === -1) { var m = lay.el.querySelector('#w-msg'); m.textContent = 'Importo non valido: correggilo o tocca «Salta».'; m.className = 'msg bad'; return; }
+      if (px) { setPrice(p, TODAY, px, false); st.done += 1; touch(); }
+    }
+    pxwStep();
+  }
+  function pxwStep() {
+    var lay = layerOf('pxwiz'); if (!lay) return;
+    var st = lay.st; st.i += 1; st.mode = 'val';
+    if (st.i < st.ids.length) { pxwDraw(); return; }
+    var snap = st.snap, n = st.done; popLayer();
+    if (n) toast(n === 1 ? '1 valore aggiornato' : n + ' valori aggiornati', function () { restoreAll(snap); });
+  }
+
+  /* ---------- modulo «Aggiorna valore» di un investimento: valore della posizione o prezzo per quota ---------- */
+  function openPriceForm(posId, date) {
+    var p = posById(posId); if (!p) return;
+    var pt = date ? p.prices.filter(function (x) { return x.d === date; })[0] : null;
+    var html = scrHead(pt ? 'Modifica prezzo' : 'Aggiorna valore', !!pt) + '<div class="scrb"><div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + esc(posTag(p)) + '</span></span></div>' +
+      fld('Data', '<input type="date" id="x-date" max="' + TODAY + '" value="' + (pt ? pt.d : TODAY) + '">', 'x-date') + '<div id="x-form" class="fcol"></div>' +
+      '</div><div class="scrf"><p class="msg" id="x-msg" role="alert"></p><button class="btn" data-act="saveprice">Salva</button>' + (pt && p.prices.length > 1 ? '<button class="btn danger" data-act="delprice">Elimina</button>' : '') + '</div>';
+    var lay = pushLayer('screen', 'price', html, { posId: posId, d0: pt ? pt.d : '', mode: pt ? 'px' : 'val', px0: pt ? pt.px : 0 });
+    priceForm(lay);
+  }
+  function priceForm(lay) {
+    var st = lay.st, p = posById(st.posId), d = lay.el.querySelector('#x-date').value || TODAY, q = posQtyAt(p, d), val = st.mode === 'val' && q > 0;
+    var keep = lay.el.querySelector('#x-in') ? lay.el.querySelector('#x-in').value : (st.px0 ? pxInput(st.px0) : '');
+    if (lay.el.querySelector('#x-in') && (lay.el.querySelector('#x-in').dataset.m !== (val ? 'val' : 'px'))) keep = '';
+    lay.el.querySelector('#x-form').innerHTML = (q > 0 ? seg2('x-modes', 'xmode', 'm', val ? 'val' : 'px', [['val', 'Valore posizione'], ['px', 'Prezzo per ' + unitOf(p)]]) : '') +
+      fld(val ? 'Quanto vale la posizione (' + SYM[S.cur] + ')' : 'Prezzo per 1 ' + unitOf(p) + ' (' + SYM[S.cur] + ')', '<input id="x-in" data-m="' + (val ? 'val' : 'px') + '" data-in="xpx" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + esc(keep) + '">', 'x-in') +
+      '<p class="hint" id="x-hint"></p>';
+    priceHint();
+  }
+  function priceHint() {
+    var lay = layerOf('price'); if (!lay) return;
+    var st = lay.st, p = posById(st.posId), d = lay.el.querySelector('#x-date').value || TODAY, q = posQtyAt(p, d), i = lay.el.querySelector('#x-in'), h = lay.el.querySelector('#x-hint');
+    if (!i || !h) return;
+    var raw = i.value.trim(), val = i.dataset.m === 'val';
+    if (!raw) { h.textContent = q > 0 ? (val ? 'Il valore che vedi nell’app della banca o del broker. Quote al ' + shortD(d) + ': ' + qtyStr(q, p) + '.' : 'Possiedi ' + qtyStr(q, p) + ' ' + unitL(p) + ' al ' + shortD(d) + '.') : 'Nessuna quota posseduta in quella data: inserisci il prezzo.'; return; }
+    if (val) { var c = parseCents(raw); h.textContent = c === null || c <= 0 ? 'Importo non valido.' : 'Prezzo per ' + unitOf(p) + ': ' + pxShort(lotPx(c, q)); }
+    else { var x = parsePx(raw); h.textContent = x === null || x <= 0 ? 'Prezzo non valido.' : q > 0 ? 'Valore della posizione: ' + money(valCents(q, x)) : 'Nessuna quota posseduta in quella data: il prezzo resta nello storico.'; }
+  }
+  function savePrice() {
+    var lay = layerOf('price'); if (!lay) return;
+    var st = lay.st, p = posById(st.posId), err = msgOf(lay, '#x-msg'), d = lay.el.querySelector('#x-date').value, i = lay.el.querySelector('#x-in'), raw = i.value.trim(), px;
+    var de = dateOk(d, null); if (de) return err(de);
+    if (i.dataset.m === 'val') {
+      var c = parseCents(raw), q = posQtyAt(p, d);
+      if (c === null || c <= 0) return err('Valore non valido.');
+      if (q <= 0) return err('Nessuna quota posseduta in quella data: inserisci il prezzo.');
+      px = lotPx(c, q);
+    } else { px = parsePx(raw); if (px === null || px <= 0) return err('Prezzo non valido.'); }
+    if (px > PMAX) return err('Valore troppo alto: controlla l’importo.');
     var snap = snapAll();
-    upd.forEach(function (x) { setPrice(x[0], TODAY, x[1], false); });
-    popLayer(); toast(upd.length === 1 ? 'Prezzo aggiornato' : upd.length + ' prezzi aggiornati', function () { restoreAll(snap); });
+    if (st.d0 && st.d0 !== d) p.prices = p.prices.filter(function (x) { return x.d !== st.d0; });
+    setPrice(p, d, px, false); popLayer(); toast('Valore aggiornato: ' + money(posValue(p)), function () { restoreAll(snap); });
+  }
+
+  /* ---------- scheda dell'investimento ---------- */
+  function openPosDetail(id) {
+    if (!posById(id)) return;
+    var lay = pushLayer('screen', 'posd', posdHtml(id), { id: id });
+    lay.refresh = function () { if (!posById(id)) { popLayer(); return; } lay.el.querySelector('.scr').innerHTML = posdHtml(id); };
+  }
+  function posdHtml(id) {
+    var p = posById(id), z = posStat(p), k = z.k, q = k.qty, l = lastPx(p), auto = isAuto(p), stale = pxStale(p);
+    var avg = q > 0 ? lotPx(k.cost, q) : 0, lots = lotsSorted(p.lots).reverse(), pacs = S.rules.filter(function (r) { return r.type === 'pac' && r.posId === id; });
+    var h = scrHead(p.name, true) + '<div class="scrb">';
+    h += '<div class="posh"><span class="sb">' + esc(posTag(p)) + ' · ' + qtyStr(q, p) + ' ' + esc(unitL(p)) + '</span><div class="big">' + money(z.value) + '</div>' +
+      '<div class="nwchg"><b class="' + (z.gain > 0 ? 'pos' : z.gain < 0 ? 'neg' : '') + '">' + moneyS(z.gain) + ' · ' + pctS(z.pct) + '</b></div>' +
+      '<p class="sb">Hai versato ' + money(k.invested) + (k.proceeds ? ' e incassato ' + money(k.proceeds) + ' dalle vendite' : '') + '. Oggi vale ' + money(z.value) + '.</p></div>';
+    // freschezza del valore
+    if (q > 0) {
+      h += '<div class="card fresh' + (stale ? ' old' : '') + '"><div class="fr1"><span>' + (auto ? '⚡ Prezzo automatico' : stale ? '⚠️ Valore di ' + (l ? agoL(l.d) : '—') : '🏷️ Valore aggiornato ' + (l ? agoL(l.d) : '—')) + '</span>' +
+        (auto ? '<button class="tbtn" data-act="cgnow">Aggiorna ora</button>' : '<button class="tbtn pri" data-act="pricenew" data-id="' + id + '">Aggiorna valore</button>') + '</div>' +
+        '<p class="sb">' + (auto ? 'Da CoinGecko (' + esc(p.cgName || p.cgId) + ')' + (CG.at ? ' · ' + hhmm(CG.at) : '') + (CG.err ? ' · ultimo tentativo non riuscito' : '') : stale ? 'Il guadagno mostrato usa il prezzo del ' + shortD(l.d) + ': aggiornalo per vederlo attuale.' : 'Prezzo per ' + unitOf(p) + ': ' + (l ? pxStr(l.px) : '—')) + '</p></div>';
+      if (isCry(p) && S.autoCry && !p.cgId) h += '<button class="banner" data-act="cglink" style="text-align:left;width:100%">Non collegata a CoinGecko: tocca per cercarla.</button>';
+    }
+    h += '<div class="cells">' + cell('Prezzo medio di carico', q > 0 ? pxStr(avg) : '—', 'per ' + unitOf(p)) + cell('Prezzo attuale', l ? pxStr(l.px) : '—', l ? shortD(l.d) : '') +
+      cell('Rendimento annuo', xirrStr(z.xirr), z.xirr === null ? 'dopo 90 giorni' : 'tiene conto delle date') + cell(k.proceeds ? 'Guadagno realizzato' : 'Versato', k.proceeds ? moneyS(k.realized) : money(k.invested), k.proceeds ? 'con le vendite' : 'commissioni comprese') + '</div>';
+    h += '<button class="navrow card" data-act="posopen" data-chart="1" data-id="' + id + '" style="padding:0 16px"><span>📉 Andamento nel tempo</span><span class="r">' + svg('right') + '</span></button>';
+    h += '<div class="btns four"><button class="btn ghost" data-act="lotnew" data-id="' + id + '" data-dir="buy">+ Acquisto</button><button class="btn ghost" data-act="lotnew" data-id="' + id + '" data-dir="sell">− Vendita</button><button class="btn ghost" data-act="pacnew" data-id="' + id + '">🔁 PAC</button></div>';
+    h += '<section class="sec"><div class="sech"><h2>Operazioni</h2><button class="lnk" data-act="poslist" data-id="' + id + '">Tutte e storico prezzi</button></div>' + (lots.length ? '<div class="list">' + lots.slice(0, 8).map(function (x) {
+      var sell = x.qty < 0;
+      return '<button class="row" data-act="lotedit" data-id="' + esc(x.id) + '" data-pos="' + esc(id) + '"><span class="ico">' + (sell ? '➖' : '➕') + '</span><span class="mid"><span class="nm">' + (sell ? 'Vendita' : x.rule ? 'PAC' : 'Acquisto') + ' · ' + qtyStr(Math.abs(x.qty), p) + ' ' + esc(unitL(p)) + '</span><span class="sb">' + dayLabel(x.d) + ' · ' + pxStr(x.px) + (x.est ? ' · quantità stimata' : '') + '</span></span><span class="v">' + money(x.tot) + '</span></button>';
+    }).join('') + '</div>' : '<p class="empty">Nessuna operazione.</p>') + '</section>';
+    if (pacs.length) h += '<section class="sec"><h2>PAC</h2><div class="list">' + pacs.map(ruleRow).join('') + '</div></section>';
+    h += '<button class="lnk" data-act="invhelp" style="align-self:flex-start">Come leggere questi numeri</button>';
+    return h + '</div><div class="scrf"><button class="btn danger" data-act="delposopen" data-id="' + id + '">Elimina investimento…</button></div>';
+  }
+
+  /* ---------- prezzi automatici delle cripto (CoinGecko, solo se attivati) ---------- */
+  var CG = { at: 0, err: '', busy: false, API: 'https://api.coingecko.com/api/v3/' };
+  var CG_ID = /^[a-z0-9][a-z0-9-]{0,99}$/;
+  function cgGet(path) {
+    var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, 10000);
+    return fetch(CG.API + path, { signal: ctl ? ctl.signal : undefined, credentials: 'omit', referrerPolicy: 'no-referrer' })
+      .then(function (r) { clearTimeout(t); if (!r.ok) throw { code: 'http_' + r.status }; return r.json(); }, function (e) { clearTimeout(t); throw e; });
+  }
+  // collega le cripto senza id: simbolo identico (o nome), la più capitalizzata
+  async function cgLink() {
+    var todo = S.pos.filter(function (p) { return isCry(p) && !p.cgId; }), n = 0;
+    for (var i = 0; i < todo.length; i++) {
+      var p = todo[i], qry = (p.sym || p.name).trim(); if (!qry) continue;
+      try {
+        var r = await cgGet('search?query=' + encodeURIComponent(qry)), coins = (r && Array.isArray(r.coins)) ? r.coins : [];
+        var m = coins.filter(function (c) { return c && typeof c.id === 'string' && CG_ID.test(c.id) && (p.sym ? String(c.symbol).toUpperCase() === p.sym : fold(c.name) === fold(p.name)); })
+          .sort(function (a, b) { return (a.market_cap_rank || 1e9) - (b.market_cap_rank || 1e9); })[0];
+        if (m && posById(p.id)) { p.cgId = m.id; p.cgName = String(m.name || m.id).slice(0, 60); n++; }
+      } catch (e) { CG.err = errCode(e); }
+    }
+    if (n) touch();
+    return n;
+  }
+  async function cgFetch(force) {
+    if (!S.autoCry || CG.busy || (navigator.onLine === false)) return 0;
+    if (!force && Date.now() - CG.at < 15 * 60 * 1000) return 0;
+    var ps = S.pos.filter(function (p) { return isCry(p) && p.cgId && CG_ID.test(p.cgId); }); if (!ps.length) return 0;
+    CG.busy = true;
+    try {
+      var cur = S.cur.toLowerCase(), ids = ps.map(function (p) { return p.cgId; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
+      var r = await cgGet('simple/price?ids=' + encodeURIComponent(ids.join(',')) + '&vs_currencies=' + cur), n = 0;
+      ps.forEach(function (p) {
+        var v = r && r[p.cgId] && r[p.cgId][cur];
+        if (typeof v !== 'number' || !isFinite(v) || v <= 0) return;
+        var px = Math.round(v * 1e6); if (px <= 0 || px > PMAX || !posById(p.id)) return;
+        var l = lastPx(p); if (l && l.d === TODAY && l.px === px) return;
+        setPrice(p, TODAY, px, false); n++;
+      });
+      CG.at = Date.now(); CG.err = '';
+      if (n) { touch(); if (PER.canWrite && !PER.conf) { render(true); L.slice().forEach(function (ly) { if ((ly.name === 'posd' || ly.name === 'nw') && L.indexOf(ly) >= 0 && ly.refresh) ly.refresh(); }); } }
+      return n;
+    } catch (e) { CG.err = errCode(e); return 0; }
+    finally { CG.busy = false; }
+  }
+  async function cgEnable(on) {
+    S.autoCry = !!on; touch(); render();
+    if (!on) { toast('Prezzi cripto automatici disattivati.'); return; }
+    if (navigator.onLine === false) { toast('Attivati: si aggiorneranno quando c’è rete.'); return; }
+    toast('Collego le cripto a CoinGecko…');
+    var linked = await cgLink(), got = await cgFetch(true), miss = S.pos.filter(function (p) { return isCry(p) && !p.cgId; }).length;
+    toast(CG.err && !got ? 'CoinGecko non risponde: riprovo alla prossima apertura.' : (got ? 'Prezzi cripto aggiornati.' : 'Prezzi già aggiornati.') + (miss ? ' ' + miss + ' non trovate: controlla il simbolo.' : ''));
+    render();
   }
   function sheetInvHelp() {
     pushLayer('sheet', 'invhelp', shHead('Come leggere i numeri') + '<div class="guide">' +
-      '<h3>Valore</h3><p>Quote possedute × ultimo prezzo che hai inserito. I prezzi non si aggiornano da soli: usa «Aggiorna prezzi».</p>' +
+      '<h3>Valore</h3><p>Quote possedute × ultimo prezzo. Per aggiornarlo basta inserire quanto vale la posizione nell’app del broker («Aggiorna valori»): il prezzo per quota lo calcola l’app. Le cripto possono aggiornarsi da sole (Impostazioni → Investimenti).</p>' +
       '<h3>Versato</h3><p>Tutto ciò che hai pagato per gli acquisti, commissioni comprese.</p>' +
       '<h3>Guadagno</h3><p>Valore + incassi delle vendite − versato. La percentuale è calcolata sul versato.</p>' +
       '<h3>Rendimento annuo</h3><p>Tiene conto di quando hai versato i soldi (metodo XIRR): confrontabile con un tasso annuo. Compare dopo 90 giorni dal primo acquisto.</p>' +
+      '<h3>Prezzo medio di carico</h3><p>Quanto ti è costata in media ogni quota ancora posseduta (costo medio ponderato).</p>' +
       '<h3>PAC</h3><p>Acquisti automatici a cadenza fissa. La quantità è stimata con il prezzo di quel giorno: correggila con quella del broker toccando l’operazione (segnata «stima»).</p>' +
       '</div><button class="btn" data-act="close">Ho capito</button>');
   }
@@ -2016,7 +2170,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
   function errCode(e) { return (e && e.code) || (e && e.message) || 'unknown'; }
   function snapState() {
     return { schema: SCHEMA, subs: S.subs, cats: S.cats, accounts: S.accounts, gone: S.gone, tx: S.tx, pos: S.pos, rules: S.rules,
-      prefs: { theme: S.theme, cur: S.cur, hide: !!S.hide, lastAcc: S.lastAcc || '', homeView: S.homeView || 'all', demo: !!S.demo, lastBackup: S.lastBackup || '', guideDone: !!S.guideDone } };
+      prefs: { theme: S.theme, cur: S.cur, hide: !!S.hide, lastAcc: S.lastAcc || '', homeView: S.homeView || 'all', demo: !!S.demo, lastBackup: S.lastBackup || '', guideDone: !!S.guideDone, autoCry: !!S.autoCry } };
   }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function maxSeq(sn) {
@@ -2031,7 +2185,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
     S.subs = sn.subs; S.cats = sn.cats; S.accounts = sn.accounts; S.gone = sn.gone; S.tx = sn.tx; S.pos = sn.pos; S.rules = sn.rules;
     if (pr.cur === 'EUR' || pr.cur === 'USD') S.cur = pr.cur;
     if (pr.theme === 'chiaro' || pr.theme === 'scuro') { S.theme = pr.theme; document.documentElement.setAttribute('data-uf', S.theme); }
-    S.hide = !!pr.hide; S.demo = !!pr.demo; S.lastBackup = pr.lastBackup || ''; S.guideDone = !!pr.guideDone;
+    S.hide = !!pr.hide; S.demo = !!pr.demo; S.lastBackup = pr.lastBackup || ''; S.guideDone = !!pr.guideDone; S.autoCry = !!pr.autoCry;
     S.lastAcc = acc(pr.lastAcc) ? pr.lastAcc : null;
     S.homeView = pr.homeView || 'all';
     seq = Math.max(seq, maxSeq(sn));
@@ -2039,7 +2193,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
     savePrefs();
   }
   function emptyState() {
-    S.accounts = []; S.gone = []; S.tx = []; S.pos = []; S.rules = []; S.demo = false; S.lastAcc = null; S.homeView = 'all'; S.lastBackup = ''; S.guideDone = false;
+    S.accounts = []; S.gone = []; S.tx = []; S.pos = []; S.rules = []; S.demo = false; S.lastAcc = null; S.homeView = 'all'; S.lastBackup = ''; S.guideDone = false; S.autoCry = false;
     baseData(); S.an.accIds = null; S.an.sel = -1;
   }
   // Controlli sui dati letti da file o archivio: niente markup nei testi, limiti di dimensione, date plausibili.
@@ -2122,6 +2276,8 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
       if (typeof p.isin !== 'string' || (p.isin !== '' && !isinOk(p.isin))) bad('ISIN non valido (' + p.id + ').');
       if (p.kind !== 'inv' && p.kind !== 'crypto') bad('Tipo di investimento non valido (' + p.id + ').');
       if (typeof p.sym !== 'string' || p.sym.length > 12) bad('Simbolo non valido (' + p.id + ').');
+      if (p.cgId !== undefined && (typeof p.cgId !== 'string' || !/^[a-z0-9][a-z0-9-]{0,99}$/.test(p.cgId))) bad('Collegamento CoinGecko non valido (' + p.id + ').');
+      if (p.cgName !== undefined && !txtOk(p.cgName, 100)) bad('Collegamento CoinGecko non valido (' + p.id + ').');
       if (!txtOk(p.name, 100) || !p.name) bad('Investimento senza nome.');
       if (p.lots.length > LIM.lots || p.prices.length > LIM.prices) bad('Troppe operazioni (' + p.id + ').');
       var lid = {};
@@ -2163,6 +2319,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
     if (pf.homeView !== undefined && (typeof pf.homeView !== 'string' || pf.homeView.length > 60)) bad('Preferenze non valide.');
     if (pf.lastAcc !== undefined && typeof pf.lastAcc !== 'string') bad('Preferenze non valide.');
     if (pf.guideDone !== undefined && typeof pf.guideDone !== 'boolean') bad('Preferenze non valide.');
+    if (pf.autoCry !== undefined && typeof pf.autoCry !== 'boolean') bad('Preferenze non valide.');
     if (pf.lastBackup !== undefined && pf.lastBackup !== '' && !dRange(pf.lastBackup)) bad('Preferenze non valide.');
     return e;
   }
@@ -2199,7 +2356,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
       code === 'data_invalid' || code === 'chunk_corrupt' || code === 'chunk_missing' || code === 'meta_invalid' || code === 'corrupt' ? 'I dati salvati risultano incompleti o danneggiati.' : 'Non riesco a leggere i dati salvati.';
     splash('<p>' + msg + ' Non ho modificato nulla.</p><div class="splashb"><button class="btn" data-act="retryboot">Riprova</button><label class="btn ghost" for="imp-file" role="button">Ripristina da un backup</label></div>');
   }
-  function enter() { document.body.classList.remove('boot'); PER.canWrite = true; render(); touch(); if (!PER.snapDone) { PER.snapDone = true; snapCapture('auto', 'Salvataggio automatico'); } }
+  function enter() { document.body.classList.remove('boot'); PER.canWrite = true; render(); touch(); setTimeout(function () { cgFetch(false); }, 500); if (!PER.snapDone) { PER.snapDone = true; snapCapture('auto', 'Salvataggio automatico'); } }
   function startFresh(demo) {
     if (demo) { S.accounts = []; S.gone = []; S.tx = []; S.pos = []; S.rules = []; seed(); S.demo = true; }
     else emptyState();
@@ -2568,7 +2725,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
   window.addEventListener('pagehide', function () { if (PER.canWrite && PER.dirty) { clearTimeout(PER.timer); flush(); } });
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') { if (PER.canWrite && PER.dirty) { clearTimeout(PER.timer); flush(); } }
-    else checkRemote();
+    else { checkRemote(); cgFetch(false); }
   });
   // Cambio di giorno con l'app aperta e visibile (es. a mezzanotte): stesso controllo, ogni minuto.
   setInterval(function () { if (document.visibilityState === 'visible' && ymd(new Date()) !== TODAY) checkRemote(); }, 60000);
@@ -2663,7 +2820,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
       case 'anpers': sheetAnPers(); break;
       case 'catkind': S.an.catKind = d.k; render(); break;
       case 'chart': S.an.chart = d.k; render(); break;
-      case 'pos': case 'posopen': if (lay && lay.kind === 'sheet') popLayer(); nwOpen('pos:' + d.id); break;
+      case 'pos': case 'posopen': if (lay && lay.kind === 'sheet') popLayer(); if (d.chart) nwOpen('pos:' + d.id); else openPosDetail(d.id); break;
       case 'posinv': nwOpen('inv'); break;
       case 'newpos': openPosForm(); break;
       case 'savepos': savePos(); break;
@@ -2719,7 +2876,12 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
       case 'savebud': saveBudgets(); break;
       case 'budtx': openTxList({ cat: d.id, per: 'month', kind: 'spesa' }); break;
       case 'pxall': openPxAll(); break;
-      case 'savepxall': savePxAll(); break;
+      case 'pxwnext': pxwNext(false); break;
+      case 'pxwskip': pxwNext(true); break;
+      case 'pxwmode': al = layerOf('pxwiz'); if (al) { al.st.mode = al.st.mode === 'val' ? 'px' : 'val'; pxwDraw(); } break;
+      case 'xmode': al = layerOf('price'); if (al) { al.st.mode = d.m; priceForm(al); } break;
+      case 'cgnow': cgFetch(true).then(function (n) { toast(CG.err ? 'CoinGecko non risponde: riprova più tardi.' : n ? 'Prezzi cripto aggiornati.' : 'Prezzi già aggiornati.'); }); break;
+      case 'cglink': cgLink().then(function (n) { if (!n) toast('Non trovata su CoinGecko: controlla il simbolo (es. BTC).'); return cgFetch(true); }).then(function () { L.slice().forEach(function (ly) { if (ly.refresh && L.indexOf(ly) >= 0) ly.refresh(); }); render(true); }); break;
       case 'invhelp': sheetInvHelp(); break;
       case 'guide': openGuide(); break;
       case 'guidex': S.guideDone = true; render(); toast('Primi passi nascosti. La guida resta in Impostazioni.'); break;
@@ -2754,9 +2916,11 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
       return;
     }
     if (el.id && el.id.indexOf('k-') === 0) { syncPac(); return; }
+    if (el.id === 'x-date') { var pl = layerOf('price'); if (pl) priceForm(pl); return; }
     if (el.id === 'r-freq') { var rl = layerOf('ruleform'); if (rl) cadShow(rl, 'r'); return; }
     if (!k) return;
     if (k === 'hide') { S.hide = el.checked; savePrefs(); render(); }
+    else if (k === 'autocry') cgEnable(el.checked);
     else if (k === 'block') { S.an.blocks[el.dataset.b] = el.checked; render(); }
     else if (k === 'nwrange') {
       var nl2 = layerOf('nw'); if (!nl2) return;
@@ -2787,6 +2951,8 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
     } else if (el.id === 'a-note') { var al = layerOf('add'); if (al) al.st.note = el.value; }
     else if (di === 'accname' || di === 'accopen') syncAcc();
     else if (di === 'catname') syncCat();
+    else if (di === 'xpx') priceHint();
+    else if (di === 'pxw') pxwHint();
     else if (di === 'txl') { clearTimeout(txlT); txlT = setTimeout(function () { if (txlRead()) txlDraw(false); }, el.id === 'tl-q' ? 120 : 250); }
   });
   // Mentre scrivi la nota il tastierino si nasconde: la schermata non si sposta.
@@ -2805,6 +2971,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
   document.addEventListener('keydown', function (e) {
     var lay = topL(); if (!lay) return;
     if (e.key === 'Escape') { if (lay.name !== 'conf') popLayer(); return; }
+    if (lay.name === 'pxwiz' && e.key === 'Enter') { e.preventDefault(); pxwNext(false); return; }
     if (lay.name !== 'add') return;
     var tag = document.activeElement ? document.activeElement.tagName : '';
     if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') { if (e.key === 'Enter' && document.activeElement.id === 'a-note') document.activeElement.blur(); return; }
@@ -2814,7 +2981,7 @@ window.UF_BUILD = '2026-11-02 · 052c44bd';
     else if (e.key === 'Enter') saveTx();
   });
 
-  window.__UF = Object.assign(testHooks(), { P: PER, snapState: snapState, applySnap: applySnap, validateSnap: validateSnap, readBackup: readBackup, hash53: hash53, stable: stable, boot: boot, summ: summ, exportBackup: exportBackup, emptyState: emptyState, S: S, L: L, balance: balance, netWorth: netWorth, parseCents: parseCents, isinOk: isinOk, posValue: posValue, alloc: alloc, buckets: buckets, range: range, stats: stats, scopeValue: scopeValue, scopeSet: scopeSet, act: act, render: render, nwSeries: nwSeries, firstDate: firstDate, delPlan: delPlan, accName: accName, nwRange: nwRange, pctS: pctS, chgPct: chgPct, nwPointer: nwPointer, portfolioValue: portfolioValue, posCalc: posCalc, posStat: posStat, xirr: xirr, runRules: runRules, nthDate: nthDate, lotsOk: lotsOk, pxAt: pxAt, snapAll: snapAll, restoreAll: restoreAll, parsePx: parsePx, delPosPlan: delPosPlan,  TODAY: TODAY, money: money, addDays: addDays, dn: dn, ymd: ymd, parseD: parseD, posById: posById, encryptBackup: encryptBackup, decryptBackup: decryptBackup, snapCapture: snapCapture, remBanner: remBanner, gz: gz, gunz: gunz, openTxList: openTxList, txlFilter: txlFilter, csvOf: csvOf, budgetState: budgetState, goalInfo: goalInfo, budNote: budNote });
+  window.__UF = Object.assign(testHooks(), { P: PER, snapState: snapState, applySnap: applySnap, validateSnap: validateSnap, readBackup: readBackup, hash53: hash53, stable: stable, boot: boot, summ: summ, exportBackup: exportBackup, emptyState: emptyState, S: S, L: L, balance: balance, netWorth: netWorth, parseCents: parseCents, isinOk: isinOk, posValue: posValue, alloc: alloc, buckets: buckets, range: range, stats: stats, scopeValue: scopeValue, scopeSet: scopeSet, act: act, render: render, nwSeries: nwSeries, firstDate: firstDate, delPlan: delPlan, accName: accName, nwRange: nwRange, pctS: pctS, chgPct: chgPct, nwPointer: nwPointer, portfolioValue: portfolioValue, posCalc: posCalc, posStat: posStat, xirr: xirr, runRules: runRules, nthDate: nthDate, lotsOk: lotsOk, pxAt: pxAt, snapAll: snapAll, restoreAll: restoreAll, parsePx: parsePx, delPosPlan: delPosPlan,  TODAY: TODAY, money: money, addDays: addDays, dn: dn, ymd: ymd, parseD: parseD, posById: posById, encryptBackup: encryptBackup, decryptBackup: decryptBackup, snapCapture: snapCapture, remBanner: remBanner, gz: gz, gunz: gunz, openTxList: openTxList, txlFilter: txlFilter, csvOf: csvOf, budgetState: budgetState, goalInfo: goalInfo, budNote: budNote, cgFetch: cgFetch, cgLink: cgLink, CG: CG, openPosDetail: openPosDetail });
     window.addEventListener('uf-toast', function (e) { toast(String(e.detail || '')); });
 boot();
 })();
