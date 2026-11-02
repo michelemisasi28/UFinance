@@ -289,3 +289,29 @@ input, textarea, select { -webkit-user-select: text; user-select: text; font-siz
 button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 #upd { display: block; width: 100%; text-align: left; margin: 0 0 10px; background: var(--surface); font-size: 14px; }
 .frow.split .half:has(input[type="date"]:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* ===== Budget, obiettivi, ricerca, prezzi, guida ===== */
+.pbar { position: relative; height: 8px; background: var(--bg); border-radius: 999px; overflow: visible; margin: 2px 0; }
+.pbar > b { display: block; height: 100%; border-radius: 999px; background: var(--inc); max-width: 100%; }
+.pbar.warn > b { background: var(--warn); }
+.pbar.over > b { background: var(--out); }
+.pbar.goal > b { background: var(--accent); }
+.pbar.done > b { background: var(--inc); }
+.pbar .pace { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ink); opacity: 0.45; border-radius: 1px; }
+.budrow { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; }
+.budrow:last-child { border-bottom: 0; }
+.brow { grid-template-columns: 40px minmax(0, 1fr) 112px; }
+.brow input { min-height: 42px; padding: 6px 10px; text-align: right; font-variant-numeric: tabular-nums; }
+.stale { color: var(--warn); font-weight: 500; }
+.steps .step { display: flex; align-items: center; gap: 12px; min-height: 56px; width: 100%; text-align: left; border-bottom: 1px solid var(--line); }
+.steps .step .dot { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; flex: none; font-size: 13px; font-weight: 600; color: var(--muted); }
+.steps .step .dot .ic { width: 16px; height: 16px; }
+.steps .step.done { opacity: 1; cursor: default; }
+.steps .step.done .dot { background: var(--inc); border-color: var(--inc); color: #fff; }
+.steps .step.done .nm { color: var(--muted); text-decoration: line-through; }
+.tlm { margin: 14px 0 4px; }
+#tl-body > input[type="search"] { flex: none; }
+.guide h3 { font-size: 16px; font-weight: 600; margin: 10px 0 2px; }
+.guide p { color: var(--muted); font-size: 15px; margin: 0 0 6px; }
+.guide b { color: var(--ink); font-weight: 600; }
+.sech .acts { align-items: center; }
