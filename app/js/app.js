@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · fbb89f72';
+window.UF_BUILD = '2026-11-02 · 5a837052';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -2330,7 +2330,7 @@ window.UF_BUILD = '2026-11-02 · fbb89f72';
   function maybeTour() { if (S.tourDone || window.UF_TEST_NOTOUR || L.length || TOURST || document.body.classList.contains('boot')) return; startTour(); }
   function startTour() {
     if (TOURST) return;
-    while (L.length) L.pop().el.remove(); document.body.classList.remove('lock');
+    while (L.length) L.pop().el.remove(); lockPage(false);
     var el = document.createElement('div');
     el.id = 'tour'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Tutorial');
     el.innerHTML = '<div class="tour-hole"></div><div class="tour-card" aria-live="polite"></div>';
@@ -2958,7 +2958,7 @@ window.UF_BUILD = '2026-11-02 · fbb89f72';
     } catch (e) { el.disabled = false; PER.canWrite = true; var m = $('#rs-msg'); if (m) { m.textContent = 'Non riesco a cancellare i dati. Riprova.'; m.className = 'msg bad'; } return; }
     PER.base = 0; PER.sig = ''; PER.dirty = false; PER.status = 'ok'; PER.conf = null;
     if (BC) { try { BC.postMessage({ reset: true }); } catch (e) {} }
-    while (L.length) L.pop().el.remove(); document.body.classList.remove('lock');
+    while (L.length) L.pop().el.remove(); lockPage(false);
     emptyState(); S.tab = 'home'; welcome();
   }
   window.addEventListener('pagehide', function () { if (PER.canWrite && PER.dirty) { clearTimeout(PER.timer); flush(); } });
@@ -3234,23 +3234,31 @@ window.UF_BUILD = '2026-11-02 · fbb89f72';
   }
   if (VV) { VV.addEventListener('resize', vvSync); VV.addEventListener('scroll', vvSync); vvSync(); }
   document.addEventListener('focusin', function (e) { if (L.length && e.target.closest && e.target.closest('.layer')) setTimeout(revealFocus, 350); });
-  var tX = 0, tY = 0;
-  document.addEventListener('touchstart', function (e) { if (e.touches.length === 1) { tX = e.touches[0].clientX; tY = e.touches[0].clientY; } }, { passive: true });
-  document.addEventListener('touchmove', function (e) {
-    if (!L.length || e.touches.length !== 1) return;
-    var t = e.touches[0], dx = t.clientX - tX, dy = t.clientY - tY; tX = t.clientX; tY = t.clientY;
-    if (!e.cancelable) return;
-    var n = e.target && e.target.nodeType === 1 ? e.target : e.target && e.target.parentElement;
+  // Una sola decisione per gesto (consenti/blocca), presa sullo spostamento totale dopo qualche pixel:
+  // un piccolo tremolio iniziale non blocca lo scorrimento (su iPhone bloccare il primo touchmove lo fermerebbe tutto).
+  var tX = 0, tY = 0, tDec = null;
+  document.addEventListener('touchstart', function (e) { tDec = null; if (e.touches.length === 1) { tX = e.touches[0].clientX; tY = e.touches[0].clientY; } }, { passive: true });
+  function touchDecide(target, dx, dy) {
+    var n = target && target.nodeType === 1 ? target : target && target.parentElement;
     for (; n && n !== document.body; n = n.parentElement) {
       var s = getComputedStyle(n);
-      if (Math.abs(dx) > Math.abs(dy)) { if (/(auto|scroll)/.test(s.overflowX) && n.scrollWidth > n.clientWidth + 1) return; }
+      if (Math.abs(dx) > Math.abs(dy)) { if (/(auto|scroll)/.test(s.overflowX) && n.scrollWidth > n.clientWidth + 1) return 'ok'; }
       else if (/(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight + 1) {
-        if ((dy > 0 && n.scrollTop <= 0) || (dy < 0 && n.scrollTop + n.clientHeight >= n.scrollHeight - 1)) break; // al bordo: niente rimbalzo dello schermo
-        return;
+        if ((dy > 0 && n.scrollTop <= 0) || (dy < 0 && n.scrollTop + n.clientHeight >= n.scrollHeight - 1)) return 'no'; // al bordo: niente rimbalzo dello schermo
+        return 'ok';
       }
       if (n.classList && n.classList.contains('layer')) break;
     }
-    e.preventDefault();
+    return 'no';
+  }
+  document.addEventListener('touchmove', function (e) {
+    if (!L.length || e.touches.length !== 1) return;
+    if (!tDec) {
+      var t = e.touches[0], dx = t.clientX - tX, dy = t.clientY - tY;
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      tDec = touchDecide(e.target, dx, dy);
+    }
+    if (tDec === 'no' && e.cancelable) e.preventDefault();
   }, { passive: false });
   // Mentre scrivi la nota il tastierino si nasconde: la schermata non si sposta.
   document.addEventListener('focusin', function (e) { if (e.target.id === 'a-note') { var al = layerOf('add'); if (al) al.el.classList.add('typing'); } });

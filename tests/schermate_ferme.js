@@ -107,6 +107,31 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok((await layerBox()).top === 0, 'foglio: resta fermo');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
 
+  // ---- Revisione: piccolo tremolio iniziale non blocca lo scorrimento del modulo ----
+  await p.evaluate(() => { const b = document.createElement('button'); b.dataset.id = __UF.S.accounts[0].id; __UF.act('accedit', b); }); await tick(p, 300);
+  const jit = await p.evaluate(() => {
+    const sc = __UF.L[__UF.L.length - 1].el.querySelector('.scrb'); sc.scrollTop = 200;
+    const tgt = sc.querySelector('.fld'), r = tgt.getBoundingClientRect(), x = r.left + 20, y = r.top + 10;
+    const T = (cx, cy) => new Touch({ identifier: 7, target: tgt, clientX: cx, clientY: cy });
+    const send = (type, cx, cy) => { const ev = new TouchEvent(type, { cancelable: true, bubbles: true, touches: type === 'touchend' ? [] : [T(cx, cy)], changedTouches: [T(cx, cy)] }); tgt.dispatchEvent(ev); return ev.defaultPrevented; };
+    send('touchstart', x, y);
+    const a = send('touchmove', x + 3, y - 1), b2 = send('touchmove', x + 3, y - 10), c = send('touchmove', x + 4, y - 30);
+    send('touchend', x + 4, y - 30);
+    send('touchstart', x, y); const d = send('touchmove', x + 1, y - 20); send('touchend', x, y);
+    return [a, b2, c, d];
+  });
+  ok(JSON.stringify(jit) === '[false,false,false,false]', 'tremolio orizzontale iniziale: lo scorrimento verticale del modulo non viene bloccato (' + JSON.stringify(jit) + ')');
+  await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
+
+  // ---- Revisione: dopo «Elimina tutti i dati» la Home torna scorrevole ----
+  await p.evaluate(() => { __UF.S.tab = 'settings'; __UF.render(); }); await open('resetopen');
+  for (let k = 0; k < 2 && await p.evaluate(() => __UF.L.length > 0); k++) { await p.click('.layer [data-act="resetgo"]'); await tick(p, 500); }
+  ok(await p.evaluate(() => __UF.L.length === 0), 'dati eliminati, schermata chiusa');
+  await p.click('[data-act="startdemo"]'); await tick(p, 1200);
+  ok(!(await p.evaluate(() => document.documentElement.classList.contains('lock') || document.body.classList.contains('lock'))), 'dopo il reset la pagina non resta bloccata');
+  await p.evaluate(() => window.scrollTo(0, 250)); await tick(p, 100);
+  ok((await p.evaluate(() => window.scrollY)) > 0, 'dopo il reset la Home scorre di nuovo');
+
   ok(!errs.length, 'nessun errore JavaScript' + (errs.length ? ': ' + errs.join(' | ') : ''));
   await b.close();
   console.log(fails ? 'FALLITI: ' + fails : 'TUTTI PASSATI');
