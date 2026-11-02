@@ -3,7 +3,7 @@
 //   node tools/stamp.js
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const APP = path.join(__dirname, '..', 'app');
-const files = ['index.html', 'css/app.css', 'js/repo.js', 'js/app.js', 'js/pwa.js', 'manifest.webmanifest'];
+const files = ['index.html', 'css/app.css', 'js/repo.js', 'js/voice.js', 'js/app.js', 'js/pwa.js', 'manifest.webmanifest'];
 const strip = (f, s) => f === 'js/app.js' ? s.replace(/^window\.UF_BUILD = '.*';\n/, '') : s;
 const h = crypto.createHash('sha256');
 for (const f of files) h.update(f + '\0' + strip(f, fs.readFileSync(path.join(APP, f), 'utf8')));

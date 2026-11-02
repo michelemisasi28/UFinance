@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · baf6f8be';
+window.UF_BUILD = '2026-11-02 · bc83dcbe';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -423,6 +423,7 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
     left: '<path d="M15 6l-6 6 6 6"/>', right: '<path d="M9 6l6 6-6 6"/>',
     check: '<path d="M5 12l5 5 9-10"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>',
     cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    mic: '<rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5"/>',
     back: '<path d="M15 6l-6 6 6 6"/>', del: '<path d="M21 5H9l-6 7 6 7h12z"/><path d="M13 9.5l4 5M17 9.5l-4 5"/>'
   };
   function svg(n, c) { return '<svg class="ic ' + (c || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[n] + '</svg>'; }
@@ -655,8 +656,8 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
       '<button class="navrow" data-act="managecats" data-k="spesa"><span>Categorie di spesa</span><span class="r">' + nS + svg('right') + '</span></button>' +
       '<button class="navrow" data-act="managecats" data-k="entrata"><span>Categorie di entrata</span><span class="r">' + nE + svg('right') + '</span></button>' +
       '<button class="navrow" data-act="managesubs" style="border-bottom:0"><span>Sottotipologie di conto</span><span class="r">' + S.subs.length + svg('right') + '</span></button></div></section>' +
-      '<section class="sec"><h2>Investimenti</h2><div class="card" style="padding:0 16px"><label class="sw" style="border-bottom:0"><span>Prezzi cripto automatici<br><span class="sb">Da CoinGecko all’apertura dell’app. Viene inviato solo il nome delle cripto, mai le quantità.</span></span><input type="checkbox" data-chg="autocry"' + (S.autoCry ? ' checked' : '') + ' aria-label="Prezzi cripto automatici"></label></div></section>' +
-      '<section class="sec"><h2>Aiuto</h2><div class="card" style="padding:0 16px"><button class="navrow" data-act="guide" style="border-bottom:0"><span>Come funziona l’app</span><span class="r">' + svg('right') + '</span></button></div></section>' +
+      '<section class="sec"><h2>Investimenti</h2><div class="card" style="padding:0 16px"><label class="sw" style="border-bottom:0"><span>Prezzi cripto automatici</span><input type="checkbox" data-chg="autocry"' + (S.autoCry ? ' checked' : '') + ' aria-label="Prezzi cripto automatici"></label></div></section>' +
+      '<section class="sec"><h2>Aiuto</h2><div class="card" style="padding:0 16px"><button class="navrow" data-act="tour"><span>Rivedi il tutorial</span><span class="r">' + svg('right') + '</span></button><button class="navrow" data-act="guide" style="border-bottom:0"><span>Come funziona l’app</span><span class="r">' + svg('right') + '</span></button></div></section>' +
       '<section class="sec"><h2>Privacy</h2><div class="card" style="padding:0 16px"><label class="sw" style="border-bottom:0"><span>Nascondi gli importi<br><span class="sb">Utile in pubblico</span></span><input type="checkbox" data-chg="hide"' + (S.hide ? ' checked' : '') + ' aria-label="Nascondi gli importi"></label></div></section>' +
       '<section class="sec"><h2>Dati</h2><div class="card" style="padding:0 16px">' +
       '<div class="navrow"><span>Stato<br><span class="sb" id="sync-sub">' + esc(syncText()) + '</span></span></div>' +
@@ -676,7 +677,7 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
       var home = t[0] === 'home';
       return '<button class="tab ' + (home ? 'home ' : '') + (S.tab === t[0] ? 'on' : '') + '" data-act="tab" data-tab="' + t[0] + '" aria-label="' + t[1] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + (home ? '<span class="hb">' + svg('home') + '</span>' : svg(t[2])) + '<span>' + t[1] + '</span></button>';
     }).join('');
-    $('#fabw').innerHTML = S.tab === 'home' ? '<button class="fab" data-act="add" aria-label="Aggiungi spesa o entrata">' + svg('plus') + '</button>' : '';
+    $('#fabw').innerHTML = S.tab === 'home' ? '<button class="fab mic" data-act="voice" aria-label="Inserisci movimenti a voce">' + svg('mic') + '</button>' + '<button class="fab add" data-act="add" aria-label="Aggiungi spesa o entrata">' + svg('plus') + '</button>' : '';
     if (!noSave) touch(); // il cambio di scheda non modifica i dati: niente salvataggio
   }
 
@@ -698,13 +699,14 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
   }
   function popLayer() {
     var lay = L.pop(); if (!lay) return null;
+    if (lay.name === 'voice') voiceStop();
     lastPopT = Date.now();
     lay.el.remove(); armed = null;
     if (!L.length) { document.body.classList.remove('lock'); render(); }
     else { var t = L[L.length - 1]; if (t.refresh) t.refresh(); }
     return lay;
   }
-  function closeAll() { lastPopT = Date.now(); while (L.length) L.pop().el.remove(); armed = null; document.body.classList.remove('lock'); render(); }
+  function closeAll() { voiceStop(); lastPopT = Date.now(); while (L.length) L.pop().el.remove(); armed = null; document.body.classList.remove('lock'); render(); }
   function scrHead(title, back, id) {
     return '<div class="scrh"><button class="x" data-act="close" aria-label="' + (back ? 'Indietro' : 'Chiudi') + '">' + svg(back ? 'back' : 'x') + '</button><h2' + (id ? ' id="' + id + '"' : '') + '>' + esc(title) + '</h2><span class="sp"></span></div>';
   }
@@ -2081,9 +2083,11 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
   async function cgFetch(force) {
     if (!S.autoCry || CG.busy || (navigator.onLine === false)) return 0;
     if (!force && Date.now() - CG.at < 15 * 60 * 1000) return 0;
-    var ps = S.pos.filter(function (p) { return isCry(p) && p.cgId && CG_ID.test(p.cgId); }); if (!ps.length) return 0;
+    if (!S.pos.some(isCry)) return 0;
     CG.busy = true;
     try {
+      if (!CG.linked && S.pos.some(function (p) { return isCry(p) && !p.cgId; })) { CG.linked = true; await cgLink(); }
+      var ps = S.pos.filter(function (p) { return isCry(p) && p.cgId && CG_ID.test(p.cgId); }); if (!ps.length) return 0;
       var cur = S.cur.toLowerCase(), ids = ps.map(function (p) { return p.cgId; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
       var r = await cgGet('simple/price?ids=' + encodeURIComponent(ids.join(',')) + '&vs_currencies=' + cur), n = 0;
       ps.forEach(function (p) {
@@ -2149,6 +2153,212 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
       '</div>', {});
   }
 
+  /* ---------- movimenti a voce: dettatura → anteprima modificabile → conferma ---------- */
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null, REC = null;
+  var VK = [['spesa', 'Spesa'], ['entrata', 'Entrata'], ['giro', 'Giroconto'], ['prestito', 'Prestito']];
+  function openVoice() {
+    if (!S.accounts.length) { toast('Crea prima un conto.'); return; }
+    var html = scrHead('Dillo a voce', false) + '<div class="scrb" id="v-body">' +
+      (SR ? '<button class="micbtn" id="v-mic" data-act="vmic"><span class="mico">' + svg('mic') + '</span><span id="v-mlab">Tocca e parla</span></button>' : '') +
+      '<textarea id="v-text" data-in="vtext" rows="3" placeholder="Es. «Ho pagato 12 euro di pizza con la carta e ieri ho ricevuto 50 euro da Marco»" aria-label="Cosa hai speso o ricevuto"></textarea>' +
+      '<p class="hint" id="v-hint">' + (SR ? 'Parla in modo naturale: anche più movimenti nella stessa frase.' : 'Scrivi, oppure detta con il microfono della tastiera.') + '</p>' +
+      '<button class="btn ghost" data-act="vparse">Analizza</button><div id="v-res" class="fcol"></div></div>' +
+      '<div class="scrf"><p class="msg" id="v-msg" role="alert"></p><button class="btn" id="v-ok" data-act="vok" disabled>Conferma</button></div>';
+    pushLayer('screen', 'voice', html, { items: [] });
+  }
+  function voiceErr(t) { var lay = layerOf('voice'); if (!lay) return; var m = lay.el.querySelector('#v-msg'); m.textContent = t; m.className = t ? 'msg bad' : 'msg'; }
+  function micState(on) {
+    var lay = layerOf('voice'); if (!lay) return; var b = lay.el.querySelector('#v-mic'); if (!b) return;
+    b.classList.toggle('on', on); lay.el.querySelector('#v-mlab').textContent = on ? 'Ti ascolto… tocca per fermare' : 'Tocca e parla';
+  }
+  function voiceStop() { if (REC) { try { REC.abort(); } catch (e) {} REC = null; } }
+  function voiceMic() {
+    var lay = layerOf('voice'); if (!lay || !SR) return;
+    if (REC) { try { REC.stop(); } catch (e) {} return; }
+    var ta = lay.el.querySelector('#v-text'), base = ta.value.trim(), fin = '';
+    voiceErr('');
+    try { REC = new SR(); } catch (e) { REC = null; voiceErr('Riconoscimento vocale non disponibile: detta con il microfono della tastiera.'); return; }
+    var rec = REC;
+    rec.lang = 'it-IT'; rec.interimResults = true; rec.maxAlternatives = 1; rec.continuous = false;
+    rec.onresult = function (e) {
+      if (!layerOf('voice')) return;
+      var interim = '';
+      for (var i = e.resultIndex; i < e.results.length; i++) { var t = e.results[i][0].transcript; if (e.results[i].isFinal) fin += t; else interim += t; }
+      ta.value = ((base ? base + ' ' : '') + fin + interim).trim();
+    };
+    rec.onerror = function (e) {
+      var c = e && e.error; if (c === 'aborted') return;
+      voiceErr(c === 'not-allowed' || c === 'service-not-allowed' ? 'Microfono non consentito: abilitalo, oppure detta con il microfono della tastiera.' : c === 'no-speech' ? 'Non ho sentito nulla: riprova.' : c === 'network' ? 'Il riconoscimento vocale richiede la rete: detta con il microfono della tastiera.' : 'Riconoscimento non riuscito: riprova o scrivi.');
+    };
+    rec.onend = function () { if (REC === rec) REC = null; micState(false); if (layerOf('voice') && fin.trim()) voiceParse(); };
+    try { rec.start(); micState(true); } catch (e) { REC = null; voiceErr('Non riesco ad avviare il microfono: riprova.'); }
+  }
+  function voiceCtx() {
+    var def = S.lastAcc && acc(S.lastAcc) ? S.lastAcc : (S.accounts.filter(function (a) { return a.type === 'liquidita'; })[0] || S.accounts[0]).id;
+    return { today: TODAY, defAcc: def, accounts: S.accounts.map(function (a) { return { id: a.id, name: a.name, type: a.type }; }), cats: S.cats.map(function (c) { return { id: c.id, name: c.name, kind: c.kind }; }) };
+  }
+  function voiceParse() {
+    var lay = layerOf('voice'); if (!lay) return;
+    var txt = lay.el.querySelector('#v-text').value.trim();
+    if (!txt) { voiceErr('Di’ o scrivi cosa hai speso o ricevuto.'); return; }
+    if (!window.UFVoice) { voiceErr('Riconoscimento delle frasi non disponibile.'); return; }
+    voiceErr('');
+    lay.st.items = UFVoice.parse(txt.slice(0, 1000), voiceCtx()).slice(0, 20).map(function (it) {
+      return { k: it.loan ? 'prestito' : it.kind, amt: it.cents ? amtStr(it.cents) : '', accId: it.accId, toId: it.toId, catId: it.catId, date: it.date, note: it.note, pname: it.newAcc ? it.newAcc.name : (it.person || ''), accWarn: (it.warn || []).filter(function (w) { return /Conto|Contanti/.test(w); })[0] || '' };
+    });
+    voiceDraw();
+  }
+  function voiceCard(it, i) {
+    var giro = it.k === 'giro' || it.k === 'prestito', cats = S.cats.filter(function (c) { return c.kind === it.k; });
+    var amtBad = !(parseCents(it.amt || '') > 0);
+    var h = '<div class="card vcard" data-i="' + i + '"><div class="vtop"><select data-vf="k" aria-label="Tipo">' + VK.map(function (k) { return '<option value="' + k[0] + '"' + (it.k === k[0] ? ' selected' : '') + '>' + k[1] + '</option>'; }).join('') + '</select>' +
+      '<input class="vamt' + (amtBad ? ' miss' : '') + '" data-vf="amt" data-in="vf" inputmode="decimal" autocomplete="off" placeholder="Importo" value="' + esc(it.amt || '') + '" aria-label="Importo"><button class="x" data-act="vdel" data-i="' + i + '" aria-label="Rimuovi">' + svg('x') + '</button></div>';
+    h += '<div class="fgrid">' + fld(giro ? 'Da' : it.k === 'spesa' ? 'Pagato con' : 'Accreditato su', '<select data-vf="acc">' + accOpts(it.accId) + '</select>');
+    if (it.k === 'prestito') {
+      var cr = S.accounts.filter(function (a) { return a.type === 'credito'; });
+      h += fld('A (credito)', '<select data-vf="to"><option value="__new__"' + (it.toId === '__new__' ? ' selected' : '') + '>➕ Nuova persona</option>' + cr.map(function (a) { return '<option value="' + a.id + '"' + (it.toId === a.id ? ' selected' : '') + '>' + esc(a.icon + ' ' + a.name) + '</option>'; }).join('') + '</select>') + '</div>';
+      if (it.toId === '__new__') h += fld('Nome della persona', '<input data-vf="pname" data-in="vf" maxlength="30" autocomplete="off" value="' + esc(it.pname || '') + '" placeholder="Es. Antonio">') + '<p class="hint">Verrà creato un conto di credito: i soldi prestati restano nel tuo patrimonio finché non te li restituisce.</p>';
+    } else if (it.k === 'giro') h += fld('A', '<select data-vf="to">' + accOpts(it.toId && it.toId !== '__new__' ? it.toId : otherAcc(it.accId)) + '</select>') + '</div>';
+    else h += fld('Categoria', '<select data-vf="cat"><option value="">Senza categoria</option>' + cats.map(function (c) { return '<option value="' + c.id + '"' + (c.id === it.catId ? ' selected' : '') + '>' + esc(c.icon + ' ' + c.name) + '</option>'; }).join('') + '</select>') + '</div>';
+    h += '<div class="fgrid">' + fld('Data', '<input type="date" data-vf="date" max="' + TODAY + '" value="' + it.date + '">') + fld('Nota', '<input data-vf="note" data-in="vf" maxlength="60" autocomplete="off" value="' + esc(it.note || '') + '">') + '</div>';
+    var w = []; if (amtBad) w.push('Importo da inserire'); if (it.accWarn) w.push(it.accWarn);
+    return h + (w.length ? '<p class="vwarn">⚠️ ' + esc(w.join(' · ')) + '</p>' : '') + '</div>';
+  }
+  function voiceDraw() {
+    var lay = layerOf('voice'); if (!lay) return;
+    var items = lay.st.items, n = items.length, el = lay.el.querySelector('#v-res');
+    el.innerHTML = n ? '<h2>Ho capito ' + (n === 1 ? '1 movimento' : n + ' movimenti') + ' · controlla e conferma</h2>' + items.map(voiceCard).join('') : (lay.st.parsed ? '<p class="empty">Nessun movimento riconosciuto: prova a dire l’importo e cosa hai pagato.</p>' : '');
+    lay.st.parsed = true;
+    if (n && !lay.st.shown) { lay.st.shown = true; try { el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) {} }
+    var ok = lay.el.querySelector('#v-ok'); ok.disabled = !n; ok.textContent = n ? 'Conferma ' + (n === 1 ? '1 movimento' : n + ' movimenti') : 'Conferma';
+  }
+  function voiceSet(el, redraw) {
+    var lay = layerOf('voice'), card = el.closest && el.closest('.vcard'); if (!lay || !card) return;
+    var it = lay.st.items[+card.dataset.i], f = el.dataset.vf, v = el.value; if (!it) return;
+    if (f === 'k') {
+      it.k = v;
+      if (v === 'prestito' && (!acc(it.toId) || acc(it.toId).type !== 'credito')) it.toId = '__new__';
+      if (v === 'giro' && (!acc(it.toId) || it.toId === it.accId)) it.toId = otherAcc(it.accId);
+      if ((v === 'spesa' || v === 'entrata') && it.catId && (!cat(it.catId) || cat(it.catId).kind !== v)) it.catId = '';
+    } else if (f === 'acc') { it.accId = v; it.accWarn = ''; }
+    else if (f === 'to') it.toId = v;
+    else if (f === 'cat') it.catId = v;
+    else if (f === 'date') it.date = v;
+    else if (f === 'note') it.note = v;
+    else if (f === 'pname') it.pname = v;
+    else if (f === 'amt') { it.amt = v; el.classList.toggle('miss', !(parseCents(v || '') > 0)); }
+    if (redraw) voiceDraw();
+  }
+  function voiceOk() {
+    var lay = layerOf('voice'); if (!lay) return;
+    var items = lay.st.items, errs = [];
+    items.forEach(function (it, n) {
+      var c = parseCents((it.amt || '').trim()), a = acc(it.accId), d = it.date, lab = '#' + (n + 1) + ' ';
+      if (c === null || c <= 0) return errs.push(lab + 'importo');
+      if (!a) return errs.push(lab + 'conto');
+      if (!dRange(d) || d > TODAY) return errs.push(lab + 'data');
+      if (d < a.openDate) return errs.push(lab + 'data prima del saldo iniziale di «' + a.name + '»');
+      if (it.k === 'giro' || it.k === 'prestito') {
+        if (it.k === 'prestito' && it.toId === '__new__') { if (!(it.pname || '').trim()) errs.push(lab + 'nome della persona'); return; }
+        var b = acc(it.toId); if (!b || b.id === a.id) return errs.push(lab + 'scegli due conti diversi');
+        if (d < b.openDate) return errs.push(lab + 'data prima del saldo iniziale di «' + b.name + '»');
+      }
+    });
+    if (errs.length) return voiceErr('Da completare: ' + errs.join(', ') + '.');
+    var snap = snapAll(), last = null;
+    items.forEach(function (it) {
+      var c = parseCents(it.amt.trim()), to = it.toId;
+      if (it.k === 'prestito' && to === '__new__') {
+        var nm = it.pname.trim().replace(/\s+/g, ' ').slice(0, 30), ex = S.accounts.filter(function (x) { return x.type === 'credito' && x.name.toLowerCase() === nm.toLowerCase(); })[0];
+        if (ex) to = ex.id;
+        else {
+          var name = nm, k = 2; while (S.accounts.some(function (x) { return x.name.toLowerCase() === name.toLowerCase(); })) name = nm + ' (' + k++ + ')';
+          var sb = subsOf('credito')[0], na = { id: uid('a'), name: name, type: 'credito', sub: sb ? sb.id : '', icon: '🤝', color: '#9A5700', opening: 0, openDate: it.date };
+          S.accounts.push(na); to = na.id;
+        }
+      }
+      var tx = { id: uid('t'), kind: it.k === 'prestito' ? 'giro' : it.k, cents: c, accId: it.accId, date: it.date, note: (it.note || '').trim().slice(0, 60), ts: nextTs() };
+      if (tx.kind === 'giro') tx.toId = to; else tx.catId = it.catId || '';
+      S.tx.push(tx); last = tx;
+    });
+    S.lastAcc = items[0].accId;
+    var n = items.length; popLayer();
+    toast((n === 1 ? '1 movimento registrato' : n + ' movimenti registrati') + budNote(last), function () { restoreAll(snap); });
+  }
+
+  /* ---------- tutorial guidato (alla prima apertura; rivedibile da Impostazioni) ---------- */
+  var TOUR = [
+    { title: 'Benvenuto in UFinance', text: 'Ti mostro in pochi passi come tenere sotto controllo soldi, spese e investimenti. Meno di un minuto.' },
+    { tab: 'home', sel: '.totalbtn', alt: '.hero', title: 'Il tuo patrimonio', text: 'Quanto possiedi in totale, meno i debiti. Toccalo per vedere un solo conto o un gruppo.' },
+    { tab: 'home', sel: '#fabw .fab.add', title: 'Nuovo movimento', text: 'Registra spese, entrate e giroconti tra i tuoi conti, con il tastierino.' },
+    { tab: 'home', sel: '#fabw .fab.mic', title: 'Oppure dillo a voce', text: '«Ho pagato 5 euro in farmacia»: l’app prepara il movimento, tu controlli e confermi.' },
+    { tab: 'conti', sel: '[data-tab="conti"]', title: 'Conti', text: 'Banca, contanti, risparmi, carte e prestiti. Ogni conto parte dal saldo di un giorno a tua scelta.' },
+    { tab: 'analisi', sel: '[data-tab="analisi"]', title: 'Analisi', text: 'Dove vanno i soldi: per giorno, mese o anno, per categoria e per conto.' },
+    { tab: 'portfolio', sel: '[data-tab="portfolio"]', title: 'Investimenti', text: 'ETF, azioni e cripto. Aggiorni il valore come lo vedi nell’app del broker; le cripto si aggiornano da sole.' },
+    { tab: 'settings', sel: '.navrow[data-act="budgets"]', title: 'Budget', text: 'Un limite di spesa al mese per categoria, con un avviso quando ti avvicini.' },
+    { tab: 'settings', sel: '.navrow[data-act="export"]', title: 'I tuoi dati', text: 'Restano solo su questo telefono. Ogni tanto esporta un backup e salvalo su File o iCloud.' },
+    { tab: 'home', title: 'Tutto pronto', text: '', last: true }
+  ];
+  var TOURST = null;
+  function maybeTour() { if (S.tourDone || window.UF_TEST_NOTOUR || L.length || TOURST || document.body.classList.contains('boot')) return; startTour(); }
+  function startTour() {
+    if (TOURST) return;
+    while (L.length) L.pop().el.remove(); document.body.classList.remove('lock');
+    var el = document.createElement('div');
+    el.id = 'tour'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Tutorial');
+    el.innerHTML = '<div class="tour-hole"></div><div class="tour-card" aria-live="polite"></div>';
+    el.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-tour]'); e.stopPropagation(); if (!b) return;
+      var k = b.dataset.tour;
+      if (k === 'next') { if (TOURST.i >= TOUR.length - 1) tourEnd(true); else { TOURST.i += 1; tourShow(); } }
+      else if (k === 'prev') { if (TOURST.i > 0) { TOURST.i -= 1; tourShow(); } }
+      else if (k === 'skip') tourEnd(false);
+      else if (k === 'acc') { tourEnd(true); openAccForm(null); }
+    });
+    document.body.appendChild(el);
+    TOURST = { i: 0, el: el }; tourShow();
+  }
+  function tourTarget(s) {
+    var t = s.sel ? document.querySelector(s.sel) : null;
+    if ((!t || !t.getClientRects().length) && s.alt) t = document.querySelector(s.alt);
+    return t && t.getClientRects().length ? t : null;
+  }
+  function tourShow() {
+    var st = TOURST; if (!st) return;
+    var s = TOUR[st.i], card = st.el.querySelector('.tour-card'), last = st.i === TOUR.length - 1;
+    if (s.tab && S.tab !== s.tab) { S.tab = s.tab; render(true); }
+    var t = tourTarget(s);
+    if (t) t.scrollIntoView({ block: 'center' }); else window.scrollTo(0, 0);
+    var txt = last ? (S.accounts.length ? 'Puoi rivedere il tutorial quando vuoi da Impostazioni → Aiuto.' : 'Inizia creando il tuo primo conto. Il tutorial resta in Impostazioni → Aiuto.') : s.text;
+    card.innerHTML = '<div class="tour-dots">' + TOUR.map(function (x, i) { return '<i class="' + (i === st.i ? 'on' : '') + '"></i>'; }).join('') + '</div><h3>' + s.title + '</h3><p>' + txt + '</p>' +
+      '<div class="tour-btns">' + (last ? '<span></span>' : '<button class="lnk" data-tour="skip">Salta</button>') + '<span class="tour-r">' +
+      (st.i > 0 && !last ? '<button class="tbtn" data-tour="prev">Indietro</button>' : '') +
+      (last && !S.accounts.length ? '<button class="tbtn pri" data-tour="acc">Crea il primo conto</button>' : '<button class="tbtn pri" data-tour="next">' + (st.i === 0 ? 'Iniziamo' : last ? 'Fine' : 'Avanti') + '</button>') + '</span></div>';
+    tourPlace();
+    try { card.querySelector('[data-tour="next"],[data-tour="acc"]').focus({ preventScroll: true }); } catch (e) {}
+  }
+  function tourPlace() {
+    var st = TOURST; if (!st) return;
+    var s = TOUR[st.i], t = tourTarget(s), hole = st.el.querySelector('.tour-hole'), card = st.el.querySelector('.tour-card');
+    var W = window.innerWidth, H = window.innerHeight, cw = Math.min(340, W - 24), ch = card.offsetHeight || 180;
+    card.style.width = cw + 'px';
+    if (!t) {
+      hole.style.cssText = 'left:' + (W / 2) + 'px;top:' + (H / 2) + 'px;width:0;height:0;';
+      card.style.left = ((W - cw) / 2) + 'px'; card.style.top = Math.max(16, (H - ch) / 2) + 'px'; return;
+    }
+    var r = t.getBoundingClientRect(), p = 6;
+    hole.style.cssText = 'left:' + (r.left - p) + 'px;top:' + (r.top - p) + 'px;width:' + (r.width + 2 * p) + 'px;height:' + (r.height + 2 * p) + 'px;border-radius:' + (Math.min(r.width, r.height) > 60 ? 16 : 999) + 'px;';
+    var top = r.bottom + p + 14 + ch < H ? r.bottom + p + 14 : Math.max(12, r.top - p - 14 - ch);
+    card.style.top = top + 'px'; card.style.left = Math.max(12, Math.min(W - cw - 12, r.left + r.width / 2 - cw / 2)) + 'px';
+  }
+  function tourEnd(done) {
+    var st = TOURST; if (!st) return;
+    st.el.remove(); TOURST = null;
+    S.tourDone = true; S.tab = 'home'; render(); window.scrollTo(0, 0);
+    if (!done) toast('Tutorial saltato. Lo trovi in Impostazioni → Aiuto.');
+  }
+  window.addEventListener('resize', function () { if (TOURST) tourPlace(); });
+
   /* ================= memoria: parte comune (formato dati, controlli, schermate) =================
      Nessun accesso diretto all'archivio: quello sta nel modulo specifico della build. */
   var SCHEMA = 8, APP_ID = 'ufinance'; // 8: budget nelle categorie, obiettivi nei conti, guida
@@ -2170,7 +2380,7 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
   function errCode(e) { return (e && e.code) || (e && e.message) || 'unknown'; }
   function snapState() {
     return { schema: SCHEMA, subs: S.subs, cats: S.cats, accounts: S.accounts, gone: S.gone, tx: S.tx, pos: S.pos, rules: S.rules,
-      prefs: { theme: S.theme, cur: S.cur, hide: !!S.hide, lastAcc: S.lastAcc || '', homeView: S.homeView || 'all', demo: !!S.demo, lastBackup: S.lastBackup || '', guideDone: !!S.guideDone, autoCry: !!S.autoCry } };
+      prefs: { theme: S.theme, cur: S.cur, hide: !!S.hide, lastAcc: S.lastAcc || '', homeView: S.homeView || 'all', demo: !!S.demo, lastBackup: S.lastBackup || '', guideDone: !!S.guideDone, autoCry: S.autoCry !== false, tourDone: !!S.tourDone } };
   }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function maxSeq(sn) {
@@ -2185,7 +2395,7 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
     S.subs = sn.subs; S.cats = sn.cats; S.accounts = sn.accounts; S.gone = sn.gone; S.tx = sn.tx; S.pos = sn.pos; S.rules = sn.rules;
     if (pr.cur === 'EUR' || pr.cur === 'USD') S.cur = pr.cur;
     if (pr.theme === 'chiaro' || pr.theme === 'scuro') { S.theme = pr.theme; document.documentElement.setAttribute('data-uf', S.theme); }
-    S.hide = !!pr.hide; S.demo = !!pr.demo; S.lastBackup = pr.lastBackup || ''; S.guideDone = !!pr.guideDone; S.autoCry = !!pr.autoCry;
+    S.hide = !!pr.hide; S.demo = !!pr.demo; S.lastBackup = pr.lastBackup || ''; S.guideDone = !!pr.guideDone; S.autoCry = pr.autoCry !== false; S.tourDone = !!pr.tourDone;
     S.lastAcc = acc(pr.lastAcc) ? pr.lastAcc : null;
     S.homeView = pr.homeView || 'all';
     seq = Math.max(seq, maxSeq(sn));
@@ -2193,7 +2403,7 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
     savePrefs();
   }
   function emptyState() {
-    S.accounts = []; S.gone = []; S.tx = []; S.pos = []; S.rules = []; S.demo = false; S.lastAcc = null; S.homeView = 'all'; S.lastBackup = ''; S.guideDone = false; S.autoCry = false;
+    S.accounts = []; S.gone = []; S.tx = []; S.pos = []; S.rules = []; S.demo = false; S.lastAcc = null; S.homeView = 'all'; S.lastBackup = ''; S.guideDone = false; S.autoCry = true; S.tourDone = false;
     baseData(); S.an.accIds = null; S.an.sel = -1;
   }
   // Controlli sui dati letti da file o archivio: niente markup nei testi, limiti di dimensione, date plausibili.
@@ -2320,6 +2530,7 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
     if (pf.lastAcc !== undefined && typeof pf.lastAcc !== 'string') bad('Preferenze non valide.');
     if (pf.guideDone !== undefined && typeof pf.guideDone !== 'boolean') bad('Preferenze non valide.');
     if (pf.autoCry !== undefined && typeof pf.autoCry !== 'boolean') bad('Preferenze non valide.');
+    if (pf.tourDone !== undefined && typeof pf.tourDone !== 'boolean') bad('Preferenze non valide.');
     if (pf.lastBackup !== undefined && pf.lastBackup !== '' && !dRange(pf.lastBackup)) bad('Preferenze non valide.');
     return e;
   }
@@ -2356,8 +2567,9 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
       code === 'data_invalid' || code === 'chunk_corrupt' || code === 'chunk_missing' || code === 'meta_invalid' || code === 'corrupt' ? 'I dati salvati risultano incompleti o danneggiati.' : 'Non riesco a leggere i dati salvati.';
     splash('<p>' + msg + ' Non ho modificato nulla.</p><div class="splashb"><button class="btn" data-act="retryboot">Riprova</button><label class="btn ghost" for="imp-file" role="button">Ripristina da un backup</label></div>');
   }
-  function enter() { document.body.classList.remove('boot'); PER.canWrite = true; render(); touch(); setTimeout(function () { cgFetch(false); }, 500); if (!PER.snapDone) { PER.snapDone = true; snapCapture('auto', 'Salvataggio automatico'); } }
+  function enter() { document.body.classList.remove('boot'); PER.canWrite = true; render(); touch(); setTimeout(function () { cgFetch(false); }, 500); setTimeout(maybeTour, 700); if (!PER.snapDone) { PER.snapDone = true; snapCapture('auto', 'Salvataggio automatico'); } }
   function startFresh(demo) {
+    S.autoCry = S.autoCry !== false;
     if (demo) { S.accounts = []; S.gone = []; S.tx = []; S.pos = []; S.rules = []; seed(); S.demo = true; }
     else emptyState();
     PER.status = PER.db ? 'saving' : 'local'; PER.dirty = true;
@@ -2884,6 +3096,12 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
       case 'cglink': cgLink().then(function (n) { if (!n) toast('Non trovata su CoinGecko: controlla il simbolo (es. BTC).'); return cgFetch(true); }).then(function () { L.slice().forEach(function (ly) { if (ly.refresh && L.indexOf(ly) >= 0) ly.refresh(); }); render(true); }); break;
       case 'invhelp': sheetInvHelp(); break;
       case 'guide': openGuide(); break;
+      case 'tour': startTour(); break;
+      case 'voice': if (!S.accounts.length) { toast('Crea prima un conto: poi potrai dettare i movimenti.'); break; } openVoice(); break;
+      case 'vmic': voiceMic(); break;
+      case 'vparse': voiceParse(); break;
+      case 'vok': voiceOk(); break;
+      case 'vdel': al = layerOf('voice'); if (al) { al.st.items.splice(+d.i, 1); voiceDraw(); } break;
       case 'guidex': S.guideDone = true; render(); toast('Primi passi nascosti. La guida resta in Impostazioni.'); break;
     }
   }
@@ -2910,6 +3128,7 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
   });
   document.addEventListener('change', function (e) {
     var el = e.target, k = el.dataset ? el.dataset.chg : null;
+    if (el.dataset && el.dataset.vf && el.dataset.in !== 'vf') { voiceSet(el, true); return; }
     if (el.id === 'imp-file') { var ff = el.files && el.files[0]; el.value = ''; importFile(ff); return; }
     if (el.id === 'a-date') {
       var al = layerOf('add'); if (al) { al.st.date = el.value || TODAY; syncAdd(); }
@@ -2952,6 +3171,7 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
     else if (di === 'accname' || di === 'accopen') syncAcc();
     else if (di === 'catname') syncCat();
     else if (di === 'xpx') priceHint();
+    else if (di === 'vf') voiceSet(el, false);
     else if (di === 'pxw') pxwHint();
     else if (di === 'txl') { clearTimeout(txlT); txlT = setTimeout(function () { if (txlRead()) txlDraw(false); }, el.id === 'tl-q' ? 120 : 250); }
   });
@@ -2969,6 +3189,7 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
   document.addEventListener('pointercancel', nwEnd);
   document.addEventListener('pointerout', function (e) { if (e.pointerType === 'mouse' && e.target.id === 'nw-svg') nwHead(-1); });
   document.addEventListener('keydown', function (e) {
+    if (TOURST) { if (e.key === 'Escape') tourEnd(false); return; }
     var lay = topL(); if (!lay) return;
     if (e.key === 'Escape') { if (lay.name !== 'conf') popLayer(); return; }
     if (lay.name === 'pxwiz' && e.key === 'Enter') { e.preventDefault(); pxwNext(false); return; }
@@ -2981,7 +3202,7 @@ window.UF_BUILD = '2026-11-02 · baf6f8be';
     else if (e.key === 'Enter') saveTx();
   });
 
-  window.__UF = Object.assign(testHooks(), { P: PER, snapState: snapState, applySnap: applySnap, validateSnap: validateSnap, readBackup: readBackup, hash53: hash53, stable: stable, boot: boot, summ: summ, exportBackup: exportBackup, emptyState: emptyState, S: S, L: L, balance: balance, netWorth: netWorth, parseCents: parseCents, isinOk: isinOk, posValue: posValue, alloc: alloc, buckets: buckets, range: range, stats: stats, scopeValue: scopeValue, scopeSet: scopeSet, act: act, render: render, nwSeries: nwSeries, firstDate: firstDate, delPlan: delPlan, accName: accName, nwRange: nwRange, pctS: pctS, chgPct: chgPct, nwPointer: nwPointer, portfolioValue: portfolioValue, posCalc: posCalc, posStat: posStat, xirr: xirr, runRules: runRules, nthDate: nthDate, lotsOk: lotsOk, pxAt: pxAt, snapAll: snapAll, restoreAll: restoreAll, parsePx: parsePx, delPosPlan: delPosPlan,  TODAY: TODAY, money: money, addDays: addDays, dn: dn, ymd: ymd, parseD: parseD, posById: posById, encryptBackup: encryptBackup, decryptBackup: decryptBackup, snapCapture: snapCapture, remBanner: remBanner, gz: gz, gunz: gunz, openTxList: openTxList, txlFilter: txlFilter, csvOf: csvOf, budgetState: budgetState, goalInfo: goalInfo, budNote: budNote, cgFetch: cgFetch, cgLink: cgLink, CG: CG, openPosDetail: openPosDetail });
+  window.__UF = Object.assign(testHooks(), { P: PER, snapState: snapState, applySnap: applySnap, validateSnap: validateSnap, readBackup: readBackup, hash53: hash53, stable: stable, boot: boot, summ: summ, exportBackup: exportBackup, emptyState: emptyState, S: S, L: L, balance: balance, netWorth: netWorth, parseCents: parseCents, isinOk: isinOk, posValue: posValue, alloc: alloc, buckets: buckets, range: range, stats: stats, scopeValue: scopeValue, scopeSet: scopeSet, act: act, render: render, nwSeries: nwSeries, firstDate: firstDate, delPlan: delPlan, accName: accName, nwRange: nwRange, pctS: pctS, chgPct: chgPct, nwPointer: nwPointer, portfolioValue: portfolioValue, posCalc: posCalc, posStat: posStat, xirr: xirr, runRules: runRules, nthDate: nthDate, lotsOk: lotsOk, pxAt: pxAt, snapAll: snapAll, restoreAll: restoreAll, parsePx: parsePx, delPosPlan: delPosPlan,  TODAY: TODAY, money: money, addDays: addDays, dn: dn, ymd: ymd, parseD: parseD, posById: posById, encryptBackup: encryptBackup, decryptBackup: decryptBackup, snapCapture: snapCapture, remBanner: remBanner, gz: gz, gunz: gunz, openTxList: openTxList, txlFilter: txlFilter, csvOf: csvOf, budgetState: budgetState, goalInfo: goalInfo, budNote: budNote, cgFetch: cgFetch, cgLink: cgLink, CG: CG, openPosDetail: openPosDetail, startTour: startTour, tourEnd: tourEnd, openVoice: openVoice, voiceParse: voiceParse });
     window.addEventListener('uf-toast', function (e) { toast(String(e.detail || '')); });
 boot();
 })();
