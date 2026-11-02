@@ -9,13 +9,16 @@
  *                               Se la revisione salvata non è expectedRev rifiuta con {code:'conflict'}.
  *                               Restituisce la nuova revisione.
  *   readRev()                   revisione attuale (0 se vuoto)
- *   clear()                     cancella tutto
+ *   clear()                     cancella tutto (dati e versioni salvate)
+ *   clearData()                 cancella solo i dati (liste e meta), NON le versioni salvate
  *   persist()                   chiede al sistema di non eliminare i dati (storage.persist)
  *   estimate()                  { usage, quota } in byte, se disponibile
  *
  * Forma dello snapshot (la stessa del file di backup):
  *   { schema, subs[], cats[], accounts[], gone[], tx[], pos[], rules[], prefs{} }
- * Ogni elemento delle liste ha un campo `id` stringa. L'ordine delle liste viene conservato.
+ * Ogni elemento delle liste ha un campo `id` stringa. L'ordine delle liste viene conservato, tranne per
+ * i movimenti (tx): il loro ordine non conta (l'app li ordina sempre per data), quindi non viene salvato
+ * e alla lettura sono ordinati per (ts, id). Così eliminare un movimento non riscrive tutti i successivi.
  *
  * Importi: sempre numeri interi (centesimi; quantità in micro-unità; prezzi in 1/10000).
  * Questo modulo non fa calcoli: salva e rilegge JSON canonico, quindi nessuna perdita di precisione.
@@ -25,6 +28,8 @@
   var DB_NAME = 'ufinance', DB_VERSION = 2, META_KEY = 'state';
   var LISTS = ['subs', 'cats', 'accounts', 'gone', 'tx', 'pos', 'rules'];
   var db = null, opening = null, shadow = {}, shadowMeta = '', lastRev = 0;
+  var ORDERLESS = { tx: true }; // liste di cui non si salva la posizione
+  function txCmp(a, b) { return (a.ts || 0) - (b.ts || 0) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0); }
 
   function stable(o) {
     if (o === null || typeof o !== 'object') return JSON.stringify(o);
@@ -84,10 +89,11 @@
           try {
             var sn = { schema: meta.schema, prefs: meta.prefs || {} }, sh = {};
             LISTS.forEach(function (n) {
-              var rows = sortedOf(got[n] || []), map = new Map();
+              var rows = ORDERLESS[n] ? (got[n] || []) : sortedOf(got[n] || []), map = new Map();
               sn[n] = rows.map(function (r) {
-                var o = JSON.parse(r.j); map.set(r.id, r.o + '|' + r.j); return o;
+                var o = JSON.parse(r.j); map.set(r.id, ORDERLESS[n] ? r.j : r.o + '|' + r.j); return o;
               });
+              if (ORDERLESS[n]) sn[n].sort(txCmp);
               sh[n] = map;
             });
             shadow = sh; shadowMeta = stable({ schema: meta.schema, prefs: meta.prefs || {} }); lastRev = meta.rev;
@@ -105,10 +111,10 @@
         LISTS.forEach(function (n) {
           var cur = shadow[n] || new Map(), nm = new Map(), puts = [], dels = [];
           (sn[n] || []).forEach(function (o, i) {
-            var j = stable(o), sig = i + '|' + j;
+            var j = stable(o), sig = ORDERLESS[n] ? j : i + '|' + j;
             if (nm.has(o.id)) throw { code: 'duplicate_id', message: n + ': id duplicato' };
             nm.set(o.id, sig);
-            if (cur.get(o.id) !== sig) puts.push({ id: o.id, o: i, j: j });
+            if (cur.get(o.id) !== sig) puts.push({ id: o.id, o: ORDERLESS[n] ? 0 : i, j: j });
           });
           cur.forEach(function (_, id) { if (!nm.has(id)) dels.push(id); });
           plan[n] = { puts: puts, dels: dels }; next[n] = nm; changes += puts.length + dels.length;
@@ -146,10 +152,12 @@
     });
   }
 
-  function clear() {
+  function clear() { return wipe(LISTS.concat(['meta', 'snaps', 'snapz'])); }
+  function clearData() { return wipe(LISTS.concat(['meta'])); }
+  function wipe(all) {
     return open().then(function (d) {
       return new Promise(function (res, rej) {
-        var all = LISTS.concat(['meta', 'snaps', 'snapz']), t = d.transaction(all, 'readwrite');
+        var t = d.transaction(all, 'readwrite');
         all.forEach(function (n) { t.objectStore(n).clear(); });
         t.oncomplete = function () { fresh(); res(); };
         t.onerror = t.onabort = function () { rej(err(t.error)); };
@@ -190,5 +198,5 @@
     return s && s.estimate ? s.estimate().catch(function () { return null; }) : Promise.resolve(null);
   }
 
-  global.UFRepo = { open: open, load: load, commit: commit, readRev: readRev, clear: clear, persist: persist, estimate: estimate, snapList: snapList, snapPut: snapPut, snapGet: snapGet, snapDel: snapDel, _stable: stable };
+  global.UFRepo = { open: open, load: load, commit: commit, readRev: readRev, clear: clear, clearData: clearData, persist: persist, estimate: estimate, snapList: snapList, snapPut: snapPut, snapGet: snapGet, snapDel: snapDel, _stable: stable };
 })(self);

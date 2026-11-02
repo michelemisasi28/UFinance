@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · 6ef00147';
+window.UF_BUILD = '2026-11-02 · c44b2187';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -333,10 +333,10 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
   function xirr(flows, endD, endV) {
     var f = flows.slice(); if (endV > 0) f.push({ d: endD, cf: endV });
     if (!f.some(function (x) { return x.cf < 0; }) || !f.some(function (x) { return x.cf > 0; })) return null;
-    var t0 = Math.min.apply(null, f.map(function (x) { return dn(x.d); }));
+    var t0 = f.reduce(function (m, x) { var v = dn(x.d); return v < m ? v : m; }, Infinity);
     if (dn(endD) - t0 < 90) return null;
     function npv(r) { var s = 0; f.forEach(function (x) { s += x.cf / Math.pow(1 + r, (dn(x.d) - t0) / 365); }); return s; }
-    var lo = -0.95, hi = 50, flo = npv(lo), fhi = npv(hi);
+    var lo = -0.9999, hi = 50, flo = npv(lo), fhi = npv(hi);
     if (!isFinite(flo) || !isFinite(fhi) || flo * fhi > 0) return null;
     for (var i = 0; i < 90; i++) { var mid = (lo + hi) / 2, fm = npv(mid); if (flo * fm <= 0) { hi = mid; fhi = fm; } else { lo = mid; flo = fm; } }
     return (lo + hi) / 2;
@@ -405,6 +405,8 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     if (made && !silent) { toast(made === 1 ? 'Registrata 1 operazione ricorrente' : 'Registrate ' + made + ' operazioni ricorrenti', function () { restoreDeep(snap); }); }
     return made;
   }
+  // All'avvio: avvisa delle scadenze registrate mentre l'app era chiusa.
+  function rulesToast(made) { if (made > 0) toast(made === 1 ? 'Registrata 1 operazione ricorrente' : 'Registrate ' + made + ' operazioni ricorrenti'); }
 
   /* ================= icone e grafici ================= */
   var I = {
@@ -459,7 +461,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     var ico, title, sub2, c = cat(t.catId), a1 = { name: accName(t.accId) }, a2 = t.toId ? { name: accName(t.toId) } : null;
     if (t.kind === 'giro') { ico = '⇄'; title = t.note || 'Giroconto'; sub2 = (a1 ? a1.name : '') + ' → ' + (a2 ? a2.name : ''); }
     else if (t.kind === 'rett') { ico = '≈'; title = 'Correzione saldo'; sub2 = a1 ? a1.name : ''; }
-    else if (t.kind === 'inv') { var ip = posById(t.posId); ico = posIcon(ip); title = (t.dir === 'sell' ? 'Vendita ' : t.rule ? 'PAC ' : 'Acquisto ') + (ip ? ip.name : 'investimento'); sub2 = a1.name; }
+    else if (t.kind === 'inv') { var ip = posById(t.posId); ico = posIcon(ip); title = ip ? (t.dir === 'sell' ? 'Vendita ' : t.rule ? 'PAC ' : 'Acquisto ') + ip.name : (t.note || (t.dir === 'sell' ? 'Vendita investimento' : 'Acquisto investimento')); sub2 = a1.name; }
     else {
       ico = c ? c.icon : '🧾'; title = t.note || (c ? c.name : 'Senza categoria');
       sub2 = (c && t.note && t.note !== c.name ? c.name + ' · ' : '') + (a1 ? a1.name : '');
@@ -472,8 +474,9 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
   function viewHome() {
     var v = S.homeView, set = scopeSet(v);
     if (set && set.size === 0) { S.homeView = v = 'all'; set = null; }
-    var cur = scopeValue(v), past = scopeValue(v, addDays(TODAY, -30)), d = cur - past;
-    var series = []; for (var i = 29; i >= 0; i--) series.push(scopeValue(v, addDays(TODAY, -i)));
+    // un solo passaggio sui movimenti: 31 punti, da 30 giorni fa a oggi (stesso intervallo della variazione)
+    var series = nwSeries(v, addDays(TODAY, -30), TODAY).map(function (q) { return q.v; });
+    var cur = series[series.length - 1], past = series[0], d = cur - past;
     var st = stats(TODAY.slice(0, 8) + '01', TODAY, set);
     var rec = sortTx(S.tx.filter(function (t) { return inSet(t, set); })).slice(0, 5);
     var mnow = MESI_L[parseD(TODAY).getMonth()];
@@ -657,7 +660,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
       '<p class="note">' + storageNote() + '</p>' + versionRow() + '</section>';
   }
 
-  function render() {
+  function render(noSave) {
     var v = { home: viewHome, conti: viewConti, analisi: viewAnalisi, portfolio: viewPortfolio, settings: viewSettings }[S.tab]();
     $('#view').innerHTML = v;
     var T = [['conti', 'Conti', 'wallet'], ['analisi', 'Analisi', 'bars'], ['home', 'Home', 'home'], ['portfolio', 'Portfolio', 'pie'], ['settings', 'Impostazioni', 'sliders']];
@@ -666,7 +669,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
       return '<button class="tab ' + (home ? 'home ' : '') + (S.tab === t[0] ? 'on' : '') + '" data-act="tab" data-tab="' + t[0] + '" aria-label="' + t[1] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + (home ? '<span class="hb">' + svg('home') + '</span>' : svg(t[2])) + '<span>' + t[1] + '</span></button>';
     }).join('');
     $('#fabw').innerHTML = S.tab === 'home' ? '<button class="fab" data-act="add" aria-label="Aggiungi spesa o entrata">' + svg('plus') + '</button>' : '';
-    touch();
+    if (!noSave) touch(); // il cambio di scheda non modifica i dati: niente salvataggio
   }
 
   /* ================= livelli: schermate intere e fogli ================= */
@@ -801,7 +804,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
       return;
     }
     if (st.edit) {
-      var old = txById(st.edit), idx = S.tx.indexOf(old); tx.ts = old.ts; S.tx[idx] = tx;
+      var old = txById(st.edit), idx = S.tx.indexOf(old); tx.ts = old.ts; if (old.rule) tx.rule = old.rule; S.tx[idx] = tx;
       S.lastAcc = st.accId; popLayer();
       toast(label + (m === 'giro' ? ' modificato' : ' modificata'), function () { S.tx[S.tx.indexOf(txById(tx.id))] = old; });
     } else {
@@ -898,6 +901,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
       '<div class="fld"><span class="lab">Tipo</span><div class="wrapchips" id="af-types"></div></div>' +
       '<div class="fld"><span class="lab">Sottotipologia</span><div class="wrapchips" id="af-subs"></div><p class="hint">Per raggruppare i conti (es. Vacanze).</p></div>' +
       '<div class="fld"><label for="af-open" id="af-ol">Saldo iniziale</label><input id="af-open" inputmode="decimal" autocomplete="off" data-in="accopen" placeholder="0,00" value="' + (a && a.opening !== 0 ? amtStr(Math.abs(a.opening)) : '') + '">' + (a ? '<p class="hint" id="af-eff"></p><p class="hint">Modifica anche lo storico. Per allinearti al saldo reale usa «Correggi saldo».</p>' : '') + '</div>' +
+      '<div class="fld"><label for="af-date">Data del saldo</label><input type="date" id="af-date" max="' + TODAY + '" value="' + (a ? a.openDate : TODAY) + '"><p class="hint">Il saldo che avevi all’inizio di quel giorno. Potrai registrare i movimenti da quella data in poi: per inserire spese passate, scegli una data precedente.</p></div>' +
       '<div class="fld"><span class="lab">Icona</span><div class="grid" id="af-ico">' + ICONS.map(function (ic, k) { return '<button type="button" data-act="aicon" data-i="' + k + '" aria-label="Icona ' + (k + 1) + '">' + ic + '</button>'; }).join('') + '</div></div>' +
       '<div class="fld"><span class="lab">Colore</span><div class="grid cols" id="af-col">' + COLORS.map(function (c, k) { return '<button type="button" data-act="acol" data-i="' + k + '" style="--c:' + c + '" aria-label="Colore ' + (k + 1) + '"></button>'; }).join('') + '</div></div></div>' +
       '<div class="scrf"><p class="msg" id="af-msg" role="alert"></p><button class="btn" data-act="saveacc">' + (a ? 'Salva modifiche' : 'Crea conto') + '</button>' +
@@ -930,19 +934,26 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     function err(t) { m.textContent = t; m.className = 'msg bad'; }
     if (!name) return err('Inserisci un nome.');
     if (S.accounts.some(function (x) { return x.id !== st.id && x.name.toLowerCase() === name.toLowerCase(); })) return err('Esiste già un conto con questo nome.');
+    var od = el.querySelector('#af-date').value || TODAY;
+    if (!dRange(od) || od > TODAY) return err('Data del saldo non valida.');
+    if (st.id) {
+      // la data non può essere dopo il primo movimento del conto (quei movimenti resterebbero «prima dell'apertura»)
+      var first = ''; S.tx.forEach(function (t) { if ((t.accId === st.id || t.toId === st.id) && (!first || t.date < first)) first = t.date; });
+      if (first && od > first) return err('C’è un movimento del ' + dayLabel(first) + ': la data del saldo deve essere uguale o precedente.');
+    }
     if (st.id) {
       var a = acc(st.id);
       var raw0 = el.querySelector('#af-open').value.trim(), c0 = raw0 === '' ? 0 : parseCents(raw0);
       if (c0 === null) return err('Saldo non valido.');
       if (st.type === 'debito') c0 = -Math.abs(c0); else if (c0 < 0) return err('Saldo negativo solo per i debiti.');
       a.opening = c0;
-      a.name = name; a.type = st.type; a.sub = st.sub; a.icon = st.icon; a.color = st.col;
+      a.name = name; a.type = st.type; a.sub = st.sub; a.icon = st.icon; a.color = st.col; a.openDate = od;
       popLayer(); toast('Conto aggiornato');
     } else {
       var raw = el.querySelector('#af-open').value.trim(), c = raw === '' ? 0 : parseCents(raw);
       if (c === null) return err('Saldo non valido.');
       if (st.type === 'debito') c = -Math.abs(c); else if (c < 0) return err('Saldo negativo solo per i debiti.');
-      S.accounts.push({ id: uid('a'), name: name, type: st.type, sub: st.sub, icon: st.icon, color: st.col, opening: c, openDate: TODAY });
+      S.accounts.push({ id: uid('a'), name: name, type: st.type, sub: st.sub, icon: st.icon, color: st.col, opening: c, openDate: od });
       popLayer(); toast('Conto creato: ' + name);
     }
   }
@@ -1495,7 +1506,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     var lots = lotsSorted(p.lots).reverse(), prices = p.prices.slice().reverse(), pacs = S.rules.filter(function (r) { return r.type === 'pac' && r.posId === id; });
     var h = scrHead(p.name, true) + '<div class="scrb"><section class="sec"><h2>Operazioni</h2>' + (lots.length ? '<div class="list">' + lots.map(function (l) {
       var sell = l.qty < 0;
-      return '<button class="row" data-act="lotedit" data-id="' + l.id + '" data-pos="' + id + '"><span class="ico">' + (sell ? '➖' : '➕') + '</span><span class="mid"><span class="nm">' + (sell ? 'Vendita' : l.rule ? 'PAC' : 'Acquisto') + ' · ' + qtyStr(Math.abs(l.qty), p) + ' ' + esc(unitL(p)) + '</span><span class="sb">' + dayLabel(l.d) + ' · ' + pxStr(l.px) + (l.est ? ' · stima' : '') + '</span></span><span class="v">' + money(l.tot) + '</span></button>';
+      return '<button class="row" data-act="lotedit" data-id="' + esc(l.id) + '" data-pos="' + esc(id) + '"><span class="ico">' + (sell ? '➖' : '➕') + '</span><span class="mid"><span class="nm">' + (sell ? 'Vendita' : l.rule ? 'PAC' : 'Acquisto') + ' · ' + qtyStr(Math.abs(l.qty), p) + ' ' + esc(unitL(p)) + '</span><span class="sb">' + dayLabel(l.d) + ' · ' + pxStr(l.px) + (l.est ? ' · stima' : '') + '</span></span><span class="v">' + money(l.tot) + '</span></button>';
     }).join('') + '</div>' : '<p class="empty">Nessuna operazione.</p>') + '</section>' +
       '<section class="sec"><h2>Prezzi</h2><div class="list">' + prices.map(function (x) {
         return '<button class="row" data-act="priceedit" data-id="' + id + '" data-d="' + x.d + '"><span class="ico">🏷️</span><span class="mid"><span class="nm">' + pxStr(x.px) + '</span><span class="sb">' + dayLabel(x.d) + '</span></span><span class="v">' + svg('right') + '</span></button>';
@@ -1780,6 +1791,8 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
       if (p.isin === undefined || p.isin === null) p.isin = '';
     });
     if (old && typeof sn.schema === 'number') sn.schema = SCHEMA;
+    // i prezzi devono essere in ordine di data (pxAt lo presume)
+    if (Array.isArray(sn.pos)) sn.pos.forEach(function (p) { if (p && Array.isArray(p.prices)) p.prices.sort(function (a, b) { var x = a && a.d, y = b && b.d; return x < y ? -1 : x > y ? 1 : 0; }); });
     // Riparazione: movimenti di investimenti eliminati con «Tienili» (versioni precedenti) restano senza investimento collegato.
     if (Array.isArray(sn.tx) && Array.isArray(sn.pos)) {
       var pid = {}; sn.pos.forEach(function (p) { if (p && typeof p.id === 'string') pid[p.id] = 1; });
@@ -1804,17 +1817,18 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
       seen[key] = 1; return true;
     }
     var accIds = {}, posIds = {}, txIds = {};
-    sn.subs.forEach(function (x) { if (uniq('Sottotipologia', x) && (!txtOk(x.name, 100) || !TYPES[x.type])) bad('Sottotipologia non valida.'); });
+    sn.subs.forEach(function (x) { if (uniq('Sottotipologia', x) && (!txtOk(x.name, 100) || !hasK(TYPES, x.type))) bad('Sottotipologia non valida.'); });
     sn.cats.forEach(function (x) { if (uniq('Categoria', x) && (!txtOk(x.name, 100) || (x.kind !== 'spesa' && x.kind !== 'entrata') || !iconOk(x.icon))) bad('Categoria non valida.'); });
     sn.accounts.forEach(function (a) {
       if (!uniq('Conto', a)) return; accIds[a.id] = 1;
       if (!txtOk(a.name, 100) || !a.name) bad('Conto senza nome.');
       if (!iconOk(a.icon) || !colOk(a.color)) bad('Icona o colore del conto non validi (' + a.id + ').');
-      if (!TYPES[a.type]) bad('Tipo di conto non valido (' + a.id + ').');
+      if (!hasK(TYPES, a.type)) bad('Tipo di conto non valido (' + a.id + ').');
+      if (a.sub !== undefined && a.sub !== '' && typeof a.sub !== 'string') bad('Sottotipologia del conto non valida (' + a.id + ').');
       if (!isInt(a.opening)) bad('Saldo iniziale non valido (' + a.id + ').');
       if (!dRange(a.openDate)) bad('Data di apertura non valida (' + a.id + ').');
     });
-    sn.gone.forEach(function (a) { if (uniq('Conto', a)) { accIds[a.id] = 1; if (!txtOk(a.name, 100) || !TYPES[a.type] || !iconOk(a.icon) || !colOk(a.color)) bad('Conto eliminato non valido.'); } });
+    sn.gone.forEach(function (a) { if (uniq('Conto', a)) { accIds[a.id] = 1; if (!txtOk(a.name, 100) || !hasK(TYPES, a.type) || !iconOk(a.icon) || !colOk(a.color)) bad('Conto eliminato non valido.'); } });
     sn.pos.forEach(function (p) {
       if (!uniq('Investimento', p)) return; posIds[p.id] = 1;
       if (typeof p.isin !== 'string' || (p.isin !== '' && !isinOk(p.isin))) bad('ISIN non valido (' + p.id + ').');
@@ -1824,7 +1838,8 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
       if (p.lots.length > LIM.lots || p.prices.length > LIM.prices) bad('Troppe operazioni (' + p.id + ').');
       var lid = {};
       p.lots.forEach(function (l) {
-        if (!l || typeof l.id !== 'string' || lid[l.id]) { bad('Operazione non valida (' + p.id + ').'); return; } lid[l.id] = 1;
+        if (!l || typeof l.id !== 'string' || !ID_RE.test(l.id) || lid[l.id]) { bad('Operazione non valida (' + p.id + ').'); return; } lid[l.id] = 1;
+        if ((l.txId && (typeof l.txId !== 'string' || !ID_RE.test(l.txId))) || (l.rule && (typeof l.rule !== 'string' || !ID_RE.test(l.rule)))) bad('Operazione non valida (' + p.id + ').');
         if (!dRange(l.d) || !isQty(l.qty) || l.qty === 0 || !isInt(l.px) || l.px <= 0 || l.px > PMAX || !isInt(l.tot)) bad('Operazione non valida (' + p.id + ').');
       });
       p.prices.forEach(function (x) { if (!x || !dRange(x.d) || !isInt(x.px) || x.px <= 0 || x.px > PMAX) bad('Prezzo non valido (' + p.id + ').'); });
@@ -1833,7 +1848,9 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     var KINDS = { spesa: 1, entrata: 1, giro: 1, rett: 1, inv: 1 };
     sn.tx.forEach(function (t) {
       if (!uniq('Movimento', t)) return; txIds[t.id] = 1;
-      if (!KINDS[t.kind]) bad('Tipo di movimento non valido (' + t.id + ').');
+      if (!hasK(KINDS, t.kind)) bad('Tipo di movimento non valido (' + t.id + ').');
+      if (typeof t.ts !== 'number' || !isFinite(t.ts)) bad('Movimento non valido (' + t.id + ').');
+      if (t.catId !== undefined && typeof t.catId !== 'string') bad('Categoria del movimento non valida (' + t.id + ').');
       if (!isInt(t.cents)) bad('Importo non valido (' + t.id + ').');
       if (!dRange(t.date)) bad('Data non valida (' + t.id + ').');
       if (typeof t.note !== 'string' || t.note.length > 300) bad('Nota non valida (' + t.id + ').');
@@ -1846,9 +1863,18 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
       if (!uniq('Ricorrenza', r)) return;
       if ((r.type !== 'mov' && r.type !== 'pac') || !hasK(FREQ, r.freq) || !evOk(r) || !dRange(r.anchor) || !isInt(r.k) || r.k < 0 || r.k > 100000 || (r.end && !dRange(r.end)) || !isInt(r.cents) || r.cents <= 0 || !accIds[r.accId]) bad('Ricorrenza non valida (' + r.id + ').');
       if (r.type === 'pac' && !posIds[r.posId]) bad('PAC su un investimento inesistente.');
+      if (r.fee !== undefined && (!isInt(r.fee) || r.fee < 0 || r.fee >= r.cents)) bad('Commissione della ricorrenza non valida (' + r.id + ').');
+      if (r.type === 'mov' && r.kind === 'giro' && (!accIds[r.toId] || r.toId === r.accId)) bad('Giroconto ricorrente non valido (' + r.id + ').');
+      if (r.catId !== undefined && typeof r.catId !== 'string') bad('Ricorrenza non valida (' + r.id + ').');
+      if (r.note !== undefined && !txtOk(r.note, 300)) bad('Ricorrenza non valida (' + r.id + ').');
+      if (typeof r.active !== 'boolean') bad('Ricorrenza non valida (' + r.id + ').');
       if (r.type === 'mov' && r.kind !== 'spesa' && r.kind !== 'entrata' && r.kind !== 'giro') bad('Ricorrenza non valida (' + r.id + ').');
     });
     if (sn.prefs && sn.prefs.cur && sn.prefs.cur !== 'EUR' && sn.prefs.cur !== 'USD') bad('Valuta non valida.');
+    var pf = sn.prefs || {};
+    if (pf.homeView !== undefined && (typeof pf.homeView !== 'string' || pf.homeView.length > 60)) bad('Preferenze non valide.');
+    if (pf.lastAcc !== undefined && typeof pf.lastAcc !== 'string') bad('Preferenze non valide.');
+    if (pf.lastBackup !== undefined && pf.lastBackup !== '' && !dRange(pf.lastBackup)) bad('Preferenze non valide.');
     return e;
   }
   function withState(sn, fn) {
@@ -2027,7 +2053,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     if (o.check !== hash53(stable(o.data))) return { err: 'File modificato o danneggiato: il controllo non torna.' };
     var sn = normalizeSnap(o.data), er = validateSnap(sn);
     if (er.length) return { err: er[0] };
-    return { snap: sn, at: o.exportedAt || '' };
+    return { snap: sn, at: typeof o.exportedAt === 'string' ? o.exportedAt : '' };
   }
   function importFile(f) {
     if (!f) return;
@@ -2040,7 +2066,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
   function openImport(r) {
     var cur = PER.canWrite ? summ(snapState()) : null, nw = summ(r.snap);
     function row(l, a, b) { return '<div class="kv"><span>' + l + '</span><span>' + (a === null ? '' : a + ' → ') + '<b>' + b + '</b></span></div>'; }
-    var html = scrHead('Importa backup', true) + '<div class="scrb"><div class="card"><div class="sb">' + (r.what || 'Backup') + (r.at && r.at.slice(0, 10) === TODAY ? ' di oggi' : ' del ' + (r.at ? dayLabel(r.at.slice(0, 10)) : '—')) + '</div>' +
+    var html = scrHead('Importa backup', true) + '<div class="scrb"><div class="card"><div class="sb">' + (r.what || 'Backup') + (typeof r.at === 'string' && r.at.slice(0, 10) === TODAY ? ' di oggi' : ' del ' + (typeof r.at === 'string' && dOk(r.at.slice(0, 10)) ? dayLabel(r.at.slice(0, 10)) : '—')) + '</div>' +
       row('Patrimonio', cur ? money(cur.net) : null, money(nw.net)) + row('Conti', cur ? cur.acc : null, nw.acc) + row('Movimenti', cur ? cur.tx : null, nw.tx) + row('Investimenti', cur ? cur.pos : null, nw.pos) + row('Ricorrenze', cur ? cur.rules : null, nw.rules) + '</div>' +
       '<p class="hint">I dati attuali vengono sostituiti da quelli del file.</p></div><div class="scrf"><button class="btn danger" data-act="impgo">Sostituisci i dati</button></div>';
     pushLayer('screen', 'imp', html, { snap: r.snap, what: r.what || '' });
@@ -2081,6 +2107,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
       do {
         PER.again = false; PER.status = 'saving'; syncUI();
         var sn = snapState(), sg = stable(sn);
+        if (sg === PER.sig && PER.base > 0) { PER.dirty = false; PER.status = 'ok'; continue; } // nulla di nuovo da salvare
         var nr = await PER.repo.commit(sn, PER.base);
         PER.base = nr; PER.sig = sg; PER.at = Date.now(); PER.fails = 0; PER.err = ''; PER.toastedErr = false;
         if (!PER.again) { PER.dirty = false; PER.status = 'ok'; }
@@ -2103,9 +2130,12 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     if (er.length) throw { code: sn.schema > SCHEMA ? 'schema_newer' : 'data_invalid', detail: er[0] };
     return { meta: { rev: r.rev, savedAt: r.savedAt }, snap: sn };
   }
+  // Allinea la base all'archivio prima di sovrascriverlo. load() serve anche a UFRepo per sapere cosa c'è salvato:
+  // senza, dopo un conflitto, resterebbero record dell'altra copia (dati misti). Se l'archivio è illeggibile,
+  // si cancellano SOLO i dati: le versioni salvate restano.
   async function syncBase() {
     try { var r = await PER.repo.load(); PER.base = r ? r.rev : 0; }
-    catch (e) { await PER.repo.clear(); PER.base = 0; }
+    catch (e) { await PER.repo.clearData(); PER.base = 0; }
   }
 
   /* ---- stato mostrato nelle impostazioni ---- */
@@ -2123,7 +2153,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
   function conflictNote() { return 'Un’altra copia dell’app ha salvato modifiche mentre lavoravi qui.'; }
   function savedLabel() { return 'Salvati sul dispositivo'; }
   function resetScope() { return 'da questo dispositivo'; }
-  function versionRow() { return '<p class="note" style="margin-top:6px">Versione ' + esc(window.UF_BUILD || 'sviluppo') + '</p>'; }
+  function versionRow() { return '<p class="note" style="margin-top:6px">Versione ' + esc(window.UF_BUILD || 'sviluppo') + (window.UFPwa ? ' · <button class="lnk" data-act="chkupd">Controlla aggiornamenti</button>' : '') + '</p>'; }
   function checkUpdate() { if (window.UFPwa) window.UFPwa.check(); }
 
   /* ---- conflitto tra due copie dell'app ---- */
@@ -2139,14 +2169,19 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     if (!twoTap(el, 'conf' + m)) return;
     var c = PER.conf; PER.conf = null;
     try {
-      snapCapture('pre', m === 'mine' ? 'Versione scartata (altra copia)' : 'Versione scartata (questa copia)', m === 'mine' ? (c.remote && c.remote.snap) : c.local);
-      if (m === 'mine') { await syncBase(); applySnap(c.local); PER.canWrite = true; PER.dirty = true; closeAll(); await flushNow(); toast('Tenuti i dati di questa copia.'); }
-      else { applySnap(c.remote.snap); PER.base = c.remote.meta.rev; PER.sig = stable(snapState()); PER.canWrite = true; PER.dirty = false; closeAll(); toast('Caricati i dati salvati.'); }
+      await snapCapture('pre', m === 'mine' ? 'Versione scartata (altra copia)' : 'Versione scartata (questa copia)', m === 'mine' ? (c.remote && c.remote.snap) : c.local);
+      if (m === 'mine') { await syncBase(); applySnap(c.local); PER.canWrite = true; PER.dirty = true; runRules(true); closeAll(); await flushNow(); toast('Tenuti i dati di questa copia.'); }
+      else { applySnap(c.remote.snap); PER.base = c.remote.meta.rev; PER.sig = stable(snapState()); PER.canWrite = true; PER.dirty = false; closeAll(); var mr = runRules(true); if (mr) { rulesToast(mr); touch(); } else toast('Caricati i dati salvati.'); }
     } catch (e) { PER.conf = c; toast('Non riesco a leggere l’archivio. Riprova.'); }
   }
   async function checkRemote() {
     if (!PER.canWrite || PER.busy || PER.conf) return;
-    if (ymd(new Date()) !== TODAY) { await flushNow(); try { location.reload(); } catch (e) {} return; }
+    if (ymd(new Date()) !== TODAY) {
+      await flushNow();
+      // si ricarica solo a dati salvati e senza schermate aperte; altrimenti si riprova al prossimo controllo (ogni minuto)
+      if (PER.dirty || PER.status === 'error' || PER.conf || L.length) return;
+      try { location.reload(); } catch (e) {} return;
+    }
     if (!PER.db) return;
     if (Date.now() - PER.last < 1500) return; PER.last = Date.now();
     try {
@@ -2173,7 +2208,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     try { r = await readRemote(); } catch (e) { bootFail(errCode(e)); return; }
     if (!r) { PER.base = 0; PER.status = 'ok'; welcome(); return; }
     applySnap(r.snap); PER.base = r.meta.rev; PER.sig = stable(snapState()); PER.status = 'ok'; PER.at = r.meta.savedAt || Date.now();
-    runRules(true); enter();
+    var made = runRules(true); enter(); rulesToast(made);
   }
 
   /* ---- backup: esporta (Web Share con file, altrimenti download) ---- */
@@ -2214,12 +2249,12 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     var lay = layerOf('imp'); if (!lay) return;
     if (!twoTap(el, 'impgo')) return;
     var prev = PER.canWrite ? clone(snapState()) : null, sn = lay.st.snap;
-    if (prev) snapCapture('pre', lay.st.what === 'Versione' ? 'Prima di ripristinare una versione' : 'Prima di importare un backup', prev);
+    if (prev) await snapCapture('pre', lay.st.what === 'Versione' ? 'Prima di ripristinare una versione' : 'Prima di importare un backup', prev);
     if (!PER.canWrite && PER.db) { try { await syncBase(); } catch (e) {} }
     applySnap(clone(sn));
     document.body.classList.remove('boot'); PER.canWrite = true; PER.dirty = true; PER.status = PER.db ? 'saving' : 'mem';
-    closeAll(); runRules(true);
-    toast('Backup importato.', prev ? function () { applySnap(prev); touch(); } : null);
+    closeAll(); var madeI = runRules(true);
+    toast('Backup importato.' + (madeI ? (madeI === 1 ? ' Registrata 1 operazione ricorrente.' : ' Registrate ' + madeI + ' operazioni ricorrenti.') : ''), prev ? function () { applySnap(prev); touch(); } : null);
     touch(); flushNow();
   }
 
@@ -2242,13 +2277,15 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     if (document.visibilityState === 'hidden') { if (PER.canWrite && PER.dirty) { clearTimeout(PER.timer); flush(); } }
     else checkRemote();
   });
+  // Cambio di giorno con l'app aperta e visibile (es. a mezzanotte): stesso controllo, ogni minuto.
+  setInterval(function () { if (document.visibilityState === 'visible' && ymd(new Date()) !== TODAY) checkRemote(); }, 60000);
   function testHooks() { return { flush: flush, flushNow: flushNow, checkRemote: checkRemote, repo: PER.repo, backupFile: backupFile }; }
 
   /* ================= eventi ================= */
   function act(n, el) {
     var d = el.dataset, lay = topL(), st = lay ? lay.st : null, al, id;
     switch (n) {
-      case 'tab': S.tab = d.tab; render(); window.scrollTo(0, 0); break;
+      case 'tab': S.tab = d.tab; render(true); window.scrollTo(0, 0); break;
       case 'hide': S.hide = !S.hide; savePrefs(); render(); break;
       case 'scope': sheetScope(); break;
       case 'setscope': S.homeView = d.v; popLayer(); break;
@@ -2367,7 +2404,12 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
         if (S.cur === d.k) break;
         var prev = S.cur; S.cur = d.k; savePrefs(); render();
         toast('Valuta cambiata: importi non convertiti.', function () { S.cur = prev; savePrefs(); }); break;
-      case 'undo': if (undoFn) { undoFn(); undoFn = null; $('#toast').hidden = true; render(); } break;
+      case 'undo':
+        if (undoFn) {
+          undoFn(); undoFn = null; $('#toast').hidden = true; render();
+          // le schermate aperte (andamento, elenco operazioni, ricorrenze…) mostrano i dati ripristinati
+          L.slice().forEach(function (ly) { if (L.indexOf(ly) >= 0 && ly.refresh) ly.refresh(); });
+        } break;
       case 'close': popLayer(); break;
     }
   }
@@ -2436,6 +2478,9 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
   // Mentre scrivi la nota il tastierino si nasconde: la schermata non si sposta.
   document.addEventListener('focusin', function (e) { if (e.target.id === 'a-note') { var al = layerOf('add'); if (al) al.el.classList.add('typing'); } });
   document.addEventListener('focusout', function (e) { if (e.target.id === 'a-note') { var al = layerOf('add'); if (al) al.el.classList.remove('typing'); } });
+  // Premere «Salva» mentre si scrive la nota: senza questo il campo perde il focus, ricompare il tastierino,
+  // il pulsante si sposta e il clic va perso. Tenendo il focus, il pulsante resta fermo sotto il dito/mouse.
+  document.addEventListener('mousedown', function (e) { if (e.target.closest && e.target.closest('#a-save') && document.activeElement && document.activeElement.id === 'a-note') e.preventDefault(); });
   // Grafico del patrimonio: il dito (o il mouse) scorre sulla curva e mostra il valore di quel giorno.
   document.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('#nw-svg')) nwPointer(e); });
   document.addEventListener('pointermove', function (e) { if (e.target.closest && e.target.closest('#nw-svg') && (e.pointerType === 'mouse' || e.buttons)) nwPointer(e); });
@@ -2455,7 +2500,7 @@ window.UF_BUILD = '2026-11-02 · 6ef00147';
     else if (e.key === 'Enter') saveTx();
   });
 
-  window.__UF = Object.assign(testHooks(), { P: PER, snapState: snapState, applySnap: applySnap, validateSnap: validateSnap, readBackup: readBackup, hash53: hash53, stable: stable, boot: boot, summ: summ, exportBackup: exportBackup, emptyState: emptyState, S: S, L: L, balance: balance, netWorth: netWorth, parseCents: parseCents, isinOk: isinOk, posValue: posValue, alloc: alloc, buckets: buckets, range: range, stats: stats, scopeValue: scopeValue, scopeSet: scopeSet, act: act, render: render, nwSeries: nwSeries, firstDate: firstDate, delPlan: delPlan, accName: accName, nwRange: nwRange, pctS: pctS, chgPct: chgPct, nwPointer: nwPointer, posValue: posValue, portfolioValue: portfolioValue, posCalc: posCalc, posStat: posStat, xirr: xirr, runRules: runRules, nthDate: nthDate, lotsOk: lotsOk, pxAt: pxAt, snapAll: snapAll, restoreAll: restoreAll, parsePx: parsePx, delPosPlan: delPosPlan,  TODAY: TODAY, money: money, addDays: addDays, dn: dn, ymd: ymd, parseD: parseD, posById: posById, encryptBackup: encryptBackup, decryptBackup: decryptBackup, snapCapture: snapCapture, remBanner: remBanner, gz: gz, gunz: gunz });
+  window.__UF = Object.assign(testHooks(), { P: PER, snapState: snapState, applySnap: applySnap, validateSnap: validateSnap, readBackup: readBackup, hash53: hash53, stable: stable, boot: boot, summ: summ, exportBackup: exportBackup, emptyState: emptyState, S: S, L: L, balance: balance, netWorth: netWorth, parseCents: parseCents, isinOk: isinOk, posValue: posValue, alloc: alloc, buckets: buckets, range: range, stats: stats, scopeValue: scopeValue, scopeSet: scopeSet, act: act, render: render, nwSeries: nwSeries, firstDate: firstDate, delPlan: delPlan, accName: accName, nwRange: nwRange, pctS: pctS, chgPct: chgPct, nwPointer: nwPointer, portfolioValue: portfolioValue, posCalc: posCalc, posStat: posStat, xirr: xirr, runRules: runRules, nthDate: nthDate, lotsOk: lotsOk, pxAt: pxAt, snapAll: snapAll, restoreAll: restoreAll, parsePx: parsePx, delPosPlan: delPosPlan,  TODAY: TODAY, money: money, addDays: addDays, dn: dn, ymd: ymd, parseD: parseD, posById: posById, encryptBackup: encryptBackup, decryptBackup: decryptBackup, snapCapture: snapCapture, remBanner: remBanner, gz: gz, gunz: gunz });
     window.addEventListener('uf-toast', function (e) { toast(String(e.detail || '')); });
 boot();
 })();

@@ -41,7 +41,18 @@
     if (!reg) { say('Aggiornamenti non disponibili in questa modalità.'); return; }
     lastCheck = Date.now();
     reg.update().then(function () {
-      setTimeout(function () { if (!waitingWorker) say('Hai già l’ultima versione.'); }, 1200);
+      // se una versione nuova si sta ancora installando (rete lenta), si aspetta l'esito invece di dire «nessun aggiornamento»
+      var w = reg.installing;
+      if (w) {
+        say('Scarico l’aggiornamento…');
+        w.addEventListener('statechange', function () {
+          if (w.state === 'installed') { if (!waitingWorker) offer(w); }
+          else if (w.state === 'redundant') say('Aggiornamento non riuscito: riprova.');
+        });
+        return;
+      }
+      if (reg.waiting) { offer(reg.waiting); return; }
+      if (!waitingWorker) say('Hai già l’ultima versione.');
     }, function () { say('Non riesco a controllare: serve la rete.'); });
   }
   window.UFPwa = { check: check };
