@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · b2effd0d';
+window.UF_BUILD = '2026-11-02 · 6885af0d';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -2103,7 +2103,12 @@ window.UF_BUILD = '2026-11-02 · b2effd0d';
       CG.at = Date.now(); CG.err = '';
       if (n) { touch(); if (PER.canWrite && !PER.conf) { render(true); L.slice().forEach(function (ly) { if ((ly.name === 'posd' || ly.name === 'nw') && L.indexOf(ly) >= 0 && ly.refresh) ly.refresh(); }); } }
       return n;
-    } catch (e) { CG.err = errCode(e); return 0; }
+    } catch (e) {
+      CG.err = errCode(e);
+      // troppe richieste (limite del piano gratuito di CoinGecko): un solo nuovo tentativo dopo 30 secondi
+      if (CG.err === 'http_429' && !CG.retried) { CG.retried = true; setTimeout(function () { cgFetch(true); }, 30000); }
+      return 0;
+    }
     finally { CG.busy = false; }
   }
   async function cgEnable(on) {
