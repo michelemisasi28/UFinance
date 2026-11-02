@@ -692,7 +692,7 @@ window.UF_BUILD = '2026-11-02 · fbb89f72';
     el.className = 'layer ' + kind; el.style.zIndex = String(50 + L.length * 10);
     el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
     el.innerHTML = kind === 'sheet' ? '<div class="panel">' + html + '</div>' : '<div class="scr">' + html + '</div>';
-    document.body.appendChild(el); document.body.classList.add('lock');
+    document.body.appendChild(el); lockPage(true);
     armed = null; $('#toast').hidden = true;
     var lay = { el: el, kind: kind, name: name, st: st || {}, render: o && o.render, refresh: o && o.refresh };
     L.push(lay); return lay;
@@ -702,11 +702,20 @@ window.UF_BUILD = '2026-11-02 · fbb89f72';
     if (lay.name === 'voice') voiceStop();
     lastPopT = Date.now();
     lay.el.remove(); armed = null;
-    if (!L.length) { document.body.classList.remove('lock'); render(); }
+    if (!L.length) { lockPage(false); render(); }
     else { var t = L[L.length - 1]; if (t.refresh) t.refresh(); }
     return lay;
   }
-  function closeAll() { voiceStop(); lastPopT = Date.now(); while (L.length) L.pop().el.remove(); armed = null; document.body.classList.remove('lock'); render(); }
+  // Pagina sotto le schermate bloccata: su iPhone la tastiera o un trascinamento non la fanno scorrere.
+  var lockY = null;
+  function lockPage(on) {
+    var r = document.documentElement;
+    if (on) { if (lockY === null) lockY = window.scrollY || 0; r.classList.add('lock'); document.body.classList.add('lock'); return; }
+    r.classList.remove('lock'); document.body.classList.remove('lock');
+    if (lockY !== null && Math.abs((window.scrollY || 0) - lockY) > 1) window.scrollTo(0, lockY);
+    lockY = null;
+  }
+  function closeAll() { voiceStop(); lastPopT = Date.now(); while (L.length) L.pop().el.remove(); armed = null; lockPage(false); render(); }
   function scrHead(title, back, id) {
     return '<div class="scrh"><button class="x" data-act="close" aria-label="' + (back ? 'Indietro' : 'Chiudi') + '">' + svg(back ? 'back' : 'x') + '</button><h2' + (id ? ' id="' + id + '"' : '') + '>' + esc(title) + '</h2><span class="sp"></span></div>';
   }
@@ -3194,6 +3203,55 @@ window.UF_BUILD = '2026-11-02 · fbb89f72';
     else if (di === 'pxw') pxwHint();
     else if (di === 'txl') { clearTimeout(txlT); txlT = setTimeout(function () { if (txlRead()) txlDraw(false); }, el.id === 'tl-q' ? 120 : 250); }
   });
+  /* Schermate ferme (soprattutto su iPhone):
+     - ogni schermata/foglio occupa esattamente l'area visibile, anche con la tastiera aperta (visualViewport),
+       così intestazione e pulsanti restano al loro posto e non si può trascinare tutto lo schermo;
+     - un trascinamento fa scorrere solo un'area che ha davvero contenuto da scorrere, mai lo schermo intero;
+     - il campo in cui si scrive resta visibile sopra la tastiera. Lo zoom con due dita resta permesso. */
+  var VV = window.visualViewport || null;
+  function scrollParent(el, stop) {
+    for (var n = el && el.parentElement; n && n !== stop && n !== document.body; n = n.parentElement) {
+      if (/(auto|scroll)/.test(getComputedStyle(n).overflowY) && n.scrollHeight > n.clientHeight + 1) return n;
+    }
+    return null;
+  }
+  function revealFocus() {
+    var el = document.activeElement; if (!el || !el.closest || !/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return;
+    var lay = el.closest('.layer'), sc = lay && scrollParent(el, lay); if (!sc) return;
+    var a = el.getBoundingClientRect(), b = sc.getBoundingClientRect(), m = 12;
+    if (a.bottom > b.bottom - m) sc.scrollTop += Math.min(a.bottom - b.bottom + m, a.top - b.top - m);
+    else if (a.top < b.top + m) sc.scrollTop -= b.top + m - a.top;
+  }
+  function vvSync() {
+    if (!VV) return;
+    var r = document.documentElement, full = r.clientHeight;
+    if (VV.scale > 1.01) { r.style.removeProperty('--vvh'); r.style.removeProperty('--vvt'); r.classList.remove('kb'); return; } // zoom voluto dall'utente
+    var h = Math.round(VV.height), t = Math.max(0, Math.round(VV.offsetTop)), kb = full - h > 120;
+    r.style.setProperty('--vvh', h + 'px'); r.style.setProperty('--vvt', t + 'px');
+    var was = r.classList.contains('kb'); r.classList.toggle('kb', kb);
+    if (kb && L.length) requestAnimationFrame(revealFocus);
+    else if (!kb && was && L.length && (window.scrollY || 0) !== (lockY || 0)) window.scrollTo(0, lockY || 0);
+  }
+  if (VV) { VV.addEventListener('resize', vvSync); VV.addEventListener('scroll', vvSync); vvSync(); }
+  document.addEventListener('focusin', function (e) { if (L.length && e.target.closest && e.target.closest('.layer')) setTimeout(revealFocus, 350); });
+  var tX = 0, tY = 0;
+  document.addEventListener('touchstart', function (e) { if (e.touches.length === 1) { tX = e.touches[0].clientX; tY = e.touches[0].clientY; } }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (!L.length || e.touches.length !== 1) return;
+    var t = e.touches[0], dx = t.clientX - tX, dy = t.clientY - tY; tX = t.clientX; tY = t.clientY;
+    if (!e.cancelable) return;
+    var n = e.target && e.target.nodeType === 1 ? e.target : e.target && e.target.parentElement;
+    for (; n && n !== document.body; n = n.parentElement) {
+      var s = getComputedStyle(n);
+      if (Math.abs(dx) > Math.abs(dy)) { if (/(auto|scroll)/.test(s.overflowX) && n.scrollWidth > n.clientWidth + 1) return; }
+      else if (/(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight + 1) {
+        if ((dy > 0 && n.scrollTop <= 0) || (dy < 0 && n.scrollTop + n.clientHeight >= n.scrollHeight - 1)) break; // al bordo: niente rimbalzo dello schermo
+        return;
+      }
+      if (n.classList && n.classList.contains('layer')) break;
+    }
+    e.preventDefault();
+  }, { passive: false });
   // Mentre scrivi la nota il tastierino si nasconde: la schermata non si sposta.
   document.addEventListener('focusin', function (e) { if (e.target.id === 'a-note') { var al = layerOf('add'); if (al) al.el.classList.add('typing'); } });
   document.addEventListener('focusout', function (e) { if (e.target.id === 'a-note') { var al = layerOf('add'); if (al) al.el.classList.remove('typing'); } });
