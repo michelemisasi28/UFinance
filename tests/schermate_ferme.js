@@ -9,7 +9,7 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   const b = await chromium.launch(); const errs = [];
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 3 });
   await ctx.route('https://api.coingecko.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{}' }));
-  await ctx.addInitScript(() => { window.UF_TEST_NOTOUR = true; });
+  await ctx.addInitScript(() => { window.UF_TEST_NOTOUR = true; window.UF_TEST_IOS = true; });
   const p = await ctx.newPage(); p.on('pageerror', e => errs.push(e.message));
   await p.clock.install({ time: new Date('2026-11-02T10:00:00') });
   await p.goto(APP); await tick(p, 700); await p.click('[data-act="startdemo"]'); await tick(p, 1200);
@@ -44,7 +44,7 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(await p.evaluate(() => document.documentElement.classList.contains('lock')), 'pagina sotto bloccata (html.lock)');
   ok(await drag(200, 30, 400), 'Nuovo conto: trascinare l’intestazione non muove lo schermo (touchmove bloccato)');
   ok(await drag(200, 800, 400), 'Nuovo conto: trascinare la barra dei pulsanti non muove lo schermo');
-  ok((await p.evaluate(() => window.scrollY)) === y0, 'la pagina sotto non è scorsa (' + y0 + ')');
+  ok(await p.evaluate(y => window.scrollY === 0 && document.body.style.marginTop === (y ? -y + 'px' : ''), y0), 'documento in cima e pagina sotto visivamente ferma (margine −' + y0 + ')');
   ok((await layerBox()).top === 0, 'la schermata resta in alto (top 0)');
   const scr = () => p.evaluate(() => __UF.L[__UF.L.length - 1].el.querySelector('.scrb').scrollTop);
   const over = await p.evaluate(() => { const s = __UF.L[__UF.L.length - 1].el.querySelector('.scrb'); return s.scrollHeight > s.clientHeight; });
@@ -52,27 +52,50 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(await drag(200, 300, 600), 'contenuto già in cima: tirare giù non fa rimbalzare lo schermo');
   ok(!(await drag(200, 600, 200)), 'trascinare il contenuto lo fa scorrere (non bloccato)');
   ok((await scr()) > 0, 'il contenuto del modulo è scorso (' + (await scr()) + ' px)');
-  ok((await p.evaluate(() => window.scrollY)) === y0, 'la pagina sotto è ancora ferma');
+  ok((await p.evaluate(() => window.scrollY)) === 0, 'il documento sotto è ancora fermo in cima');
   ok(!(await drag(200, 300, 600, 2)), 'due dita (zoom) restano permesse');
 
-  // Tastiera aperta (iPhone): la schermata si adatta all'area visibile e il campo resta visibile
+  // Tocco su un campo (iPhone): il focus lo dà l'app, Safari non deve trovare nulla da far scorrere
   await p.evaluate(() => __UF.L[0].el.querySelector('.scrb').scrollTop = 0);
+  const hdr = () => p.evaluate(() => Math.round(__UF.L[0].el.querySelector('.scrh').getBoundingClientRect().top));
+  const h0 = await hdr();
+  const nb = await p.evaluate(() => { const r = document.getElementById('af-name').getBoundingClientRect(); return { x: r.left + 30, y: r.top + r.height / 2 }; });
+  await p.evaluate(() => { const el = document.getElementById('af-name'); window.__tr = []; new MutationObserver(() => window.__tr.push(el.style.transform)).observe(el, { attributes: true, attributeFilter: ['style'] }); });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: nb.x, y: nb.y, id: 1 }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await tick(p, 300);
+  ok(await p.evaluate(() => document.activeElement && document.activeElement.id === 'af-name'), 'tocco sul campo «Nome»: il campo riceve il focus');
+  const tr = await p.evaluate(() => ({ list: window.__tr, now: document.getElementById('af-name').style.transform }));
+  ok(tr.list.some(x => /translateY\(-2000px\)/.test(x)) && tr.now === '', 'al tocco il campo esce di vista per un istante, così Safari non sposta la schermata (' + JSON.stringify(tr) + ')');
+  ok((await hdr()) === h0 && (await p.evaluate(() => window.scrollY)) === 0, 'dopo il tocco intestazione e documento non si sono mossi');
+  await p.evaluate(() => document.activeElement.blur());
+  // un trascinamento che finisce su un campo non lo seleziona
+  const fb = await p.evaluate(() => { const r = document.getElementById('af-open').getBoundingClientRect(); return { x: r.left + 30, y: r.top + r.height / 2 }; });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: fb.x, y: fb.y + 120, id: 1 }] });
+  for (let k = 1; k <= 6; k++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: fb.x, y: fb.y + 120 - k * 20, id: 1 }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await tick(p, 300);
+  ok(await p.evaluate(() => !document.activeElement || document.activeElement.id !== 'af-open'), 'scorrere col dito sopra un campo non apre la tastiera');
+  await p.evaluate(() => __UF.L[0].el.querySelector('.scrb').scrollTop = 0);
+
+  // Tastiera aperta: la schermata non si sposta né si ridimensiona; il campo viene portato in vista scorrendo il contenuto
   await kbd(450, 0); await tick(p, 100);
   let lb = await layerBox();
-  ok(lb.h === 450 && lb.top === 0, 'tastiera aperta: la schermata occupa solo l’area visibile (' + JSON.stringify(lb) + ')');
+  ok(lb.h === 844 && lb.top === 0, 'tastiera aperta: la schermata resta ferma e a tutta altezza (' + JSON.stringify(lb) + ')');
+  ok((await hdr()) === h0, 'tastiera aperta: l’intestazione non si è mossa');
   ok(await p.evaluate(() => document.documentElement.classList.contains('kb')), 'stato «tastiera aperta» riconosciuto');
-  const footVis = await p.evaluate(() => { const r = __UF.L[0].el.querySelector('.scrf .btn').getBoundingClientRect(); return r.bottom <= 450; });
-  ok(footVis, 'il pulsante «Crea conto» resta sopra la tastiera');
   await p.focus('#af-gc'); await tick(p, 500);
-  const vis = await p.evaluate(() => { const r = document.getElementById('af-gc').getBoundingClientRect(), s = __UF.L[0].el.querySelector('.scrb').getBoundingClientRect(); return r.top >= s.top && r.bottom <= s.bottom && r.bottom <= 450; });
+  const vis = await p.evaluate(() => { const r = document.getElementById('af-gc').getBoundingClientRect(), s = __UF.L[0].el.querySelector('.scrb').getBoundingClientRect(); return r.top >= s.top && r.bottom <= 450; });
   ok(vis, 'il campo «Importo da raggiungere» viene portato in vista sopra la tastiera');
+  ok((await hdr()) === h0, 'e l’intestazione resta ferma');
+  await p.evaluate(() => __UF.L[0].el.querySelector('.scrb').scrollTop = 99999); await tick(p, 50);
+  ok(await p.evaluate(() => { const g = [...document.querySelectorAll('#af-col button')].pop().getBoundingClientRect(); return g.bottom <= 450; }), 'con la tastiera aperta si arriva fino all’ultimo elemento (Colore) sopra la tastiera');
   await kbd(450, 180); await tick(p, 100);
   lb = await layerBox();
-  ok(lb.top === 180, 'se iOS sposta l’area visibile, la schermata la segue invece di scivolare (top ' + lb.top + ')');
+  ok(lb.top === 180, 'se iOS sposta comunque l’area visibile, la schermata la segue (top ' + lb.top + ')');
   ok(await drag(200, 200, 400), 'con la tastiera aperta trascinare l’intestazione non muove lo schermo');
   await kbd(null); await p.evaluate(() => document.activeElement.blur()); await tick(p, 100);
   lb = await layerBox();
-  ok(lb.top === 0 && lb.h === 844, 'tastiera chiusa: schermata di nuovo a tutto schermo (' + JSON.stringify(lb) + ')');
+  ok(lb.top === 0 && lb.h === 844, 'tastiera chiusa: schermata come prima (' + JSON.stringify(lb) + ')');
 
   // ---- Modifica conto ----
   await p.evaluate(() => __UF.act('close', document.createElement('button'))); await tick(p, 300);
@@ -96,7 +119,7 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   const last = await p.evaluate(() => { const ins = [...__UF.L[__UF.L.length - 1].el.querySelectorAll('.scrb input')].filter(i => i.offsetParent); const i = ins[ins.length - 1]; i.focus(); return i.id; });
   await tick(p, 500);
   ok(await p.evaluate(id => { const r = document.getElementById(id).getBoundingClientRect(); return r.bottom <= 420 && r.top >= 0; }, last), 'l’ultimo campo (' + last + ') resta visibile sopra la tastiera');
-  ok((await layerBox()).h === 420, 'la schermata dell’investimento occupa l’area visibile');
+  ok((await layerBox()).h === 844, 'la schermata dell’investimento non si ridimensiona');
   await kbd(null); await p.evaluate(() => document.activeElement.blur()); await tick(p, 100);
 
   // ---- Foglio dal basso: lo sfondo scuro non trascina lo schermo ----
@@ -105,6 +128,12 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(await p.evaluate(() => __UF.L.length === 1 && __UF.L[0].kind === 'sheet'), 'foglio del conto aperto');
   ok(await drag(200, 40, 300), 'foglio: trascinare lo sfondo scuro non muove lo schermo');
   ok((await layerBox()).top === 0, 'foglio: resta fermo');
+  await kbd(450, 0); await tick(p, 100);
+  if (await p.evaluate(() => !!__UF.L[0].el.querySelector('#fx'))) {
+    await p.focus('#fx'); await tick(p, 500);
+    ok(await p.evaluate(() => document.getElementById('fx').getBoundingClientRect().bottom <= 450), 'foglio con la tastiera aperta: il campo resta sopra la tastiera');
+  } else ok(true, 'foglio senza campo di testo (saltato)');
+  await kbd(null); await p.evaluate(() => document.activeElement && document.activeElement.blur()); await tick(p, 100);
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
 
   // ---- Revisione: piccolo tremolio iniziale non blocca lo scorrimento del modulo ----

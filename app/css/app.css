@@ -90,7 +90,7 @@ p { margin: 0; }
 .tab.home.on .hb { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 
 /* Livelli: schermate intere (ferme) e fogli dal basso */
-.layer { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, 100%); }
+.layer { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); height: 100%; }
 .layer.sheet { background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; touch-action: none; }
 .panel { width: 100%; max-width: 520px; max-height: 92%; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; background: var(--surface); border-radius: 18px 18px 0 0; padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 14px; }
 .layer.screen { background: var(--bg); touch-action: manipulation; }
@@ -238,8 +238,11 @@ p { margin: 0; }
 .layer.fixed .scrb { overflow: hidden; gap: 10px; }
 .layer.fixed .scrb > * { flex: none; }
 @media (max-height: 640px) { .layer.fixed .scrb { overflow-y: auto; } .layer.fixed { touch-action: pan-y; } }
-/* Tastiera aperta (iPhone): lo schermo resta fermo nell'area visibile, i campi nascosti si raggiungono scorrendo il contenuto */
+/* Tastiera aperta (iPhone): la schermata non si sposta né si ridimensiona; sotto il contenuto si aggiunge lo spazio
+   coperto dalla tastiera, così ogni campo si può portare in vista scorrendo solo il contenuto. I fogli dal basso salgono sopra la tastiera. */
+html.kb .layer .scrb { padding-bottom: calc(12px + var(--kbh, 0px)); }
 html.kb .layer.fixed .scrb { overflow-y: auto; } html.kb .layer.fixed { touch-action: pan-y; }
+html.kb .layer.sheet { padding-bottom: var(--kbh, 0px); }
 .nwcard.cu .nwsvg { max-height: clamp(80px, calc(100vh - 600px), 30vh); max-height: clamp(80px, calc(100dvh - 600px), 30dvh); }
 @media (max-height: 700px) { .cell .s { display: none; } .layer.fixed .scrb { gap: 8px; } }
 .nwh { height: 112px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }

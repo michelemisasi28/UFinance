@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · 5a837052';
+window.UF_BUILD = '2026-11-02 · 5a160dd7';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -706,13 +706,20 @@ window.UF_BUILD = '2026-11-02 · 5a837052';
     else { var t = L[L.length - 1]; if (t.refresh) t.refresh(); }
     return lay;
   }
-  // Pagina sotto le schermate bloccata: su iPhone la tastiera o un trascinamento non la fanno scorrere.
+  // Pagina sotto le schermate bloccata. Il documento torna in cima (la pagina resta visivamente dov'era grazie al
+  // margine negativo): così su iPhone, aprendo la tastiera, Safari non ha nulla da far scorrere.
   var lockY = null;
   function lockPage(on) {
-    var r = document.documentElement;
-    if (on) { if (lockY === null) lockY = window.scrollY || 0; r.classList.add('lock'); document.body.classList.add('lock'); return; }
-    r.classList.remove('lock'); document.body.classList.remove('lock');
-    if (lockY !== null && Math.abs((window.scrollY || 0) - lockY) > 1) window.scrollTo(0, lockY);
+    var r = document.documentElement, b = document.body;
+    if (on) {
+      if (lockY !== null) return;
+      lockY = window.scrollY || 0;
+      r.classList.add('lock'); b.classList.add('lock');
+      b.style.marginTop = lockY ? -lockY + 'px' : ''; if (lockY) window.scrollTo(0, 0);
+      return;
+    }
+    r.classList.remove('lock'); b.classList.remove('lock'); b.style.marginTop = '';
+    if (lockY) window.scrollTo(0, lockY);
     lockY = null;
   }
   function closeAll() { voiceStop(); lastPopT = Date.now(); while (L.length) L.pop().el.remove(); armed = null; lockPage(false); render(); }
@@ -3204,40 +3211,55 @@ window.UF_BUILD = '2026-11-02 · 5a837052';
     else if (di === 'txl') { clearTimeout(txlT); txlT = setTimeout(function () { if (txlRead()) txlDraw(false); }, el.id === 'tl-q' ? 120 : 250); }
   });
   /* Schermate ferme (soprattutto su iPhone):
-     - ogni schermata/foglio occupa esattamente l'area visibile, anche con la tastiera aperta (visualViewport),
-       così intestazione e pulsanti restano al loro posto e non si può trascinare tutto lo schermo;
-     - un trascinamento fa scorrere solo un'area che ha davvero contenuto da scorrere, mai lo schermo intero;
-     - il campo in cui si scrive resta visibile sopra la tastiera. Lo zoom con due dita resta permesso. */
+     - quando si tocca un campo, Safari su iOS fa scorrere tutta la vista per portarlo sopra la tastiera: è questo
+       che fa «muovere» la schermata. Lo si evita spostando il campo fuori vista per un solo fotogramma nel momento
+       del tocco (Safari non trova nulla da scorrere) e mettendolo poi in vista noi, scorrendo solo il contenuto;
+     - la pagina sotto resta in cima e bloccata (lockPage), la schermata resta a tutta altezza e non si ridimensiona;
+     - un trascinamento fa scorrere solo un'area che ha davvero contenuto da scorrere, mai lo schermo intero.
+     Lo zoom con due dita resta permesso. */
   var VV = window.visualViewport || null;
+  var IOS = !!window.UF_TEST_IOS || /iP(hone|ad|od)/.test(navigator.platform || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   function scrollParent(el, stop) {
     for (var n = el && el.parentElement; n && n !== stop && n !== document.body; n = n.parentElement) {
       if (/(auto|scroll)/.test(getComputedStyle(n).overflowY) && n.scrollHeight > n.clientHeight + 1) return n;
     }
     return null;
   }
+  function kbField(el) {
+    if (!el || !el.tagName || el.disabled || el.readOnly) return false;
+    if (el.tagName === 'TEXTAREA') return true;
+    return el.tagName === 'INPUT' && !/^(checkbox|radio|range|color|file|image|button|submit|reset|date|time|datetime-local|month|week)$/.test(el.type);
+  }
+  function noAutoScroll(el) { el.style.transform = 'translateY(-2000px)'; requestAnimationFrame(function () { requestAnimationFrame(function () { el.style.transform = ''; }); }); }
   function revealFocus() {
     var el = document.activeElement; if (!el || !el.closest || !/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return;
     var lay = el.closest('.layer'), sc = lay && scrollParent(el, lay); if (!sc) return;
-    var a = el.getBoundingClientRect(), b = sc.getBoundingClientRect(), m = 12;
-    if (a.bottom > b.bottom - m) sc.scrollTop += Math.min(a.bottom - b.bottom + m, a.top - b.top - m);
-    else if (a.top < b.top + m) sc.scrollTop -= b.top + m - a.top;
+    var a = el.getBoundingClientRect(), b = sc.getBoundingClientRect(), m = 12, top = b.top, bot = b.bottom;
+    if (VV && VV.scale <= 1.01) { top = Math.max(top, VV.offsetTop); bot = Math.min(bot, VV.offsetTop + VV.height); }
+    if (a.bottom > bot - m) sc.scrollTop += Math.min(a.bottom - bot + m, a.top - top - m);
+    else if (a.top < top + m) sc.scrollTop -= top + m - a.top;
   }
   function vvSync() {
     if (!VV) return;
-    var r = document.documentElement, full = r.clientHeight;
-    if (VV.scale > 1.01) { r.style.removeProperty('--vvh'); r.style.removeProperty('--vvt'); r.classList.remove('kb'); return; } // zoom voluto dall'utente
-    var h = Math.round(VV.height), t = Math.max(0, Math.round(VV.offsetTop)), kb = full - h > 120;
-    r.style.setProperty('--vvh', h + 'px'); r.style.setProperty('--vvt', t + 'px');
-    var was = r.classList.contains('kb'); r.classList.toggle('kb', kb);
+    var r = document.documentElement;
+    if (VV.scale > 1.01) { r.style.removeProperty('--vvt'); r.style.removeProperty('--kbh'); r.classList.remove('kb'); return; } // zoom voluto dall'utente
+    var t = Math.max(0, Math.round(VV.offsetTop)), kbh = Math.max(0, Math.round(r.clientHeight - VV.height)), kb = kbh > 120;
+    r.style.setProperty('--vvt', t + 'px'); r.style.setProperty('--kbh', (kb ? kbh : 0) + 'px');
+    r.classList.toggle('kb', kb);
     if (kb && L.length) requestAnimationFrame(revealFocus);
-    else if (!kb && was && L.length && (window.scrollY || 0) !== (lockY || 0)) window.scrollTo(0, lockY || 0);
   }
   if (VV) { VV.addEventListener('resize', vvSync); VV.addEventListener('scroll', vvSync); vvSync(); }
-  document.addEventListener('focusin', function (e) { if (L.length && e.target.closest && e.target.closest('.layer')) setTimeout(revealFocus, 350); });
+  // Se qualcosa fa comunque scorrere il documento mentre una schermata è aperta, torna subito in cima.
+  window.addEventListener('scroll', function () { if (lockY !== null && L.length && (window.scrollY || 0) !== 0) window.scrollTo(0, 0); }, { passive: true });
+  document.addEventListener('focusin', function (e) {
+    var el = e.target; if (!L.length || !el.closest || !el.closest('.layer')) return;
+    if (IOS && kbField(el) && !el.style.transform) noAutoScroll(el); // frecce ‹ › della tastiera iOS
+    setTimeout(revealFocus, 350);
+  });
   // Una sola decisione per gesto (consenti/blocca), presa sullo spostamento totale dopo qualche pixel:
   // un piccolo tremolio iniziale non blocca lo scorrimento (su iPhone bloccare il primo touchmove lo fermerebbe tutto).
-  var tX = 0, tY = 0, tDec = null;
-  document.addEventListener('touchstart', function (e) { tDec = null; if (e.touches.length === 1) { tX = e.touches[0].clientX; tY = e.touches[0].clientY; } }, { passive: true });
+  var tX = 0, tY = 0, tDec = null, tMoved = false;
+  document.addEventListener('touchstart', function (e) { tDec = null; tMoved = e.touches.length > 1; if (e.touches.length === 1) { tX = e.touches[0].clientX; tY = e.touches[0].clientY; } }, { passive: true });
   function touchDecide(target, dx, dy) {
     var n = target && target.nodeType === 1 ? target : target && target.parentElement;
     for (; n && n !== document.body; n = n.parentElement) {
@@ -3252,13 +3274,23 @@ window.UF_BUILD = '2026-11-02 · 5a837052';
     return 'no';
   }
   document.addEventListener('touchmove', function (e) {
-    if (!L.length || e.touches.length !== 1) return;
+    if (e.touches.length !== 1) { tMoved = true; return; }
+    if (!tMoved && (Math.abs(e.touches[0].clientX - tX) > 10 || Math.abs(e.touches[0].clientY - tY) > 10)) tMoved = true;
+    if (!L.length) return;
     if (!tDec) {
       var t = e.touches[0], dx = t.clientX - tX, dy = t.clientY - tY;
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
       tDec = touchDecide(e.target, dx, dy);
     }
     if (tDec === 'no' && e.cancelable) e.preventDefault();
+  }, { passive: false });
+  // iPhone: tocco su un campo di testo in una schermata → focus dato da qui, con il campo fuori vista per un
+  // fotogramma, così Safari non sposta la schermata per mostrarlo (lo mostra revealFocus scorrendo solo il contenuto).
+  document.addEventListener('touchend', function (e) {
+    var el = e.target;
+    if (!IOS || !L.length || tMoved || !kbField(el) || el === document.activeElement || !el.closest('.layer')) return;
+    e.preventDefault(); noAutoScroll(el);
+    try { el.focus({ preventScroll: true }); } catch (x) { el.focus(); }
   }, { passive: false });
   // Mentre scrivi la nota il tastierino si nasconde: la schermata non si sposta.
   document.addEventListener('focusin', function (e) { if (e.target.id === 'a-note') { var al = layerOf('add'); if (al) al.el.classList.add('typing'); } });
