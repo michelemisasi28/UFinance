@@ -1,6 +1,9 @@
 # Netlify pubblica la PWA (cartella app/) così com'è: nessuna compilazione.
 [build]
   publish = "app"
+  # Nessuna compilazione: la PWA si pubblica così com'è.
+  # Il comando è esplicito per sostituire quello rimasto salvato nelle impostazioni del sito su Netlify.
+  command = "echo 'Nessuna compilazione: pubblico la cartella app/'"
 
 # HTML, service worker e manifest vanno sempre ricontrollati: gli aggiornamenti arrivano subito.
 [[headers]]
