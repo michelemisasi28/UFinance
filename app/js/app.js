@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · 6885af0d';
+window.UF_BUILD = '2026-11-02 · fbb89f72';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -2238,7 +2238,7 @@ window.UF_BUILD = '2026-11-02 · 6885af0d';
     } else if (it.k === 'giro') h += fld('A', '<select data-vf="to">' + accOpts(it.toId && it.toId !== '__new__' ? it.toId : otherAcc(it.accId)) + '</select>') + '</div>';
     else h += fld('Categoria', '<select data-vf="cat"><option value="">Senza categoria</option>' + cats.map(function (c) { return '<option value="' + c.id + '"' + (c.id === it.catId ? ' selected' : '') + '>' + esc(c.icon + ' ' + c.name) + '</option>'; }).join('') + '</select>') + '</div>';
     h += '<div class="fgrid">' + fld('Data', '<input type="date" data-vf="date" max="' + TODAY + '" value="' + it.date + '">') + fld('Nota', '<input data-vf="note" data-in="vf" maxlength="60" autocomplete="off" value="' + esc(it.note || '') + '">') + '</div>';
-    var w = []; if (amtBad) w.push('Importo da inserire'); if (it.accWarn) w.push(it.accWarn); if (it.nWarn && (it.k === 'prestito' || it.k === 'giro')) w.push(it.nWarn);
+    var w = []; if (amtBad) w.push('Importo da inserire'); if (it.accWarn) w.push(it.accWarn); if (it.nWarn && it.k === 'prestito' && it.toId === '__new__') w.push(it.nWarn); // solo se c'è il campo del nome
     return h + (w.length ? '<p class="vwarn">⚠️ ' + esc(w.join(' · ')) + '</p>' : '') + '</div>';
   }
   function voiceDraw() {
