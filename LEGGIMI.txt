@@ -7,7 +7,8 @@ INSTALLAZIONE SU IPHONE
 3. Apri l'app dall'icona: la prima apertura scarica tutto, poi funziona anche in modalita' aereo.
 
 DATI
-- Restano solo sul dispositivo (IndexedDB). Nessun dato viene inviato in rete.
+- Restano solo sul dispositivo (IndexedDB). L'unica connessione e' per i prezzi delle cripto
+  (CoinGecko riceve solo i nomi delle cripto, mai le quantita'): si disattiva in Impostazioni.
 - Esporta un backup spesso (Impostazioni > Esporta backup) e salvalo su File/iCloud.
 - Un aggiornamento dell'app non cancella mai i dati (nemmeno quando cambia il formato: i dati vengono convertiti).
 

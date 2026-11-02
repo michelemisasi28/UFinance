@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · bc83dcbe';
+window.UF_BUILD = '2026-11-02 · ab9ba903';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -592,7 +592,7 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
     }
     if (a.blocks.list || a.period === 'day') {
       var l = sortTx(txs).slice(0, 15);
-      h += '<section class="sec"><div class="sech"><h2>Movimenti del periodo</h2><button class="lnk" data-act="txlist" data-per="custom" data-from="' + r.from + '" data-to="' + r.to + '">Vedi tutti</button></div>' + (l.length ? '<div class="list">' + l.map(function (t) { return txRow(t, null); }).join('') + '</div>' : '<p class="empty">Nessun movimento in questo periodo.</p>') + '</section>';
+      h += '<section class="sec"><div class="sech"><h2>Movimenti del periodo</h2><button class="lnk" data-act="txlist" data-an="1" data-per="custom" data-from="' + r.from + '" data-to="' + r.to + '">Vedi tutti</button></div>' + (l.length ? '<div class="list">' + l.map(function (t) { return txRow(t, null); }).join('') + '</div>' : '<p class="empty">Nessun movimento in questo periodo.</p>') + '</section>';
     }
     h += '<p class="note">Giroconti e correzioni non contano come entrate o spese.</p>';
     return h;
@@ -627,7 +627,7 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
       h += '<button class="lnk" data-act="invhelp" style="align-self:flex-start">Come leggere valore, versato e guadagno</button>';
       h += '<div class="list">' + S.pos.map(function (p, i) {
         var z = stats[i];
-        return '<button class="row" data-act="posopen" data-id="' + p.id + '"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + (isCry(p) ? '' : esc(p.isin || 'Titolo / ETF') + ' · ') + qtyStr(z.k.qty, p) + ' ' + esc(unitL(p)) + (isAuto(p) ? ' · ⚡ auto' : pxStale(p) ? ' · <span class="stale">valore di ' + agoL(z.pxDate) + '</span>' : '') + '</span></span><span class="v">' + money(z.value) + '<br><span class="sb ' + (z.gain >= 0 ? 'pos' : 'neg') + '">' + moneyS(z.gain) + ' · ' + pctS(z.pct) + '</span></span></button>';
+        return '<button class="row" data-act="posopen" data-id="' + p.id + '"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + (isCry(p) ? '' : esc(p.isin || 'Titolo / ETF') + ' · ') + qtyStr(z.k.qty, p) + ' ' + esc(unitL(p)) + (isAuto(p) && !pxStale(p) ? ' · ⚡ auto' : pxStale(p) ? ' · <span class="stale">valore di ' + agoL(z.pxDate) + '</span>' : '') + '</span></span><span class="v">' + money(z.value) + '<br><span class="sb ' + (z.gain >= 0 ? 'pos' : 'neg') + '">' + moneyS(z.gain) + ' · ' + pctS(z.pct) + '</span></span></button>';
       }).join('') + '</div>';
     } else h += '<p class="empty">Nessun investimento. Aggiungi titoli, ETF o cripto.</p>';
     h += '<button class="pick addnew" data-act="newpos"><span class="ico">' + svg('plus') + '</span><span class="mid"><span class="nm">Aggiungi investimento</span></span></button></section>';
@@ -636,7 +636,7 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
       var p = posById(r.posId), nx = ruleNext(r);
       return '<button class="row" data-act="pacopen" data-id="' + r.id + '"><span class="ico">🔁</span><span class="mid"><span class="nm">' + esc(p ? p.name : 'PAC') + '</span><span class="sb">' + freqL(r) + ' · ' + (!r.active ? 'in pausa' : nx ? 'prossimo ' + dayLabel(nx) : 'terminato') + '</span></span><span class="v">' + money(r.cents) + '</span></button>';
     }).join('') + '</div>' : '<p class="empty">Nessun PAC.</p>') + '<button class="pick addnew" data-act="pacnew" data-id=""><span class="ico">' + svg('plus') + '</span><span class="mid"><span class="nm">Aggiungi PAC</span></span></button></section>';
-    h += '<p class="note">Prezzi inseriti a mano: nessun aggiornamento automatico. «Aggiorna valori» li aggiorna tutti in pochi tocchi.</p>';
+    h += '<p class="note">' + (S.autoCry && S.pos.some(isCry) ? 'Titoli ed ETF: valori inseriti da te («Aggiorna valori»). Cripto: prezzi automatici da CoinGecko, disattivabili nelle Impostazioni.' : 'Valori inseriti da te: «Aggiorna valori» li aggiorna tutti in pochi tocchi.') + '</p>';
     return h;
   }
 
@@ -1813,11 +1813,11 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
   }
 
   /* ---------- elenco completo dei movimenti: ricerca e filtri ---------- */
-  var TL_KIND = [['all', 'Tutti'], ['spesa', 'Spese'], ['entrata', 'Entrate'], ['giro', 'Giroconti'], ['other', 'Altro']];
+  var TL_KIND = [['all', 'Tutti'], ['flow', 'Entrate e spese'], ['spesa', 'Spese'], ['entrata', 'Entrate'], ['giro', 'Giroconti'], ['other', 'Altro']];
   var TL_PER = [['all', 'Sempre'], ['month', 'Questo mese'], ['prev', 'Mese scorso'], ['3m', '3 mesi'], ['year', 'Anno'], ['custom', 'Date']];
   function openTxList(o) {
     o = o || {};
-    var st = { q: '', kind: o.kind || 'all', acc: o.acc || '', cat: o.cat || '', per: o.per || 'all', from: o.from || monthRange(TODAY).from, to: o.to || TODAY, min: '', max: '', more: !!(o.acc || o.cat), limit: 150 };
+    var st = { q: '', kind: o.kind || 'all', acc: o.acc || '', cat: o.cat || '', per: o.per || 'all', from: o.from || monthRange(TODAY).from, to: o.to || TODAY, min: '', max: '', more: !!(o.acc || o.cat), limit: 150, accs: o.accs && o.accs.length ? o.accs.slice() : null };
     var html = scrHead('Movimenti', true) + '<div class="scrb" id="tl-body">' +
       '<input type="search" id="tl-q" data-in="txl" autocomplete="off" enterkeyhint="search" placeholder="Cerca nota, categoria, conto, importo…" aria-label="Cerca nei movimenti">' +
       '<div id="tl-ctl" class="fcol" style="gap:10px"></div><p class="cap" id="tl-sum" aria-live="polite"></p><div id="tl-res"></div></div>' +
@@ -1826,10 +1826,11 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
     txlDraw(true);
   }
   function txlCtl(st) {
-    var nf = (st.acc ? 1 : 0) + (st.cat ? 1 : 0) + (st.min ? 1 : 0) + (st.max ? 1 : 0);
+    var nf = (st.acc ? 1 : 0) + (st.cat ? 1 : 0) + (st.min ? 1 : 0) + (st.max ? 1 : 0) + (st.accs ? 1 : 0);
     var h = '<div class="chips" role="tablist" aria-label="Tipo">' + TL_KIND.map(function (k) { return '<button class="chip ' + (st.kind === k[0] ? 'on' : '') + '" data-act="tlkind" data-k="' + k[0] + '" role="tab" aria-selected="' + (st.kind === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="chips" role="tablist" aria-label="Periodo">' + TL_PER.map(function (k) { return '<button class="chip ' + (st.per === k[0] ? 'on' : '') + '" data-act="tlper" data-k="' + k[0] + '" role="tab" aria-selected="' + (st.per === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>';
     if (st.per === 'custom') h += '<div class="dates"><div class="fld"><label for="tl-from">Dal</label><input type="date" id="tl-from" data-chg="txl" max="' + TODAY + '" value="' + st.from + '"></div><div class="fld"><label for="tl-to">Al</label><input type="date" id="tl-to" data-chg="txl" max="' + TODAY + '" value="' + st.to + '"></div></div>';
+    if (st.accs) h += '<button class="chip on tog" data-act="tlaccsx">' + st.accs.length + (st.accs.length === 1 ? ' conto' : ' conti') + ' dall’Analisi ✕</button>';
     h += '<div class="sech"><button class="tbtn" data-act="tlmore" aria-expanded="' + st.more + '">' + svg('sliders') + 'Filtri' + (nf ? ' (' + nf + ')' : '') + '</button>' + (nf || st.q || st.kind !== 'all' || st.per !== 'all' ? '<button class="lnk" data-act="tlreset">Azzera</button>' : '') + '</div>';
     if (st.more) {
       var cats = S.cats.slice().sort(function (a, b) { return a.kind === b.kind ? (a.name < b.name ? -1 : 1) : a.kind === 'spesa' ? -1 : 1; });
@@ -1855,8 +1856,9 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
     var r = txlRange(st), toks = fold(st.q).split(/\s+/).filter(Boolean), mn = st.min ? parseCents(st.min) : null, mx = st.max ? parseCents(st.max) : null;
     return sortTx(S.tx.filter(function (t) {
       if (r && (t.date < r.from || t.date > r.to)) return false;
-      if (st.kind === 'other' ? (t.kind !== 'rett' && t.kind !== 'inv') : st.kind !== 'all' && t.kind !== st.kind) return false;
+      if (st.kind === 'other' ? (t.kind !== 'rett' && t.kind !== 'inv') : st.kind === 'flow' ? (t.kind !== 'spesa' && t.kind !== 'entrata') : st.kind !== 'all' && t.kind !== st.kind) return false;
       if (st.acc && t.accId !== st.acc && t.toId !== st.acc) return false;
+      if (st.accs && st.accs.indexOf(t.accId) < 0) return false;
       if (st.cat === '-' ? !((t.kind === 'spesa' || t.kind === 'entrata') && !cat(t.catId)) : st.cat && t.catId !== st.cat) return false;
       var a = Math.abs(t.cents);
       if (mn !== null && a < mn) return false;
@@ -1919,7 +1921,7 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
   function pxShort(px) { return S.hide ? '•••• ' + SYM[S.cur] : (px / 1e6).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + ' ' + SYM[S.cur]; }
   function lastPx(p) { return p.prices.length ? p.prices[p.prices.length - 1] : null; }
   function isAuto(p) { return isCry(p) && !!S.autoCry && !!p.cgId; }
-  function pxStale(p) { var l = lastPx(p); return !!l && posQtyAt(p, TODAY) > 0 && !isAuto(p) && l.d < addDays(TODAY, -7); }
+  function pxStale(p) { var l = lastPx(p); return !!l && posQtyAt(p, TODAY) > 0 && l.d < addDays(TODAY, isAuto(p) ? -2 : -7); }
   function agoL(d) { var n = dn(TODAY) - dn(d); return n <= 0 ? 'oggi' : n === 1 ? 'ieri' : n + ' giorni fa'; }
   function unitOf(p) { return isCry(p) ? 'unità' : 'quota'; }
   function openPxAll() {
@@ -1938,7 +1940,7 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
       '<div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + qtyStr(q, p) + ' ' + esc(unitL(p)) + ' · ' + esc(posTag(p)) + '</span></span></div>' +
       (l ? '<div class="kv"><span>Ultimo valore</span><span>' + money(lv) + ' · ' + agoL(l.d) + '</span></div>' : '') +
       '<div class="fld"><label for="w-in" class="wq">' + (val ? 'Quanto vale oggi la posizione?' : 'Prezzo di oggi per 1 ' + unitOf(p)) + '</label>' +
-      '<input id="w-in" class="bigin" data-in="pxw" inputmode="decimal" autocomplete="off" placeholder="' + (l ? esc(val ? amtStr(lv) : pxInput(l.px)) : '0,00') + '">' +
+      '<input id="w-in" class="bigin" data-in="pxw" inputmode="decimal" autocomplete="off" placeholder="' + (l && !S.hide ? esc(val ? amtStr(lv) : pxInput(l.px)) : '0,00') + '">' +
       '<p class="hint" id="w-hint">' + (val ? 'Il numero che vedi nell’app della banca o del broker.' : '') + '</p></div>' +
       '<button class="lnk" data-act="pxwmode" style="align-self:flex-start">' + (val ? 'Conosco il prezzo per ' + unitOf(p) : 'Conosco il valore totale') + '</button>';
     lay.el.querySelector('#w-next').textContent = st.i === st.ids.length - 1 ? 'Salva e chiudi' : 'Avanti';
@@ -2039,7 +2041,7 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
       '<p class="sb">Hai versato ' + money(k.invested) + (k.proceeds ? ' e incassato ' + money(k.proceeds) + ' dalle vendite' : '') + '. Oggi vale ' + money(z.value) + '.</p></div>';
     // freschezza del valore
     if (q > 0) {
-      h += '<div class="card fresh' + (stale ? ' old' : '') + '"><div class="fr1"><span>' + (auto ? '⚡ Prezzo automatico' : stale ? '⚠️ Valore di ' + (l ? agoL(l.d) : '—') : '🏷️ Valore aggiornato ' + (l ? agoL(l.d) : '—')) + '</span>' +
+      h += '<div class="card fresh' + (stale ? ' old' : '') + '"><div class="fr1"><span>' + (auto ? (stale ? '⚠️ Prezzo automatico di ' : '⚡ Prezzo automatico · ') + (l ? agoL(l.d) : '—') : stale ? '⚠️ Valore di ' + (l ? agoL(l.d) : '—') : '🏷️ Valore aggiornato ' + (l ? agoL(l.d) : '—')) + '</span>' +
         (auto ? '<button class="tbtn" data-act="cgnow">Aggiorna ora</button>' : '<button class="tbtn pri" data-act="pricenew" data-id="' + id + '">Aggiorna valore</button>') + '</div>' +
         '<p class="sb">' + (auto ? 'Da CoinGecko (' + esc(p.cgName || p.cgId) + ')' + (CG.at ? ' · ' + hhmm(CG.at) : '') + (CG.err ? ' · ultimo tentativo non riuscito' : '') : stale ? 'Il guadagno mostrato usa il prezzo del ' + shortD(l.d) + ': aggiornalo per vederlo attuale.' : 'Prezzo per ' + unitOf(p) + ': ' + (l ? pxStr(l.px) : '—')) + '</p></div>';
       if (isCry(p) && S.autoCry && !p.cgId) h += '<button class="banner" data-act="cglink" style="text-align:left;width:100%">Non collegata a CoinGecko: tocca per cercarla.</button>';
@@ -2081,7 +2083,8 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
     return n;
   }
   async function cgFetch(force) {
-    if (!S.autoCry || CG.busy || (navigator.onLine === false)) return 0;
+    if (!S.autoCry || CG.busy) return 0;
+    if (navigator.onLine === false) { CG.err = 'offline'; return 0; }
     if (!force && Date.now() - CG.at < 15 * 60 * 1000) return 0;
     if (!S.pos.some(isCry)) return 0;
     CG.busy = true;
@@ -2148,8 +2151,8 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
       '<p>Se il saldo nell’app non coincide con quello reale, usa <b>Conti → conto → Correggi saldo</b>: la differenza diventa una correzione, non una spesa.</p>' +
       '<h3>🔁 Ricorrenze</h3><p>Affitto, stipendio, abbonamenti: nel nuovo movimento scegli «Ripeti». L’app li registra da sola alla scadenza, anche se l’hai tenuta chiusa.</p>' +
       '<h3>🎯 Budget e obiettivi</h3><p>Il <b>budget</b> è un limite di spesa al mese per categoria (Impostazioni → Budget mensili). L’<b>obiettivo</b> si imposta su un conto di risparmio: importo e data, e l’app calcola quanto mettere da parte ogni mese.</p>' +
-      '<h3>📈 Investimenti</h3><p>Titoli, ETF e cripto con acquisti, vendite e PAC. I prezzi si inseriscono a mano: Portfolio → Aggiorna prezzi.</p>' +
-      '<h3>🔒 I tuoi dati</h3><p>Restano solo su questo dispositivo, anche senza rete: niente account, niente server. Per questo è importante <b>esportare un backup</b> ogni tanto e salvarlo su File o iCloud.</p>' +
+      '<h3>📈 Investimenti</h3><p>Titoli, ETF e cripto con acquisti, vendite e PAC. Titoli ed ETF li aggiorni tu inserendo quanto valgono (Portfolio → Aggiorna valori); le cripto si aggiornano da sole da CoinGecko, se l’opzione è attiva nelle Impostazioni.</p>' +
+      '<h3>🔒 I tuoi dati</h3><p>Restano solo su questo dispositivo, anche senza rete: niente account, niente server. L’unica connessione è per i prezzi delle cripto (CoinGecko riceve solo i nomi delle cripto, mai le quantità) e si può disattivare. Per questo è importante <b>esportare un backup</b> ogni tanto e salvarlo su File o iCloud.</p>' +
       '</div>', {});
   }
 
@@ -2195,7 +2198,7 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
   }
   function voiceCtx() {
     var def = S.lastAcc && acc(S.lastAcc) ? S.lastAcc : (S.accounts.filter(function (a) { return a.type === 'liquidita'; })[0] || S.accounts[0]).id;
-    return { today: TODAY, defAcc: def, accounts: S.accounts.map(function (a) { return { id: a.id, name: a.name, type: a.type }; }), cats: S.cats.map(function (c) { return { id: c.id, name: c.name, kind: c.kind }; }) };
+    return { today: TODAY, defAcc: def, accounts: S.accounts.map(function (a) { return { id: a.id, name: a.name, type: a.type, bal: balance(a.id) }; }), cats: S.cats.map(function (c) { return { id: c.id, name: c.name, kind: c.kind }; }) };
   }
   function voiceParse() {
     var lay = layerOf('voice'); if (!lay) return;
@@ -2203,7 +2206,11 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
     if (!txt) { voiceErr('Di’ o scrivi cosa hai speso o ricevuto.'); return; }
     if (!window.UFVoice) { voiceErr('Riconoscimento delle frasi non disponibile.'); return; }
     voiceErr('');
-    lay.st.items = UFVoice.parse(txt.slice(0, 1000), voiceCtx()).slice(0, 20).map(function (it) {
+    var vc = voiceCtx();
+    lay.st.items = UFVoice.parse(txt.slice(0, 1000), vc).slice(0, 20).map(function (it) {
+      if (!acc(it.accId)) it.accId = vc.defAcc;
+      if (it.kind === 'giro' && !it.loan && (!acc(it.toId) || it.toId === it.accId)) it.toId = otherAcc(it.accId);
+      if (it.loan && it.toId !== '__new__' && !acc(it.toId)) it.toId = '__new__';
       return { k: it.loan ? 'prestito' : it.kind, amt: it.cents ? amtStr(it.cents) : '', accId: it.accId, toId: it.toId, catId: it.catId, date: it.date, note: it.note, pname: it.newAcc ? it.newAcc.name : (it.person || ''), accWarn: (it.warn || []).filter(function (w) { return /Conto|Contanti/.test(w); })[0] || '' };
     });
     voiceDraw();
@@ -3074,13 +3081,14 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
           L.slice().forEach(function (ly) { if (L.indexOf(ly) >= 0 && ly.refresh) ly.refresh(); });
         } break;
       case 'close': popLayer(); break;
-      case 'txlist': openTxList({ acc: d.acc || '', per: d.per || 'all', from: d.from, to: d.to }); break;
+      case 'txlist': openTxList(d.an ? { per: 'custom', from: d.from, to: d.to, kind: 'flow', accs: S.an.accIds } : { acc: d.acc || '', per: d.per || 'all', from: d.from, to: d.to }); break;
       case 'tlkind': if (txlRead()) { layerOf('txlist').st.kind = d.k; txlDraw(true); } break;
       case 'tlper': if (txlRead()) { layerOf('txlist').st.per = d.k; txlDraw(true); } break;
       case 'tlmore': if (txlRead()) { al = layerOf('txlist'); al.st.more = !al.st.more; txlDraw(true); } break;
       case 'tlreset':
         al = layerOf('txlist'); if (!al) break;
-        Object.assign(al.st, { q: '', kind: 'all', acc: '', cat: '', per: 'all', min: '', max: '', limit: 150 }); al.el.querySelector('#tl-q').value = ''; txlDraw(true); break;
+        Object.assign(al.st, { q: '', kind: 'all', acc: '', cat: '', per: 'all', min: '', max: '', limit: 150, accs: null }); al.el.querySelector('#tl-q').value = ''; txlDraw(true); break;
+      case 'tlaccsx': if (txlRead()) { layerOf('txlist').st.accs = null; txlDraw(true); } break;
       case 'tlnext': al = layerOf('txlist'); if (al) { al.st.limit += 300; txlDraw(false); } break;
       case 'tlcsv': al = layerOf('txlist'); if (al) exportCsv((al.data || []).slice().reverse(), 'ufinance-movimenti-filtrati-' + TODAY + '.csv'); break;
       case 'csvall': exportCsv(sortTx(S.tx).reverse(), 'ufinance-movimenti-' + TODAY + '.csv'); break;
@@ -3092,7 +3100,7 @@ window.UF_BUILD = '2026-11-02 · bc83dcbe';
       case 'pxwskip': pxwNext(true); break;
       case 'pxwmode': al = layerOf('pxwiz'); if (al) { al.st.mode = al.st.mode === 'val' ? 'px' : 'val'; pxwDraw(); } break;
       case 'xmode': al = layerOf('price'); if (al) { al.st.mode = d.m; priceForm(al); } break;
-      case 'cgnow': cgFetch(true).then(function (n) { toast(CG.err ? 'CoinGecko non risponde: riprova più tardi.' : n ? 'Prezzi cripto aggiornati.' : 'Prezzi già aggiornati.'); }); break;
+      case 'cgnow': cgFetch(true).then(function (n) { toast(CG.err === 'offline' ? 'Sei offline: riprova quando c’è rete.' : CG.err ? 'CoinGecko non risponde: riprova più tardi.' : n ? 'Prezzi cripto aggiornati.' : 'Prezzi già aggiornati.'); }); break;
       case 'cglink': cgLink().then(function (n) { if (!n) toast('Non trovata su CoinGecko: controlla il simbolo (es. BTC).'); return cgFetch(true); }).then(function () { L.slice().forEach(function (ly) { if (ly.refresh && L.indexOf(ly) >= 0) ly.refresh(); }); render(true); }); break;
       case 'invhelp': sheetInvHelp(); break;
       case 'guide': openGuide(); break;

@@ -15,7 +15,7 @@ tools/stamp.js       aggiorna il numero di build (da eseguire prima di ogni pubb
 ```
 
 ## Dati
-Restano sul dispositivo (IndexedDB). Nessun dato viene inviato in rete. **Esporta spesso un backup** (Impostazioni → Dati).
+Restano sul dispositivo (IndexedDB). L'unica connessione è per i prezzi delle cripto (CoinGecko riceve solo i nomi delle cripto, mai le quantità), disattivabile in Impostazioni. **Esporta spesso un backup** (Impostazioni → Dati).
 
 ## Pubblicare una nuova versione
 1. `node tools/stamp.js` (nuovo numero di build → i telefoni ricevono «Aggiornamento disponibile»)

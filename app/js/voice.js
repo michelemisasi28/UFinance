@@ -2,7 +2,7 @@
  *
  *   UFVoice.parse(testo, ctx) -> [{ kind, loan, cents|null, accId, toId, catId, date, note, person, newAcc, warn[] }]
  *
- * ctx = { accounts: [{id,name,type}], cats: [{id,name,kind}], today: 'AAAA-MM-GG', defAcc: id }
+ * ctx = { accounts: [{id,name,type,bal}], cats: [{id,name,kind}], today: 'AAAA-MM-GG', defAcc: id }
  * kind: 'spesa' | 'entrata' | 'giro'. loan = true per un prestito a una persona (giroconto verso un conto di credito).
  * toId '__new__' + newAcc { name, type: 'credito' } quando il conto di credito della persona non esiste ancora.
  * Importi in centesimi interi. È un riconoscimento a regole: l'anteprima va sempre confermata dall'utente.
@@ -11,6 +11,7 @@
   'use strict';
   function fold(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’`]/g, '\''); }
   function hasK(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+  function reEsc(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
   function aTo(n) { return (/^[aeiou]/i.test(fold(n)) ? 'ad ' : 'a ') + n; }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -56,7 +57,7 @@
       var cur = !!(m[1] || m[3]);
       if (!cur && (new RegExp('^\\s*(' + MONTH_RE + ')').test(after) || /\b(il|del|al)\s$/.test(before) || /^\s*(ore|:)/.test(after))) continue;
       var v = numVal(m[2]); if (v === null) continue;
-      if (m[4] && cur) v += +m[4] * (m[4].length === 1 ? 10 : 1);
+      if (m[4] && cur) v += +m[4] * (m[4].length === 1 && !/cent/.test(m[0]) ? 10 : 1);
       if (cur) return v;
       if (best === null) best = v;
     }
@@ -67,6 +68,8 @@
 
   /* ---- data: oggi, ieri, l'altro ieri, giorni della settimana, «il 3», «3 novembre» ---- */
   var WD = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
+  // la frase (o il pezzo) indica una data?
+  function hasDate(s) { return /\b(oggi|stamattina|stamani|stasera|stanotte|ieri|altroieri|avantieri|domenica|lunedi|martedi|mercoledi|giovedi|venerdi|sabato)\b/.test(s) || new RegExp('\\b\\d{1,2}\\s+(' + MONTH_RE + ')\\b').test(s) || /\b(?:il|lo)\s+\d{1,2}\b(?!\s*(?:€|euro))/.test(s); }
   function dateOf(s, today) {
     if (/\b(l'?altro ?ieri|altroieri|avantieri)\b/.test(s)) return addDays(today, -2);
     if (/\bieri\b/.test(s)) return addDays(today, -1);
@@ -154,19 +157,28 @@
 
   /* ---- divisione della frase in azioni ---- */
   var TRIG = /\b(ho |abbiamo |mi (?:hanno|ha) )?(pagat[oaie]|spes[oaie]|comprat[oaie]|acquistat[oaie]|pres[oaie]|ricevut[oaie]|incassat[oaie]|guadagnat[oaie]|mandat[oaie]|inviat[oaie]|fatto un bonifico|bonificat[oaie]|trasferit[oaie]|spostat[oaie]|girat[oaie]|versat[oaie]|prelevat[oaie]|prestat[oaie]|ricaricat[oaie]|ridat[oaie]|restituit[oaie]|res[oa]|rimborsat[oaie]|dat[oaie])\b/g;
-  var SEP = /(,|;|\.|\be\b|\bed\b|\bpoi\b|\binoltre\b|\banche\b|\bdopo\b|\bpiu\b)/;
+  // virgola e punto separano solo se seguiti da spazio: «12,50» e «12.50» restano importi
+  var SEP = /(,(?=\s|$)|;|\.(?=\s|$)|\be\b|\bed\b|\bpoi\b|\binoltre\b|\banche\b|\bdopo\b|\bpiu\b)/;
   function segments(s) {
     var idx = [], m; TRIG.lastIndex = 0;
     while ((m = TRIG.exec(s))) {
       var st = m.index;
-      if (!idx.length || SEP.test(s.slice(idx[idx.length - 1], st).replace(/^\S+\s*/, ''))) idx.push(st);
+      if (!idx.length) { idx.push(st); continue; }
+      var prev = idx[idx.length - 1], gap = s.slice(prev, st), first = /^\S+\s*/.exec(gap)[0].length, body = gap.slice(first);
+      // senza connettivo si divide solo se l'azione precedente ha già il suo importo («ho pagato 12,50 euro ho preso…»)
+      if (!SEP.test(body)) { if (/\d/.test(body)) idx.push(st); continue; }
+      // si taglia all'ultimo connettivo prima del verbo: «… e oggi ho ricevuto» → «oggi ho ricevuto» va con la seconda azione
+      var re = new RegExp(SEP.source, 'g'), mm, cut = -1; while ((mm = re.exec(body))) cut = mm.index;
+      idx.push(prev + first + cut);
     }
     if (!idx.length) return s.trim() ? [s.trim()] : [];
     var out = [];
-    for (var i = 0; i < idx.length; i++) out.push(s.slice(i ? idx[i] : 0, i + 1 < idx.length ? idx[i + 1] : s.length).trim().replace(/[\s,;.]*(\b(e|ed|poi|inoltre)\b)?[\s,;.]*$/, ''));
+    for (var i = 0; i < idx.length; i++) out.push(s.slice(i ? idx[i] : 0, i + 1 < idx.length ? idx[i + 1] : s.length).trim().replace(/^[\s,;.]*(\b(e|ed|poi|inoltre|anche|dopo|piu)\b)?[\s,;.]*/, '').replace(/[\s,;.]*(\b(e|ed|poi|inoltre)\b)?[\s,;.]*$/, ''));
     return out.filter(Boolean);
   }
 
+  // parentela o relazione come destinatario: «a mio fratello», «alla mamma», «a mia sorella Giulia»
+  var REL = /\b(?:a|ad|al|alla|allo|per)\s+(?:mio |mia |un |una |il |la |l')?(fratello|sorella|mamma|madre|papa|padre|nonno|nonna|zio|zia|cugino|cugina|amico|amica|collega|fidanzato|fidanzata|ragazzo|ragazza|marito|moglie|coinquilino|coinquilina|figlio|figlia|vicino|vicina)(?:\s+([a-z]{3,}))?/;
   var LOAN = /\b(me (?:li|lo|la|le) (?:ridara|ridaranno|restituira|restituiranno|rendera|renderanno|ridia|restituisca|deve)|mi (?:deve|dovra) (?:ridare|restituire|rendere)|deve ridarmel\w*|in prestito|prestat[oaie]|prestito|anticipat[oaie])\b/;
   var REPAY = /\b(mi (?:ha|hanno) (?:ridato|restituito|reso|ripagato|ridati|restituiti|resi)|(?:ridat|restituit)[oaie] (?:da|indietro))\b/;
 
@@ -175,11 +187,18 @@
     var shared = dateOf(s0, today), items = [];
     segments(s0).forEach(function (s) {
       var it = { kind: 'spesa', loan: false, cents: amount(s), accId: '', toId: '', catId: '', date: dateOf(s, today), note: '', person: '', newAcc: null, warn: [], src: s };
-      if (it.date === today && shared !== today) it.date = shared;
+      if (!hasDate(s) && shared !== today) it.date = shared; // data detta una volta per tutta la frase
       var refs = accRefs(s, accounts), from = null, to = null;
       refs.forEach(function (r) { var p = prepBefore(s, r.pos); if (p === 'to' && !to) to = r.a; else if (p === 'from' && !from) from = r.a; else if (!from) from = r.a; else if (!to) to = r.a; });
-      var person = personOf(s, accounts);
-      var credit = function (nm) { return accounts.filter(function (a) { return a.type === 'credito' && nm && fold(a.name).indexOf(fold(nm)) >= 0; })[0]; };
+      var person = personOf(s, accounts), rel = REL.exec(s), relName = false;
+      if (rel && (!person || fold(person) === rel[1])) { person = rel[2] && !STOP[rel[2]] ? cap(rel[2]) : cap(rel[1]); relName = !rel[2]; }
+      var credit = function (nm) {
+        if (!nm) return null; var f = fold(nm), cr = accounts.filter(function (a) { return a.type === 'credito'; });
+        return cr.filter(function (a) { return fold(a.name) === f; })[0] || cr.filter(function (a) { return new RegExp('\\b' + reEsc(f) + '\\b').test(fold(a.name)); })[0] || null;
+      };
+      var liq = function (x) { return x && x.type !== 'credito' ? x : null; }; // conto «vero» (mai un credito) per spese ed entrate
+      // conto di credito della persona nominata (anche quando il nome è riconosciuto come conto)
+      var crRef = credit(person) || (from && from.type === 'credito' ? from : null) || (to && to.type === 'credito' ? to : null);
       // conto nominato ma assente (solo nomi riconoscibili come banca o servizio di pagamento)
       var named = /\b(?:dalla|dal|da|con|sulla|sul|su)\s+(?:la |il |l'|mia |mio )?([a-z0-9]+)\b/g, nm2, missingAcc = '';
       while ((nm2 = named.exec(s))) if (BANKS.test(nm2[1]) && !refs.some(function (r) { return fold(r.a.name).indexOf(nm2[1]) >= 0; })) { missingAcc = cap(nm2[1]); break; }
@@ -188,28 +207,29 @@
         var cash = accounts.filter(function (a) { return /contant/.test(fold(a.name)); })[0];
         it.kind = 'giro'; it.accId = (from && from !== cash ? from : accounts.filter(function (a) { return a.type === 'liquidita' && a !== cash; })[0] || {}).id || ''; it.toId = cash ? cash.id : ''; it.note = 'Prelievo';
         if (!cash) it.warn.push('Nessun conto «Contanti»: scegli dove vanno i soldi.');
-      } else if (REPAY.test(s)) {
-        var ca = credit(person) || (to && to.type === 'credito' ? to : null) || (from && from.type === 'credito' ? from : null) ||
+      } else if (REPAY.test(s) || (/\b(ricevut|incassat|riavut)|\bmi (?:ha|hanno) (?:dato|pagato|bonificato|mandato)\b/.test(s) && crRef && crRef.bal > 0)) {
+        var ca = credit(person) || crRef || (to && to.type === 'credito' ? to : null) || (from && from.type === 'credito' ? from : null) ||
           accounts.filter(function (a) { return a.type === 'credito' && fold(a.name).split(/[^a-z]+/).some(function (w) { return w.length >= 3 && new RegExp('\\b' + w + '\\b').test(s); }); })[0];
         if (ca && !person) person = ca.name;
-        if (ca) { it.kind = 'giro'; it.accId = ca.id; it.toId = (to && to !== ca ? to : from && from !== ca ? from : null || {}).id || ctx.defAcc; it.note = 'Restituiti da ' + (person || ca.name); }
-        else { it.kind = 'entrata'; it.accId = (to || from || {}).id || ctx.defAcc; it.note = 'Restituiti' + (person ? ' da ' + person : ''); it.catId = (catOf('rimborso', 'entrata', cats)).id; }
+        if (ca) { it.kind = 'giro'; it.accId = ca.id; it.toId = (liq(to) || liq(from) || {}).id || ctx.defAcc; it.note = 'Restituiti da ' + (person || ca.name); }
+        else { it.kind = 'entrata'; it.accId = (liq(to) || liq(from) || {}).id || ctx.defAcc; it.note = 'Restituiti' + (person ? ' da ' + person : ''); it.catId = (catOf('rimborso', 'entrata', cats)).id; }
       } else if (LOAN.test(s) || /\b(mandat|inviat|bonific|fatto un bonifico|dat[oaie]\b)/.test(s) && (person || to)) {
         var loan = LOAN.test(s) || (!!person && !to && /\bridar|restitu|prest/.test(s0.slice(s0.indexOf(s))));
         if (to && from && to.type !== 'credito' && !loan) { it.kind = 'giro'; it.accId = from.id; it.toId = to.id; it.note = 'Giroconto'; }
-        else if (loan && (person || (to && to.type === 'credito'))) {
+        else if (loan) {
           var c2 = (to && to.type === 'credito') ? to : credit(person);
-          it.kind = 'giro'; it.loan = true; it.person = person || c2.name; it.accId = (from || (to && to.type !== 'credito' ? to : null) || {}).id || ctx.defAcc;
+          it.kind = 'giro'; it.loan = true; it.person = person || (c2 ? c2.name : ''); it.accId = (liq(from) || liq(to) || {}).id || ctx.defAcc;
           if (c2) it.toId = c2.id; else { it.toId = '__new__'; it.newAcc = { name: person, type: 'credito' }; }
-          it.note = 'Prestito ' + aTo(it.person);
-        } else { it.kind = 'spesa'; it.accId = (from || {}).id || ctx.defAcc; it.note = (/bonific/.test(s) ? 'Bonifico' : 'Pagamento') + (person ? ' ' + aTo(person) : ''); var cb = catOf(s, 'spesa', cats); it.catId = cb.id; }
+          it.note = it.person ? 'Prestito ' + aTo(it.person) : 'Prestito';
+          if (!it.person) it.warn.push('Scrivi il nome della persona.'); else if (relName) it.warn.push('Controlla il nome della persona.');
+        } else { it.kind = 'spesa'; it.accId = (liq(from) || {}).id || ctx.defAcc; it.note = (/bonific/.test(s) ? 'Bonifico' : 'Pagamento') + (person ? ' ' + aTo(person) : ''); var cb = catOf(s, 'spesa', cats); it.catId = cb.id; }
       } else if (/\b(trasferit|spostat|girat|versat|ricaricat)/.test(s) && from && to) {
         it.kind = 'giro'; it.accId = from.id; it.toId = to.id; it.note = /ricaric/.test(s) ? 'Ricarica' : 'Giroconto';
       } else if (/\b(ricevut|incassat|guadagnat|entrat|arrivat|stipendio|rimborsat|rimborso)|\bmi (?:ha|hanno) (?:dato|pagato|bonificato|mandato)\b/.test(s)) {
-        it.kind = 'entrata'; it.accId = (to || from || {}).id || ctx.defAcc;
+        it.kind = 'entrata'; it.accId = (liq(to) || liq(from) || {}).id || ctx.defAcc;
         var ce = catOf(s, 'entrata', cats); it.catId = ce.id; it.note = ce.word ? cap(ce.word) : (person ? 'Da ' + person : '');
       } else {
-        it.kind = 'spesa'; it.accId = (from || to || {}).id || ctx.defAcc;
+        it.kind = 'spesa'; it.accId = (liq(from) || liq(to) || {}).id || ctx.defAcc;
         var cs = catOf(s, 'spesa', cats); it.catId = cs.id; it.note = cs.word ? cap(cs.word) : '';
       }
       if (missingAcc && it.accId === ctx.defAcc) it.warn.push('Conto «' + missingAcc + '» non trovato: scegli il conto.');

@@ -357,3 +357,5 @@ textarea { font: inherit; font-size: 16px; color: var(--ink); background: var(--
 .tour-btns { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .tour-r { display: flex; gap: 8px; }
 @media (prefers-reduced-motion: reduce) { #tour .tour-hole, #tour .tour-card { transition: none; } }
+/* con i due pulsanti flottanti (microfono e +) la Home lascia più spazio in fondo: nulla resta coperto */
+body:has(#fabw .fab.mic) { padding-bottom: calc(200px + env(safe-area-inset-bottom, 0px)); }
