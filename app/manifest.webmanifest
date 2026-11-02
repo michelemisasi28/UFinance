@@ -1,0 +1,19 @@
+{
+  "name": "UFinance Track",
+  "short_name": "UFinance",
+  "description": "Patrimonio, conti, investimenti, entrate e spese in un unico posto. Funziona senza rete.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "it",
+  "background_color": "#F2F2F4",
+  "theme_color": "#F2F2F4",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

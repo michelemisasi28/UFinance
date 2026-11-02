@@ -1,319 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>UFinance Prototipo</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<style>
-/* Layout: colonna mobile (max 520px). Barra schede fissa in basso con Home rialzata al centro. Le azioni importanti (nuovo movimento, nuovo conto, categorie) si aprono come schermate intere e ferme; i fogli dal basso restano solo per scelte rapide. Due temi: Chiaro (predefinito) e Scuro. */
-:root {
-  --bg: #F2F2F4; --surface: #FFFFFF; --ink: #111114; --muted: #5E6169; --line: #E1E1E5;
-  --accent: #26282D; --accent-ink: #FFFFFF; --inc: #1E7A4C; --out: #C0342B; --warn: #9A5700;
-  --scrim: rgba(10, 10, 14, 0.45);
-  --c1: #26282D; --c2: #5B4B9A; --c3: #9A5700; --c4: #1E7A4C; --c5: #0E6F8A;
-  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-}
-:root[data-uf="scuro"] {
-  --bg: #0F161C; --surface: #17212A; --ink: #E6ECF1; --muted: #9AA9B6; --line: #2A3743;
-  --accent: #5CB3D4; --accent-ink: #0B1A22; --inc: #5CC592; --out: #F08077; --warn: #E0A24A;
-  --scrim: rgba(0, 0, 0, 0.6);
-  --c1: #5CB3D4; --c2: #A596E0; --c3: #E0A24A; --c4: #5CC592; --c5: #F29E6B;
-  color-scheme: dark;
-}
-
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-[hidden] { display: none !important; }
-html, body { overscroll-behavior: none; }
-body {
-  background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.45;
-  padding-block: 12px calc(120px + env(safe-area-inset-bottom, 0px));
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-}
-body.lock { overflow: hidden; }
-button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
-input, select { font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 46px; width: 100%; }
-input::placeholder { color: var(--muted); opacity: 1; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-h1 { font-size: 26px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
-h2 { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; }
-p { margin: 0; }
-.app { max-width: 520px; margin: 0 auto; }
-#view { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
-.ic { width: 22px; height: 22px; flex: none; }
-.banner { font-size: 12px; color: var(--warn); border: 1px solid var(--warn); border-radius: 8px; padding: 6px 10px; }
-.banner.remind { display: flex; align-items: center; padding: 0; }
-.banner.remind > button:first-child { flex: 1; text-align: left; font: inherit; color: inherit; padding: 10px 10px; min-height: 44px; }
-.banner.remind .x { flex: none; width: 44px; min-height: 44px; display: grid; place-items: center; color: inherit; }
-.banner.remind .x svg { width: 16px; height: 16px; }
-.ph { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.tbtn { min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; background: var(--surface); }
-.tbtn.pri { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.iconbtn { width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
-.sec { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.sech { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-
-/* Home */
-.hero { display: flex; flex-direction: column; gap: 10px; }
-.herotop { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.totalbtn { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 4px 0; min-height: 44px; }
-.totalbtn .lbl { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
-.totalbtn .lbl .ic { width: 16px; height: 16px; }
-.totalbtn .amt { font-size: clamp(30px, 10vw, 42px); font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; overflow-wrap: anywhere; }
-.delta { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.delta b { font-weight: 600; }
-.pos { color: var(--inc); }
-.neg { color: var(--out); }
-.spark { width: 100%; height: auto; display: block; }
-.sp-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-.sp-area { fill: var(--accent); opacity: 0.12; }
-.sp-dot { fill: var(--accent); }
-.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.three > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.three .k { font-size: 12px; color: var(--muted); }
-.three .n { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.list { display: flex; flex-direction: column; }
-.row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); min-height: 58px; width: 100%; }
-.list > .row:first-child { border-top: 1px solid var(--line); }
-.ico { width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; background: color-mix(in srgb, var(--c, var(--accent)) 16%, var(--surface)); }
-.mid { display: flex; flex-direction: column; min-width: 0; }
-.nm { font-weight: 500; overflow-wrap: anywhere; }
-.sb { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
-.v { font-variant-numeric: tabular-nums; font-weight: 500; white-space: nowrap; text-align: right; }
-.v.neutral { color: var(--muted); }
-.empty { color: var(--muted); font-size: 15px; padding: 12px 0; }
-.fab { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: 58px; height: 58px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); z-index: 20; }
-.fab .ic { width: 28px; height: 28px; }
-
-/* Barra schede */
-.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--line); padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
-.tabs { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); align-items: end; }
-.tab { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; min-height: 52px; font-size: 11px; font-weight: 500; color: var(--muted); }
-.tab.on { color: var(--accent); }
-.tab.home .hb { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: -18px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
-.tab.home.on .hb { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-
-/* Livelli: schermate intere (ferme) e fogli dal basso */
-.layer { position: fixed; inset: 0; }
-.layer.sheet { background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; touch-action: none; }
-.panel { width: 100%; max-width: 520px; max-height: 92%; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; background: var(--surface); border-radius: 18px 18px 0 0; padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 14px; }
-.layer.screen { background: var(--bg); touch-action: manipulation; }
-.scr { height: 100%; width: 100%; max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.scrh { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: max(8px, env(safe-area-inset-top, 0px)); min-height: 56px; flex: none; }
-.scrh h2 { flex: 1; text-align: center; font-size: 17px; letter-spacing: 0; text-transform: none; color: var(--ink); }
-.scrh .sp { width: 40px; flex: none; }
-.scrb { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 14px; padding-bottom: 12px; }
-.scrf { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 8px 0 calc(12px + env(safe-area-inset-bottom, 0px)); }
-.shh { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.shh h2 { font-size: 18px; letter-spacing: 0; text-transform: none; color: var(--ink); }
-.x { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); flex: none; }
-@media (max-height: 600px) { .layer.fixed .scrb .hint { display: none; } }
-.pform { gap: 10px; }
-@media (max-height: 720px) { .pform { gap: 8px; } .pform .hint { display: none; } .layer.fixed .pform .seg button { min-height: 38px; } }
-@media (max-height: 600px) { .pform { gap: 6px; } .layer.fixed .pform input, .layer.fixed .pform select { min-height: 42px; padding-top: 8px; padding-bottom: 8px; } .layer.fixed .pform .fld { gap: 4px; } .layer.fixed .pform .seg button { min-height: 34px; } .layer.fixed .scrf { padding-top: 4px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); } .layer.fixed .scrf .btn { min-height: 46px; } .layer.fixed .scrb { padding-bottom: 2px; } }
-.fld label .opt, .fld label .req { font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 4px; }
-.fld label .req { color: var(--out); }
-.fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.fgrid .fld { min-width: 0; }
-.fgrid[hidden] { display: none; }
-.btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.btnrow .btn { min-width: 0; padding-left: 8px; padding-right: 8px; }
-.layer.fixed .scrb > .fgrid, .layer.fixed .fcol { flex: none; }
-.fld { display: flex; flex-direction: column; gap: 6px; }
-.fld label, .lab { font-size: 14px; font-weight: 500; }
-.seg { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 3px; flex: none; }
-.seg.s2 { grid-template-columns: repeat(2, 1fr); }
-.seg button { min-height: 42px; border-radius: 9px; text-align: center; font-weight: 500; }
-.seg button.on { background: var(--surface); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
-.hint { font-size: 13px; color: var(--muted); }
-.msg { font-size: 14px; color: var(--muted); min-height: 1.3em; }
-.msg.bad { color: var(--out); } .msg.ok { color: var(--inc); }
-.btn { min-height: 48px; padding: 0 16px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; width: 100%; }
-.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
-.btn.danger { background: transparent; color: var(--out); border: 1px solid var(--out); }
-.btn.danger.armed { background: var(--out); color: var(--surface); }
-.btn.m-spesa { background: var(--out); color: #fff; }
-.btn.m-entrata { background: var(--inc); color: #fff; }
-.btns { display: flex; gap: 8px; flex-wrap: wrap; } .btns > * { flex: 1 1 140px; }
-
-/* Movimento: importo, righe e tastierino */
-.amtd { display: flex; align-items: baseline; justify-content: center; gap: 8px; min-height: 64px; padding-top: 6px; flex: none; }
-.amtd .num { font-size: 52px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; white-space: nowrap; }
-.amtd .num.ph { opacity: 0.3; }
-.amtd .cur { font-size: 26px; color: var(--muted); }
-.amtd.m-spesa .num { color: var(--out); } .amtd.m-entrata .num { color: var(--inc); } .amtd.m-giro .num { color: var(--accent); }
-.frows { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; flex: none; }
-.frow { position: relative; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; width: 100%; border-bottom: 1px solid var(--line); }
-.frow:last-child { border-bottom: 0; }
-.fl { color: var(--muted); font-size: 14px; width: 96px; flex: none; }
-.fv { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.frow.split { padding: 0; }
-.frow.split .half { position: relative; flex: 0 0 42%; display: flex; align-items: center; gap: 8px; padding: 0 14px; min-height: 48px; border-right: 1px solid var(--line); font-weight: 500; overflow: hidden; white-space: nowrap; }
-.frow.split input.nota { flex: 1; min-width: 0; border: 0; background: transparent; border-radius: 0; min-height: 48px; padding: 0 14px; }
-.frow.split input[type="date"] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; min-height: 0; padding: 0; border: 0; }
-.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.key { min-height: 46px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); font-size: 24px; font-weight: 500; text-align: center; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
-.key:active { background: var(--line); }
-.typing .pad { display: none; }
-
-/* Form: icone, colori, chip */
-.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
-.grid button { aspect-ratio: 1; border-radius: 12px; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 22px; background: var(--surface); }
-.grid button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
-.grid.cols { grid-template-columns: repeat(8, 1fr); }
-.grid.cols button { background: var(--c); border-color: transparent; font-size: 16px; color: #fff; }
-.grid.cols button.on { border-color: var(--ink); }
-.wrapchips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; flex: none; }
-.chip { flex: none; min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
-.chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.chip:disabled { opacity: 0.4; }
-.chip.add { border-style: dashed; color: var(--accent); }
-.prev { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; align-items: center; }
-.sw { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; border-bottom: 1px solid var(--line); }
-.sw input { appearance: none; -webkit-appearance: none; width: 50px; min-height: 30px; height: 30px; border-radius: 999px; background: var(--line); border: 0; padding: 0; position: relative; flex: none; }
-.sw input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--surface); transition: transform 0.15s; }
-.sw input:checked { background: var(--accent); }
-.sw input:checked::after { transform: translateX(20px); }
-.pick { display: flex; align-items: center; gap: 12px; min-height: 52px; border-bottom: 1px solid var(--line); width: 100%; }
-.pick .mid { flex: 1; }
-.pick .ck { color: var(--accent); width: 22px; flex: none; }
-.pick.addnew { color: var(--accent); font-weight: 600; }
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 200; background: var(--ink); color: var(--bg); border-radius: 12px; padding: 10px 14px; display: flex; gap: 14px; align-items: center; max-width: calc(100% - 32px); font-size: 14px; }
-.toast button { color: var(--bg); font-weight: 600; text-decoration: underline; min-height: 32px; }
-.kv { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
-.kv span:first-child { color: var(--muted); } .kv span:last-child { text-align: right; overflow-wrap: anywhere; }
-.navrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; width: 100%; border-bottom: 1px solid var(--line); }
-.navrow .r { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; }
-
-/* Conti */
-.big { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.grp { display: flex; flex-direction: column; gap: 4px; }
-.grph { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.grph .gv { font-size: 14px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
-
-/* Analisi */
-.nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.nav .lb { font-weight: 600; text-transform: capitalize; text-align: center; flex: 1; }
-.nav button:disabled { opacity: 0.3; }
-.dates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.bars { width: 100%; height: auto; display: block; }
-.ax { stroke: var(--line); stroke-width: 1; }
-.b-in { fill: var(--inc); } .b-out { fill: var(--out); }
-.selbg { fill: var(--line); opacity: 0.6; }
-.hit { fill: transparent; cursor: pointer; }
-.bars .tx { fill: var(--muted); font-size: 10px; font-family: var(--font); }
-.legend { display: flex; gap: 14px; font-size: 13px; color: var(--muted); align-items: center; min-height: 18px; }
-.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; }
-.cap { font-size: 14px; color: var(--muted); min-height: 1.4em; font-variant-numeric: tabular-nums; }
-.cbar { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--line); }
-.cbar .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-.cbar .tr { height: 8px; background: var(--bg); border-radius: 999px; overflow: hidden; }
-.cbar .fl2 { height: 100%; border-radius: 999px; background: var(--c, var(--accent)); }
-.smallseg { display: inline-grid; grid-template-columns: 1fr 1fr; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 2px; gap: 2px; }
-.smallseg.s3 { grid-template-columns: repeat(3, 1fr); }
-.smallseg button { min-height: 32px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 500; text-align: center; }
-.smallseg button.on { background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
-.note { font-size: 13px; color: var(--muted); }
-
-/* Andamento del patrimonio */
-.sparkbtn { display: block; width: 100%; text-align: left; }
-.sparkcap { display: flex; align-items: center; justify-content: flex-end; gap: 2px; font-size: 13px; color: var(--muted); min-height: 28px; }
-.sparkcap .ic { width: 14px; height: 14px; }
-.nwcard { padding: 12px 8px 8px; }
-.nwsvg { width: 100%; height: auto; max-height: clamp(96px, calc(100vh - 520px), 30vh); display: block; touch-action: none; user-select: none; -webkit-user-select: none; }
-.nwl { fill: none; stroke: var(--inc); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-.nwa { fill: var(--inc); opacity: 0.12; }
-.nwd { fill: var(--inc); stroke: var(--surface); stroke-width: 2; }
-.nwc { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
-.nwcard.dn .nwl { stroke: var(--out); } .nwcard.dn .nwa, .nwcard.dn .nwd { fill: var(--out); }
-.axl { fill: var(--muted); font-size: 10px; font-family: var(--font); }
-.nwsvg .tx { fill: var(--muted); font-size: 10px; font-family: var(--font); }
-.zero { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 3; }
-.nwchg { font-size: 16px; font-variant-numeric: tabular-nums; }
-.lnk { color: var(--accent); font-size: 14px; font-weight: 600; min-height: 32px; text-decoration: underline; }
-.optl { display: flex; flex-direction: column; gap: 8px; }
-.optb { display: flex; flex-direction: column; gap: 4px; padding: 14px; width: 100%; border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); }
-.optb.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.optb span { font-size: 14px; color: var(--muted); }
-
-/* Schermata fissa dell'andamento: altezze riservate, nessuno scorrimento */
-.layer.fixed { touch-action: none; }
-.layer.fixed input, .layer.fixed select, .layer.fixed button { touch-action: manipulation; }
-.layer.fixed .scrb { overflow: hidden; gap: 10px; }
-.layer.fixed .scrb > * { flex: none; }
-@media (max-height: 480px) { .layer.fixed .scrb { overflow-y: auto; } .layer.fixed { touch-action: pan-y; } }
-.nwcard.cu .nwsvg { max-height: clamp(80px, calc(100vh - 600px), 30vh); }
-@media (max-height: 700px) { .cell .s { display: none; } .layer.fixed .scrb { gap: 8px; } }
-.nwh { height: 112px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.nwl1 { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nwv { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nwc2 { font-size: 16px; min-height: 24px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.nwd2 { font-size: 13px; color: var(--muted); min-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.chips.fit { overflow: visible; }
-.chips.fit .chip { flex: 1 1 0; justify-content: center; padding: 0 4px; min-width: 0; }
-.chip.tog { align-self: flex-start; }
-.chip.tog.on { background: var(--surface); border-color: var(--accent); color: var(--ink); }
-.cells { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.cell { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; display: flex; flex-direction: column; min-width: 0; }
-.cell .k { font-size: 12px; color: var(--muted); }
-.cell .n { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cell .s { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.btns.four { flex-wrap: nowrap; }
-.btns.four > * { flex: 1 1 0; min-width: 0; padding: 0 4px; font-size: 14px; }
-.nwf { margin: 0; }
-.piew { display: flex; justify-content: center; }
-.pie { width: min(210px, 56vw); height: auto; display: block; }
-.invsum { display: block; width: 100%; text-align: left; }
-.fcol { display: flex; flex-direction: column; gap: 14px; }
-
-/* Portfolio */
-.stack { display: flex; height: 16px; border-radius: 999px; overflow: hidden; background: var(--line); gap: 2px; }
-.stack i { display: block; height: 100%; }
-.leg { display: flex; flex-direction: column; gap: 6px; }
-.leg > div { display: flex; align-items: center; gap: 8px; font-size: 14px; min-width: 0; }
-.leg i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
-.leg .t { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.leg .p { color: var(--muted); font-variant-numeric: tabular-nums; }
-.leg .m { font-variant-numeric: tabular-nums; font-weight: 500; }
-
-.vh { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
-body.boot .tabbar, body.boot #fabw { display: none; }
-.splash { min-height: 70vh; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 24px 4px; }
-.splash .logo { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
-.splash p { margin: 0; color: var(--muted); font-size: 16px; max-width: 34ch; }
-.splashb { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
-
-/* ===== Adattamenti per iPhone (build artifact; stessi della PWA, senza il cambio di font) ===== */
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-html, body { overscroll-behavior-y: none; }
-body {
-  padding-top: calc(12px + env(safe-area-inset-top, 0px));
-  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
-}
-input, textarea, select { -webkit-user-select: text; user-select: text; font-size: 16px; }
-button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-</style>
-<script>
-(function () {
-  var t = '';
-  try { t = (JSON.parse(localStorage.getItem('uf-proto') || '{}') || {}).theme || ''; } catch (e) {}
-  if (t === 'blu') t = 'chiaro';
-  if (t !== 'chiaro' && t !== 'scuro') {
-    t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'scuro' : 'chiaro';
-  }
-  document.documentElement.setAttribute('data-uf', t);
-})();
-</script>
-
-<div class="app"><div id="view"></div></div>
-<nav class="tabbar" aria-label="Schermate"><div class="tabs" id="tabs"></div></nav>
-<div id="fabw"></div>
-<input type="file" id="imp-file" class="vh" accept=".json,application/json" tabindex="-1" aria-hidden="true">
-<div id="toast" class="toast" hidden></div>
-
-<script>
+window.UF_BUILD = '2026-11-02 · 6ef00147';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -720,8 +405,6 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
     if (made && !silent) { toast(made === 1 ? 'Registrata 1 operazione ricorrente' : 'Registrate ' + made + ' operazioni ricorrenti', function () { restoreDeep(snap); }); }
     return made;
   }
-  // All'avvio: avvisa delle scadenze registrate mentre l'app era chiusa.
-  function rulesToast(made) { if (made > 0) toast(made === 1 ? 'Registrata 1 operazione ricorrente' : 'Registrate ' + made + ' operazioni ricorrenti'); }
 
   /* ================= icone e grafici ================= */
   var I = {
@@ -789,9 +472,8 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
   function viewHome() {
     var v = S.homeView, set = scopeSet(v);
     if (set && set.size === 0) { S.homeView = v = 'all'; set = null; }
-    // un solo passaggio sui movimenti: 31 punti, da 30 giorni fa a oggi (stesso intervallo della variazione)
-    var series = nwSeries(v, addDays(TODAY, -30), TODAY).map(function (q) { return q.v; });
-    var cur = series[series.length - 1], past = series[0], d = cur - past;
+    var cur = scopeValue(v), past = scopeValue(v, addDays(TODAY, -30)), d = cur - past;
+    var series = []; for (var i = 29; i >= 0; i--) series.push(scopeValue(v, addDays(TODAY, -i)));
     var st = stats(TODAY.slice(0, 8) + '01', TODAY, set);
     var rec = sortTx(S.tx.filter(function (t) { return inSet(t, set); })).slice(0, 5);
     var mnow = MESI_L[parseD(TODAY).getMonth()];
@@ -975,7 +657,7 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
       '<p class="note">' + storageNote() + '</p>' + versionRow() + '</section>';
   }
 
-  function render(noSave) {
+  function render() {
     var v = { home: viewHome, conti: viewConti, analisi: viewAnalisi, portfolio: viewPortfolio, settings: viewSettings }[S.tab]();
     $('#view').innerHTML = v;
     var T = [['conti', 'Conti', 'wallet'], ['analisi', 'Analisi', 'bars'], ['home', 'Home', 'home'], ['portfolio', 'Portfolio', 'pie'], ['settings', 'Impostazioni', 'sliders']];
@@ -984,7 +666,7 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
       return '<button class="tab ' + (home ? 'home ' : '') + (S.tab === t[0] ? 'on' : '') + '" data-act="tab" data-tab="' + t[0] + '" aria-label="' + t[1] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + (home ? '<span class="hb">' + svg('home') + '</span>' : svg(t[2])) + '<span>' + t[1] + '</span></button>';
     }).join('');
     $('#fabw').innerHTML = S.tab === 'home' ? '<button class="fab" data-act="add" aria-label="Aggiungi spesa o entrata">' + svg('plus') + '</button>' : '';
-    if (!noSave) touch(); // il cambio di scheda non modifica i dati: niente salvataggio
+    touch();
   }
 
   /* ================= livelli: schermate intere e fogli ================= */
@@ -1119,7 +801,7 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
       return;
     }
     if (st.edit) {
-      var old = txById(st.edit), idx = S.tx.indexOf(old); tx.ts = old.ts; if (old.rule) tx.rule = old.rule; S.tx[idx] = tx;
+      var old = txById(st.edit), idx = S.tx.indexOf(old); tx.ts = old.ts; S.tx[idx] = tx;
       S.lastAcc = st.accId; popLayer();
       toast(label + (m === 'giro' ? ' modificato' : ' modificata'), function () { S.tx[S.tx.indexOf(txById(tx.id))] = old; });
     } else {
@@ -1813,7 +1495,7 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
     var lots = lotsSorted(p.lots).reverse(), prices = p.prices.slice().reverse(), pacs = S.rules.filter(function (r) { return r.type === 'pac' && r.posId === id; });
     var h = scrHead(p.name, true) + '<div class="scrb"><section class="sec"><h2>Operazioni</h2>' + (lots.length ? '<div class="list">' + lots.map(function (l) {
       var sell = l.qty < 0;
-      return '<button class="row" data-act="lotedit" data-id="' + esc(l.id) + '" data-pos="' + esc(id) + '"><span class="ico">' + (sell ? '➖' : '➕') + '</span><span class="mid"><span class="nm">' + (sell ? 'Vendita' : l.rule ? 'PAC' : 'Acquisto') + ' · ' + qtyStr(Math.abs(l.qty), p) + ' ' + esc(unitL(p)) + '</span><span class="sb">' + dayLabel(l.d) + ' · ' + pxStr(l.px) + (l.est ? ' · stima' : '') + '</span></span><span class="v">' + money(l.tot) + '</span></button>';
+      return '<button class="row" data-act="lotedit" data-id="' + l.id + '" data-pos="' + id + '"><span class="ico">' + (sell ? '➖' : '➕') + '</span><span class="mid"><span class="nm">' + (sell ? 'Vendita' : l.rule ? 'PAC' : 'Acquisto') + ' · ' + qtyStr(Math.abs(l.qty), p) + ' ' + esc(unitL(p)) + '</span><span class="sb">' + dayLabel(l.d) + ' · ' + pxStr(l.px) + (l.est ? ' · stima' : '') + '</span></span><span class="v">' + money(l.tot) + '</span></button>';
     }).join('') + '</div>' : '<p class="empty">Nessuna operazione.</p>') + '</section>' +
       '<section class="sec"><h2>Prezzi</h2><div class="list">' + prices.map(function (x) {
         return '<button class="row" data-act="priceedit" data-id="' + id + '" data-d="' + x.d + '"><span class="ico">🏷️</span><span class="mid"><span class="nm">' + pxStr(x.px) + '</span><span class="sb">' + dayLabel(x.d) + '</span></span><span class="v">' + svg('right') + '</span></button>';
@@ -2098,8 +1780,6 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
       if (p.isin === undefined || p.isin === null) p.isin = '';
     });
     if (old && typeof sn.schema === 'number') sn.schema = SCHEMA;
-    // i prezzi devono essere in ordine di data (pxAt lo presume)
-    if (Array.isArray(sn.pos)) sn.pos.forEach(function (p) { if (p && Array.isArray(p.prices)) p.prices.sort(function (a, b) { var x = a && a.d, y = b && b.d; return x < y ? -1 : x > y ? 1 : 0; }); });
     // Riparazione: movimenti di investimenti eliminati con «Tienili» (versioni precedenti) restano senza investimento collegato.
     if (Array.isArray(sn.tx) && Array.isArray(sn.pos)) {
       var pid = {}; sn.pos.forEach(function (p) { if (p && typeof p.id === 'string') pid[p.id] = 1; });
@@ -2124,18 +1804,17 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
       seen[key] = 1; return true;
     }
     var accIds = {}, posIds = {}, txIds = {};
-    sn.subs.forEach(function (x) { if (uniq('Sottotipologia', x) && (!txtOk(x.name, 100) || !hasK(TYPES, x.type))) bad('Sottotipologia non valida.'); });
+    sn.subs.forEach(function (x) { if (uniq('Sottotipologia', x) && (!txtOk(x.name, 100) || !TYPES[x.type])) bad('Sottotipologia non valida.'); });
     sn.cats.forEach(function (x) { if (uniq('Categoria', x) && (!txtOk(x.name, 100) || (x.kind !== 'spesa' && x.kind !== 'entrata') || !iconOk(x.icon))) bad('Categoria non valida.'); });
     sn.accounts.forEach(function (a) {
       if (!uniq('Conto', a)) return; accIds[a.id] = 1;
       if (!txtOk(a.name, 100) || !a.name) bad('Conto senza nome.');
       if (!iconOk(a.icon) || !colOk(a.color)) bad('Icona o colore del conto non validi (' + a.id + ').');
-      if (!hasK(TYPES, a.type)) bad('Tipo di conto non valido (' + a.id + ').');
-      if (a.sub !== undefined && a.sub !== '' && typeof a.sub !== 'string') bad('Sottotipologia del conto non valida (' + a.id + ').');
+      if (!TYPES[a.type]) bad('Tipo di conto non valido (' + a.id + ').');
       if (!isInt(a.opening)) bad('Saldo iniziale non valido (' + a.id + ').');
       if (!dRange(a.openDate)) bad('Data di apertura non valida (' + a.id + ').');
     });
-    sn.gone.forEach(function (a) { if (uniq('Conto', a)) { accIds[a.id] = 1; if (!txtOk(a.name, 100) || !hasK(TYPES, a.type) || !iconOk(a.icon) || !colOk(a.color)) bad('Conto eliminato non valido.'); } });
+    sn.gone.forEach(function (a) { if (uniq('Conto', a)) { accIds[a.id] = 1; if (!txtOk(a.name, 100) || !TYPES[a.type] || !iconOk(a.icon) || !colOk(a.color)) bad('Conto eliminato non valido.'); } });
     sn.pos.forEach(function (p) {
       if (!uniq('Investimento', p)) return; posIds[p.id] = 1;
       if (typeof p.isin !== 'string' || (p.isin !== '' && !isinOk(p.isin))) bad('ISIN non valido (' + p.id + ').');
@@ -2145,8 +1824,7 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
       if (p.lots.length > LIM.lots || p.prices.length > LIM.prices) bad('Troppe operazioni (' + p.id + ').');
       var lid = {};
       p.lots.forEach(function (l) {
-        if (!l || typeof l.id !== 'string' || !ID_RE.test(l.id) || lid[l.id]) { bad('Operazione non valida (' + p.id + ').'); return; } lid[l.id] = 1;
-        if ((l.txId && (typeof l.txId !== 'string' || !ID_RE.test(l.txId))) || (l.rule && (typeof l.rule !== 'string' || !ID_RE.test(l.rule)))) bad('Operazione non valida (' + p.id + ').');
+        if (!l || typeof l.id !== 'string' || lid[l.id]) { bad('Operazione non valida (' + p.id + ').'); return; } lid[l.id] = 1;
         if (!dRange(l.d) || !isQty(l.qty) || l.qty === 0 || !isInt(l.px) || l.px <= 0 || l.px > PMAX || !isInt(l.tot)) bad('Operazione non valida (' + p.id + ').');
       });
       p.prices.forEach(function (x) { if (!x || !dRange(x.d) || !isInt(x.px) || x.px <= 0 || x.px > PMAX) bad('Prezzo non valido (' + p.id + ').'); });
@@ -2155,9 +1833,7 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
     var KINDS = { spesa: 1, entrata: 1, giro: 1, rett: 1, inv: 1 };
     sn.tx.forEach(function (t) {
       if (!uniq('Movimento', t)) return; txIds[t.id] = 1;
-      if (!hasK(KINDS, t.kind)) bad('Tipo di movimento non valido (' + t.id + ').');
-      if (typeof t.ts !== 'number' || !isFinite(t.ts)) bad('Movimento non valido (' + t.id + ').');
-      if (t.catId !== undefined && typeof t.catId !== 'string') bad('Categoria del movimento non valida (' + t.id + ').');
+      if (!KINDS[t.kind]) bad('Tipo di movimento non valido (' + t.id + ').');
       if (!isInt(t.cents)) bad('Importo non valido (' + t.id + ').');
       if (!dRange(t.date)) bad('Data non valida (' + t.id + ').');
       if (typeof t.note !== 'string' || t.note.length > 300) bad('Nota non valida (' + t.id + ').');
@@ -2170,18 +1846,9 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
       if (!uniq('Ricorrenza', r)) return;
       if ((r.type !== 'mov' && r.type !== 'pac') || !hasK(FREQ, r.freq) || !evOk(r) || !dRange(r.anchor) || !isInt(r.k) || r.k < 0 || r.k > 100000 || (r.end && !dRange(r.end)) || !isInt(r.cents) || r.cents <= 0 || !accIds[r.accId]) bad('Ricorrenza non valida (' + r.id + ').');
       if (r.type === 'pac' && !posIds[r.posId]) bad('PAC su un investimento inesistente.');
-      if (r.fee !== undefined && (!isInt(r.fee) || r.fee < 0 || r.fee >= r.cents)) bad('Commissione della ricorrenza non valida (' + r.id + ').');
-      if (r.type === 'mov' && r.kind === 'giro' && (!accIds[r.toId] || r.toId === r.accId)) bad('Giroconto ricorrente non valido (' + r.id + ').');
-      if (r.catId !== undefined && typeof r.catId !== 'string') bad('Ricorrenza non valida (' + r.id + ').');
-      if (r.note !== undefined && !txtOk(r.note, 300)) bad('Ricorrenza non valida (' + r.id + ').');
-      if (typeof r.active !== 'boolean') bad('Ricorrenza non valida (' + r.id + ').');
       if (r.type === 'mov' && r.kind !== 'spesa' && r.kind !== 'entrata' && r.kind !== 'giro') bad('Ricorrenza non valida (' + r.id + ').');
     });
     if (sn.prefs && sn.prefs.cur && sn.prefs.cur !== 'EUR' && sn.prefs.cur !== 'USD') bad('Valuta non valida.');
-    var pf = sn.prefs || {};
-    if (pf.homeView !== undefined && (typeof pf.homeView !== 'string' || pf.homeView.length > 60)) bad('Preferenze non valide.');
-    if (pf.lastAcc !== undefined && typeof pf.lastAcc !== 'string') bad('Preferenze non valide.');
-    if (pf.lastBackup !== undefined && pf.lastBackup !== '' && !dRange(pf.lastBackup)) bad('Preferenze non valide.');
     return e;
   }
   function withState(sn, fn) {
@@ -2360,7 +2027,7 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
     if (o.check !== hash53(stable(o.data))) return { err: 'File modificato o danneggiato: il controllo non torna.' };
     var sn = normalizeSnap(o.data), er = validateSnap(sn);
     if (er.length) return { err: er[0] };
-    return { snap: sn, at: typeof o.exportedAt === 'string' ? o.exportedAt : '' };
+    return { snap: sn, at: o.exportedAt || '' };
   }
   function importFile(f) {
     if (!f) return;
@@ -2373,7 +2040,7 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
   function openImport(r) {
     var cur = PER.canWrite ? summ(snapState()) : null, nw = summ(r.snap);
     function row(l, a, b) { return '<div class="kv"><span>' + l + '</span><span>' + (a === null ? '' : a + ' → ') + '<b>' + b + '</b></span></div>'; }
-    var html = scrHead('Importa backup', true) + '<div class="scrb"><div class="card"><div class="sb">' + (r.what || 'Backup') + (typeof r.at === 'string' && r.at.slice(0, 10) === TODAY ? ' di oggi' : ' del ' + (typeof r.at === 'string' && dOk(r.at.slice(0, 10)) ? dayLabel(r.at.slice(0, 10)) : '—')) + '</div>' +
+    var html = scrHead('Importa backup', true) + '<div class="scrb"><div class="card"><div class="sb">' + (r.what || 'Backup') + (r.at && r.at.slice(0, 10) === TODAY ? ' di oggi' : ' del ' + (r.at ? dayLabel(r.at.slice(0, 10)) : '—')) + '</div>' +
       row('Patrimonio', cur ? money(cur.net) : null, money(nw.net)) + row('Conti', cur ? cur.acc : null, nw.acc) + row('Movimenti', cur ? cur.tx : null, nw.tx) + row('Investimenti', cur ? cur.pos : null, nw.pos) + row('Ricorrenze', cur ? cur.rules : null, nw.rules) + '</div>' +
       '<p class="hint">I dati attuali vengono sostituiti da quelli del file.</p></div><div class="scrf"><button class="btn danger" data-act="impgo">Sostituisci i dati</button></div>';
     pushLayer('screen', 'imp', html, { snap: r.snap, what: r.what || '' });
@@ -2385,223 +2052,86 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
       (demo ? '' : '<button class="btn ghost" data-act="export">Esporta prima un backup</button>') + '</div>' +
       '<div class="scrf"><p class="msg" id="rs-msg" role="alert"></p><button class="btn danger" data-act="resetgo">' + (demo ? 'Elimina e riparti' : 'Elimina tutto') + '</button></div>', {});
   }
-  /* ================= memoria: salvataggio, backup, ripristino =================
-     Archivio privato dell'account (db → data/users/<id>/ufmeta). I dati sono divisi in blocchi
-     immutabili (nome~impronta): uno per il nucleo (conti, categorie, ricorrenze, preferenze),
-     uno per ogni investimento, uno per ogni mese di movimenti. L'indice (meta) viene scritto per
-     ultimo: un salvataggio interrotto lascia l'indice vecchio, quindi i dati restano coerenti.
-     Copia locale (localStorage) come cache e per lavorare senza rete. */
-  var PER = { db: null, dl: null, uid: null, base: 0, committed: {}, canWrite: false, dirty: false, busy: false, again: false,
-    timer: null, retry: null, fails: 0, status: 'boot', at: 0, err: '', gc: false, conf: null, last: 0, toastedErr: false };
-  /* ---- stato <-> istantanea ---- */
-  /* ---- blocchi ---- */
-  function splitTx(name, arr, out) {
-    var s = JSON.stringify(arr);
-    if (s.length > 120000 && arr.length > 1) { var h = arr.length >> 1; splitTx(name + '.a', arr.slice(0, h), out); splitTx(name + '.b', arr.slice(h), out); }
-    else out['tx-' + name] = s;
-  }
-  // divide un elenco in parti di circa 100.000 caratteri ciascuna
-  function packArr(arr) {
-    var parts = [], cur = [], len = 0;
-    arr.forEach(function (x) { var s = JSON.stringify(x).length + 1; if (cur.length && len + s > 100000) { parts.push(cur); cur = []; len = 0; } cur.push(x); len += s; });
-    if (cur.length) parts.push(cur);
-    return parts;
-  }
-  function txCmp(a, b) { return (a.ts || 0) - (b.ts || 0) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0); }
-  function chunksOf(sn) {
-    var out = {};
-    out.core = JSON.stringify({ schema: sn.schema, subs: sn.subs, cats: sn.cats, accounts: sn.accounts, gone: sn.gone, rules: sn.rules, prefs: sn.prefs, posIds: sn.pos.map(function (p) { return p.id; }) });
-    // un investimento troppo grande (es. PAC di molti anni) va in più blocchi: testata + parti di lotti e prezzi
-    sn.pos.forEach(function (p) {
-      var s = JSON.stringify(p);
-      if (s.length <= 120000) { out['p-' + p.id] = s; return; }
-      var lp = packArr(p.lots), pp = packArr(p.prices);
-      out['p-' + p.id] = JSON.stringify(Object.assign({}, p, { lots: [], prices: [], lotParts: lp.length, pxParts: pp.length }));
-      lp.forEach(function (x, i) { out['pl-' + p.id + '.' + i] = JSON.stringify(x); });
-      pp.forEach(function (x, i) { out['pp-' + p.id + '.' + i] = JSON.stringify(x); });
-    });
-    var by = {};
-    sn.tx.forEach(function (t) { var m = String(t.date).slice(0, 7); (by[m] = by[m] || []).push(t); });
-    Object.keys(by).sort().forEach(function (m) { by[m].sort(txCmp); splitTx(m, by[m], out); });
-    return out;
-  }
-  function docId(name, str) { return name + '~' + hash53(str); }
-  function assemble(map) {
-    var core = JSON.parse(map.core), tx = [];
-    Object.keys(map).forEach(function (n) { if (n.indexOf('tx-') === 0) tx = tx.concat(JSON.parse(map[n])); });
-    tx.sort(txCmp);
-    return { schema: core.schema, subs: core.subs, cats: core.cats, accounts: core.accounts, gone: core.gone, rules: core.rules, prefs: core.prefs,
-      pos: core.posIds.map(function (id) {
-        var p = JSON.parse(map['p-' + id]), i;
-        if (typeof p.lotParts === 'number' || typeof p.pxParts === 'number') {
-          var nl = p.lotParts || 0, np = p.pxParts || 0;
-          if (!isInt(nl) || !isInt(np) || nl < 0 || np < 0 || nl > 5000 || np > 5000) throw { code: 'chunk_corrupt' };
-          for (i = 0; i < nl; i++) { if (map['pl-' + id + '.' + i] === undefined) throw { code: 'chunk_missing' }; p.lots = p.lots.concat(JSON.parse(map['pl-' + id + '.' + i])); }
-          for (i = 0; i < np; i++) { if (map['pp-' + id + '.' + i] === undefined) throw { code: 'chunk_missing' }; p.prices = p.prices.concat(JSON.parse(map['pp-' + id + '.' + i])); }
-          delete p.lotParts; delete p.pxParts;
-        }
-        return p;
-      }), tx: tx };
-  }
-  /* ---- archivio remoto ---- */
-  function metaRef() { return PER.db.doc('data/users/' + PER.uid + '/ufmeta'); }
-  function chunkRef(id) { return metaRef().collection('c').doc(id); }
-  async function retried(fn) {
-    var e0 = null;
-    for (var i = 0; i < 3; i++) {
-      try { return await fn(); }
-      catch (e) { e0 = e; var c = errCode(e); if (c !== 'unavailable' && c !== 'resource_exhausted' && c !== 'timeout') throw e; await sleep(600 + Math.random() * 600 + i * 1500); }
-    }
-    throw e0;
-  }
-  async function readMeta() {
-    var m = await retried(function () { return withTimeout(metaRef().get(), 12000); });
-    if (!m.exists) return null;
-    var d = m.data();
-    if (!d || d.app !== APP_ID || typeof d.rev !== 'number' || !d.chunks || typeof d.chunks !== 'object') throw { code: 'meta_invalid' };
-    return d;
-  }
-  async function remoteRead() {
-    var meta = await readMeta(); if (!meta) return null;
-    var names = Object.keys(meta.chunks), map = {};
-    for (var i = 0; i < names.length; i += 6) {
-      await Promise.all(names.slice(i, i + 6).map(function (n) {
-        return retried(function () { return withTimeout(chunkRef(meta.chunks[n]).get(), 12000); }).then(function (s) {
-          if (!s.exists) throw { code: 'chunk_missing' };
-          var p = s.data() && s.data().p;
-          if (typeof p !== 'string' || docId(n, p) !== meta.chunks[n]) throw { code: 'chunk_corrupt' };
-          map[n] = p;
-        });
-      }));
-    }
-    var sn = assemble(map); sn = normalizeSnap(sn);
-    var er = validateSnap(sn); if (er.length) throw { code: 'data_invalid', detail: er[0] };
-    return { meta: meta, snap: sn };
-  }
-  /* ---- versioni salvate: indice in 's/<id>' (scritto per ultimo), contenuto in 's/<id>.<n>' ---- */
-  function snapCol() { return metaRef().collection('s'); }
-  PER.snaps = {
-    ok: function () { return !!PER.db && !!PER.uid; },
-    list: async function () {
-      var all = await snapCol().get();
-      return all.docs.map(function (d) { return d.data(); }).filter(function (x) { return x && typeof x.parts === 'number' && typeof x.id === 'string'; }).sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
-    },
-    put: async function (rec) {
-      var n = Math.max(1, Math.ceil(rec.z.length / 90000)), i, m = {};
-      for (i = 0; i < n; i++) await retried(function () { return snapCol().doc(rec.id + '.' + i).set({ p: rec.z.slice(i * 90000, (i + 1) * 90000) }); });
-      Object.keys(rec).forEach(function (k) { if (k !== 'z') m[k] = rec[k]; }); m.parts = n;
-      await retried(function () { return snapCol().doc(rec.id).set(m); });
-    },
-    get: async function (id) {
-      var ix = await snapCol().doc(id).get(); if (!ix.exists) return null;
-      var m = ix.data(), z = '', i; if (!m || typeof m.parts !== 'number' || m.parts < 1 || m.parts > 400) return null;
-      for (i = 0; i < m.parts; i++) { var d = await snapCol().doc(id + '.' + i).get(); if (!d.exists || typeof d.data().p !== 'string') return null; z += d.data().p; }
-      return Object.assign({}, m, { z: z });
-    },
-    del: async function (id) {
-      var ix = await snapCol().doc(id).get(), n = ix.exists && ix.data() && typeof ix.data().parts === 'number' ? Math.min(ix.data().parts, 400) : 0, i;
-      await snapCol().doc(id).delete();
-      for (i = 0; i < n; i++) { try { await snapCol().doc(id + '.' + i).delete(); } catch (e) {} }
-    },
-    wipe: async function () { var all = await snapCol().get(), i; for (i = 0; i < all.docs.length; i++) await retried(function () { return snapCol().doc(all.docs[i].id).delete(); }); }
-  };
-  /* ---- copia locale ---- */
-  function cacheWrite(sn, dirty) {
-    try { localStorage.setItem('uf-cache', JSON.stringify(sn)); localStorage.setItem('uf-cache-meta', JSON.stringify({ rev: PER.base, dirty: !!dirty, uid: PER.uid || '', at: Date.now() })); return true; } catch (e) { return false; }
-  }
-  function cacheMark(dirty) { try { localStorage.setItem('uf-cache-meta', JSON.stringify({ rev: PER.base, dirty: !!dirty, uid: PER.uid || '', at: Date.now() })); } catch (e) {} }
-  function cacheRead() {
-    try {
-      var m = JSON.parse(localStorage.getItem('uf-cache-meta') || 'null'), s = localStorage.getItem('uf-cache');
-      if (!m || !s) return null;
-      var sn = normalizeSnap(JSON.parse(s)); if (validateSnap(sn).length) return null;
-      return { snap: sn, rev: m.rev || 0, dirty: !!m.dirty, uid: m.uid || '' };
-    } catch (e) { return null; }
-  }
-  function cacheClear() { try { localStorage.removeItem('uf-cache'); localStorage.removeItem('uf-cache-meta'); } catch (e) {} }
-  /* ---- controllo e normalizzazione ---- */
+
+  /* ================= memoria (build PWA): IndexedDB tramite UFRepo =================
+     Qui non si tocca mai IndexedDB direttamente: tutto passa da window.UFRepo (js/repo.js).
+     Salvataggio: dopo ogni modifica, a gruppi (400 ms), una sola transazione atomica con controllo
+     di revisione. Se un'altra finestra dell'app ha salvato nel frattempo, compare la scelta tra le due versioni. */
+  var PER = { db: true, repo: window.UFRepo, base: 0, canWrite: false, dirty: false, busy: false, again: false,
+    timer: null, retry: null, fails: 0, status: 'boot', at: 0, err: '', conf: null, last: 0, toastedErr: false, persisted: null, sig: '' };
+  PER.snaps = { ok: function () { return !!PER.db && !!PER.repo; }, list: function () { return PER.repo.snapList(); }, put: function (r) { return PER.repo.snapPut(r); }, get: function (id) { return PER.repo.snapGet(id); }, del: function (id) { return PER.repo.snapDel(id); } };
+  // sig = impronta dei dati come sono nell'archivio: distingue "da salvare" da "modificato davvero"
+  function reallyDirty() { return stable(snapState()) !== PER.sig; }
+  var BC = null;
+  try { if ('BroadcastChannel' in window) BC = new BroadcastChannel('ufinance'); } catch (e) { BC = null; }
+
   /* ---- scrittura ---- */
   function touch() {
     if (!PER.canWrite) return;
     PER.dirty = true; if (PER.status === 'ok') PER.status = 'saving';
-    clearTimeout(PER.timer); PER.timer = setTimeout(flush, 700);
+    clearTimeout(PER.timer); PER.timer = setTimeout(flush, 400);
   }
   function flushNow() { clearTimeout(PER.timer); return flush(); }
-  function reallyDirty() {
-    var map = chunksOf(snapState()), names = Object.keys(map);
-    for (var i = 0; i < names.length; i++) if (PER.committed[names[i]] !== docId(names[i], map[names[i]])) return true;
-    return Object.keys(PER.committed).some(function (n) { return map[n] === undefined; });
-  }
   async function flush() {
     if (!PER.canWrite) return;
+    if (!PER.db) { PER.dirty = false; PER.status = 'mem'; syncUI(); return; }
     if (PER.busy) { PER.again = true; return; }
     PER.busy = true;
     try {
       do {
-        PER.again = false;
-        var sn = snapState(), map = chunksOf(sn), ids = {}, names = Object.keys(map), changed = [], tooBig = false;
-        // il limite per blocco vale solo per l'archivio dell'account, non per la copia locale
-        names.forEach(function (n) { ids[n] = docId(n, map[n]); if (PER.db && map[n].length > 170000) tooBig = true; });
-        // confronto con l'ultimo indice scritto: nome → id
-        changed = names.filter(function (n) { return PER.committed[n] !== ids[n]; });
-        var removed = Object.keys(PER.committed).filter(function (n) { return ids[n] === undefined; });
-        if (tooBig) { PER.status = 'error'; PER.err = 'dati_troppo_grandi'; break; }
-        if (!changed.length && !removed.length) { PER.dirty = false; PER.status = PER.db ? 'ok' : 'local'; if (!PER.at) PER.at = Date.now(); cacheMark(false); break; }
-        var cached = cacheWrite(sn, true);
-        if (!cached && !PER.db) {
-          // memoria del browser piena: i dati NON sono salvati, lo diciamo chiaramente
-          PER.dirty = true; PER.status = 'error'; PER.err = 'quota_exceeded';
-          if (!PER.toastedErr) { PER.toastedErr = true; toast('Memoria del browser piena: dati non salvati. Esporta subito un backup.'); }
-          break;
-        }
-        if (!PER.db) { PER.dirty = false; PER.status = 'local'; PER.err = ''; PER.toastedErr = false; PER.at = Date.now(); cacheMark(false); break; }
-        PER.status = 'saving'; syncUI();
-        var rm = await retried(function () { return withTimeout(metaRef().get(), 12000); });
-        var remoteRev = rm.exists && rm.data() ? rm.data().rev : 0;
-        if (rm.exists && remoteRev !== PER.base) { await onConflict(); return; }
-        for (var i = 0; i < changed.length; i++) {
-          var n = changed[i], s = map[n];
-          await retried(function () { return withTimeout(chunkRef(ids[n]).set({ n: n, p: s }), 15000); });
-        }
-        var newRev = (rm.exists ? remoteRev : 0) + 1;
-        await retried(function () { return withTimeout(metaRef().set({ app: APP_ID, schema: SCHEMA, rev: newRev, savedAt: new Date().toISOString(), chunks: ids, counts: { acc: sn.accounts.length, tx: sn.tx.length, pos: sn.pos.length } }), 15000); });
-        var old = PER.committed; PER.base = newRev; PER.committed = ids; PER.at = Date.now(); PER.fails = 0; PER.err = ''; PER.toastedErr = false;
-        if (!PER.again) { PER.dirty = false; PER.status = 'ok'; cacheMark(false); }
-        // pulizia dei blocchi sostituiti (non bloccante per la coerenza: l'indice è già nuovo)
-        var gone = Object.keys(old).map(function (k) { return old[k]; }).filter(function (v) { return Object.keys(ids).every(function (k) { return ids[k] !== v; }); });
-        for (var j = 0; j < gone.length; j++) { try { await chunkRef(gone[j]).delete(); } catch (e) {} }
-        if (!PER.gc) { PER.gc = true; fullGc(); }
+        PER.again = false; PER.status = 'saving'; syncUI();
+        var sn = snapState(), sg = stable(sn);
+        var nr = await PER.repo.commit(sn, PER.base);
+        PER.base = nr; PER.sig = sg; PER.at = Date.now(); PER.fails = 0; PER.err = ''; PER.toastedErr = false;
+        if (!PER.again) { PER.dirty = false; PER.status = 'ok'; }
+        if (BC) { try { BC.postMessage({ rev: nr }); } catch (e) {} }
       } while (PER.again);
     } catch (e) {
-      if (PER.conf) return;
-      PER.fails += 1; PER.status = 'error'; PER.err = errCode(e); PER.dirty = true;
-      if (PER.fails === 1 || !PER.toastedErr) { PER.toastedErr = true; toast(PER.err === 'invalid_argument' ? 'Non puoi salvare nell’account: dati solo su questo dispositivo.' : 'Salvataggio non riuscito: riprovo a breve.'); }
+      var c = errCode(e);
+      if (c === 'conflict') { PER.busy = false; await onConflict(); return; }
+      PER.fails += 1; PER.status = 'error'; PER.err = c; PER.dirty = true;
+      if (!PER.toastedErr) { PER.toastedErr = true; toast(c === 'quota' ? 'Spazio esaurito: esporta un backup.' : 'Salvataggio non riuscito: riprovo a breve.'); }
       clearTimeout(PER.retry);
-      if (PER.err !== 'invalid_argument' && PER.err !== 'quota_exceeded') PER.retry = setTimeout(flush, Math.min(60000, 4000 * Math.pow(2, PER.fails - 1)));
+      if (c !== 'quota') PER.retry = setTimeout(flush, Math.min(60000, 3000 * Math.pow(2, PER.fails - 1)));
     } finally { PER.busy = false; syncUI(); }
   }
-  async function fullGc() {
-    try {
-      var all = await metaRef().collection('c').get(), keep = {};
-      Object.keys(PER.committed).forEach(function (k) { keep[PER.committed[k]] = 1; });
-      for (var i = 0; i < all.docs.length; i++) if (!keep[all.docs[i].id]) { try { await chunkRef(all.docs[i].id).delete(); } catch (e) {} }
-    } catch (e) {}
+
+  /* ---- lettura e controllo ---- */
+  async function readRemote() {
+    var r = await PER.repo.load(); if (!r) return null;
+    var sn = normalizeSnap(r.snapshot), er = validateSnap(sn);
+    if (er.length) throw { code: sn.schema > SCHEMA ? 'schema_newer' : 'data_invalid', detail: er[0] };
+    return { meta: { rev: r.rev, savedAt: r.savedAt }, snap: sn };
   }
+  async function syncBase() {
+    try { var r = await PER.repo.load(); PER.base = r ? r.rev : 0; }
+    catch (e) { await PER.repo.clear(); PER.base = 0; }
+  }
+
   /* ---- stato mostrato nelle impostazioni ---- */
   function syncText() {
     if (!PER.canWrite) return 'In attesa…';
-    if (!PER.db) return PER.status === 'error' ? 'Non salvato: memoria del browser piena. Esporta un backup.' : 'Solo su questo dispositivo. Esporta un backup.';
+    if (!PER.db) return 'Archivio non disponibile: dati non salvati. Esporta un backup.';
     if (PER.status === 'saving') return 'Salvataggio…';
-    if (PER.status === 'error') return PER.err === 'quota_exceeded' ? 'Spazio esaurito: esporta un backup.' : PER.err === 'dati_troppo_grandi' ? 'Dati troppo grandi per l’archivio.' : 'Non salvato: riprovo a breve.';
-    return 'Salvato nell’account' + (PER.at ? ' · ' + hhmm(PER.at) : '');
+    if (PER.status === 'error') return PER.err === 'quota' ? 'Spazio esaurito: esporta un backup.' : 'Non salvato: riprovo a breve.';
+    return 'Salvato sul dispositivo' + (PER.at ? ' · ' + hhmm(PER.at) : '');
   }
-  /* ---- conflitto tra dispositivi ---- */
+  function welcomeNote() { return PER.db ? 'I tuoi dati restano su questo dispositivo, anche senza rete.' : 'Archivio del dispositivo non disponibile: i dati non verrebbero salvati.'; }
+  function storageNote() {
+    return 'I dati restano solo su questo dispositivo' + (PER.persisted === false ? ' e il sistema potrebbe eliminarli se manca spazio' : '') + '. Esporta un backup spesso e salvalo su File o iCloud.';
+  }
+  function conflictNote() { return 'Un’altra copia dell’app ha salvato modifiche mentre lavoravi qui.'; }
+  function savedLabel() { return 'Salvati sul dispositivo'; }
+  function resetScope() { return 'da questo dispositivo'; }
+  function versionRow() { return '<p class="note" style="margin-top:6px">Versione ' + esc(window.UF_BUILD || 'sviluppo') + '</p>'; }
+  function checkUpdate() { if (window.UFPwa) window.UFPwa.check(); }
+
+  /* ---- conflitto tra due copie dell'app ---- */
   async function onConflict() {
     var remote = null;
-    try { remote = await remoteRead(); } catch (e) { remote = null; }
+    try { remote = await readRemote(); } catch (e) { remote = null; }
     PER.canWrite = false; PER.busy = false; clearTimeout(PER.timer);
-    var local = snapState();
-    PER.conf = { local: local, remote: remote };
+    PER.conf = { local: snapState(), remote: remote };
     openConflict();
   }
   async function confGo(el) {
@@ -2609,132 +2139,101 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
     if (!twoTap(el, 'conf' + m)) return;
     var c = PER.conf; PER.conf = null;
     try {
-      snapCapture('pre', m === 'mine' ? 'Versione scartata (altro dispositivo)' : 'Versione scartata (questo dispositivo)', m === 'mine' ? (c.remote && c.remote.snap) : c.local);
-      var meta = await readMeta();
-      if (m === 'mine') { applySnap(c.local); PER.base = meta ? meta.rev : 0; PER.committed = meta ? meta.chunks : {}; PER.canWrite = true; PER.dirty = true; closeAll(); await flushNow(); toast('Tenuti i dati di questo dispositivo.'); }
-      else { applySnap(c.remote.snap); PER.base = c.remote.meta.rev; PER.committed = c.remote.meta.chunks; PER.canWrite = true; PER.dirty = false; cacheWrite(snapState(), false); closeAll(); toast('Caricati i dati salvati.'); }
+      snapCapture('pre', m === 'mine' ? 'Versione scartata (altra copia)' : 'Versione scartata (questa copia)', m === 'mine' ? (c.remote && c.remote.snap) : c.local);
+      if (m === 'mine') { await syncBase(); applySnap(c.local); PER.canWrite = true; PER.dirty = true; closeAll(); await flushNow(); toast('Tenuti i dati di questa copia.'); }
+      else { applySnap(c.remote.snap); PER.base = c.remote.meta.rev; PER.sig = stable(snapState()); PER.canWrite = true; PER.dirty = false; closeAll(); toast('Caricati i dati salvati.'); }
     } catch (e) { PER.conf = c; toast('Non riesco a leggere l’archivio. Riprova.'); }
   }
   async function checkRemote() {
     if (!PER.canWrite || PER.busy || PER.conf) return;
     if (ymd(new Date()) !== TODAY) { await flushNow(); try { location.reload(); } catch (e) {} return; }
     if (!PER.db) return;
-    if (Date.now() - PER.last < 4000) return; PER.last = Date.now();
+    if (Date.now() - PER.last < 1500) return; PER.last = Date.now();
     try {
-      var meta = await readMeta();
-      if (meta && meta.rev > PER.base) {
-        if (!(PER.dirty && reallyDirty()) && !PER.busy) {
-          var r = await remoteRead(); if (!r || (PER.dirty && reallyDirty())) return;
-          PER.dirty = false;
-          applySnap(r.snap); PER.base = r.meta.rev; PER.committed = r.meta.chunks; cacheWrite(snapState(), false); closeAll(); toast('Dati aggiornati da un altro dispositivo.');
-        } else await onConflict();
-      }
+      var rev = await PER.repo.readRev();
+      if (rev === PER.base) return;
+      if (reallyDirty()) { await onConflict(); return; }
+      var r = await readRemote();
+      if (!r) { await onConflict(); return; }
+      if (reallyDirty()) return;
+      applySnap(r.snap); PER.base = r.meta.rev; PER.sig = stable(snapState()); PER.dirty = false; closeAll(); toast('Dati aggiornati da un’altra copia dell’app.');
     } catch (e) {}
   }
+  if (BC) BC.onmessage = function () { PER.last = 0; checkRemote(); };
+
   /* ---- avvio ---- */
-  function adoptCache(c) { applySnap(c.snap); }
   async function boot() {
     loadPrefs();
     splash('<p class="sb">Carico i tuoi dati…</p>');
-    var cache = cacheRead();
-    try {
-      var cl = window.claude;
-      if (cl && cl.use) {
-        PER.db = await withTimeout(cl.use('db'), 8000).catch(function () { return null; });
-        var u = await withTimeout(cl.use('user'), 8000).catch(function () { return null; });
-        PER.uid = u ? await u.id() : null;
-        PER.dl = await withTimeout(cl.use('downloads'), 8000).catch(function () { return null; });
-        if (!PER.uid) PER.db = null;
-      }
-    } catch (e) { PER.db = null; }
-    if (cache && cache.uid && PER.uid && cache.uid !== PER.uid) cache = null;
-    if (!PER.db) {
-      if (cache) { adoptCache(cache); PER.base = cache.rev; PER.status = 'local'; var made0 = runRules(true); enter(); rulesToast(made0); } else { PER.status = 'local'; welcome(); }
-      return;
-    }
-    var r = null, failed = null;
-    try { r = await remoteRead(); } catch (e) { failed = e; }
-    if (failed) {
-      if (cache) { adoptCache(cache); PER.base = cache.rev; PER.status = 'error'; PER.err = errCode(failed); PER.dirty = true; enter(); }
-      else bootFail(errCode(failed));
-      return;
-    }
-    if (r) {
-      PER.committed = r.meta.chunks;
-      if (cache && cache.dirty) {
-        if (cache.rev === r.meta.rev) { adoptCache(cache); PER.base = r.meta.rev; PER.dirty = true; PER.status = 'saving'; var made1 = runRules(true); enter(); rulesToast(made1); flushNow(); return; }
-        applySnap(r.snap); PER.base = r.meta.rev;
-        PER.canWrite = false; PER.conf = { local: cache.snap, remote: r }; document.body.classList.remove('boot'); render(); openConflict(); return;
-      }
-      applySnap(r.snap); PER.base = r.meta.rev; PER.status = 'ok'; PER.at = Date.parse(r.meta.savedAt) || Date.now();
-      var made2 = runRules(true); enter(); rulesToast(made2); return;
-    }
-    if (cache) { adoptCache(cache); PER.base = 0; PER.dirty = true; PER.committed = {}; var made3 = runRules(true); enter(); rulesToast(made3); flushNow(); return; }
-    welcome();
+    PER.db = true;
+    try { await PER.repo.open(); } catch (e) { PER.db = false; PER.err = errCode(e); }
+    if (!PER.db) { PER.status = 'mem'; welcome(); return; }
+    PER.repo.persist().then(function (p) { PER.persisted = p; syncUI(); });
+    var r = null;
+    try { r = await readRemote(); } catch (e) { bootFail(errCode(e)); return; }
+    if (!r) { PER.base = 0; PER.status = 'ok'; welcome(); return; }
+    applySnap(r.snap); PER.base = r.meta.rev; PER.sig = stable(snapState()); PER.status = 'ok'; PER.at = r.meta.savedAt || Date.now();
+    runRules(true); enter();
   }
-  /* ---- backup: esporta ---- */
-  async function exportBackup() { return deliverBackup(JSON.stringify(backupObj()), 'ufinance-backup-' + TODAY + '.json'); }
-  async function exportEnc(pw) { return deliverBackup(await encryptBackup(JSON.stringify(backupObj()), pw), 'ufinance-backup-cifrato-' + TODAY + '.json'); }
-  function backupObj() { var sn = snapState(); return { app: APP_ID, kind: 'backup', format: 1, schema: SCHEMA, exportedAt: new Date().toISOString(), check: hash53(stable(sn)), data: sn }; }
-  async function deliverBackup(text, name) {
-    try {
-      await saveFile(text, name, 'application/json');
-      S.lastBackup = TODAY; touch(); toast('Backup salvato.'); render(); return true;
-    } catch (e) {
-      var c = errCode(e);
-      if (c !== 'declined') toast('Backup non riuscito (' + c + ').');
-      return false;
-    }
+
+  /* ---- backup: esporta (Web Share con file, altrimenti download) ---- */
+  function backupFile() {
+    var sn = snapState();
+    return { app: APP_ID, kind: 'backup', format: 1, schema: SCHEMA, exportedAt: new Date().toISOString(), check: hash53(stable(sn)), data: sn };
   }
-  // Salva un file: dentro Claude con la funzione «downloads», fuori (es. Netlify) con il download del browser
-  // o, su telefono, con il foglio di condivisione (su iPhone: «Salva su File»).
-  async function saveFile(text, name, mime) {
-    if (PER.dl) return PER.dl.save({ filename: name, data: text });
-    var blob = new Blob([text], { type: mime });
-    var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-    if (coarse && typeof File === 'function' && navigator.canShare) {
-      var f = new File([blob], name, { type: mime });
-      if (navigator.canShare({ files: [f] })) {
-        try { await navigator.share({ files: [f], title: name }); return; }
-        catch (e) { if (e && e.name === 'AbortError') throw { code: 'declined' }; /* altrimenti: download normale */ }
-      }
-    }
-    if (typeof URL === 'undefined' || !URL.createObjectURL) throw { code: 'nodownload' };
+  function downloadBlob(blob, name) {
     var url = URL.createObjectURL(blob), a = document.createElement('a');
     a.href = url; a.download = name; a.rel = 'noopener'; a.style.display = 'none';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 60000);
   }
+  function markBackup() { S.lastBackup = TODAY; touch(); render(); }
+  function exportBackup() {
+    // Nessun await prima di navigator.share: iOS richiede che parta dal tocco dell'utente.
+    deliverBackup(JSON.stringify(backupFile()), 'ufinance-backup-' + TODAY + '.json');
+  }
+  // il file cifrato richiede un calcolo prima della condivisione: se iOS rifiuta la condivisione, si scarica
+  async function exportEnc(pw) { return deliverBackup(await encryptBackup(JSON.stringify(backupFile()), pw), 'ufinance-backup-cifrato-' + TODAY + '.json'); }
+  function deliverBackup(text, name) {
+    var types = ['application/json', 'text/plain'], i, f;
+    var fallback = function () { downloadBlob(new Blob([text], { type: 'application/json' }), name); markBackup(); toast('Backup scaricato.'); return true; };
+    if (navigator.share && navigator.canShare && typeof File === 'function') {
+      for (i = 0; i < types.length; i++) {
+        try { f = new File([text], name, { type: types[i] }); } catch (e) { f = null; }
+        if (f && navigator.canShare({ files: [f] })) {
+          return navigator.share({ files: [f], title: 'Backup UFinance Track' }).then(function () { markBackup(); toast('Backup condiviso.'); return true; },
+            function (e) { if (e && e.name === 'AbortError') return false; return fallback(); });
+        }
+      }
+    }
+    return Promise.resolve(fallback());
+  }
+
   /* ---- backup: importa ---- */
   async function impGo(el) {
     var lay = layerOf('imp'); if (!lay) return;
     if (!twoTap(el, 'impgo')) return;
     var prev = PER.canWrite ? clone(snapState()) : null, sn = lay.st.snap;
     if (prev) snapCapture('pre', lay.st.what === 'Versione' ? 'Prima di ripristinare una versione' : 'Prima di importare un backup', prev);
-    if (!PER.canWrite) {
-      try { var meta = PER.db ? await readMeta().catch(function () { return null; }) : null; PER.base = meta ? meta.rev : 0; PER.committed = meta ? meta.chunks : {}; } catch (e) {}
-    }
+    if (!PER.canWrite && PER.db) { try { await syncBase(); } catch (e) {} }
     applySnap(clone(sn));
-    document.body.classList.remove('boot'); PER.canWrite = true; PER.dirty = true; PER.status = PER.db ? 'saving' : 'local';
+    document.body.classList.remove('boot'); PER.canWrite = true; PER.dirty = true; PER.status = PER.db ? 'saving' : 'mem';
     closeAll(); runRules(true);
     toast('Backup importato.', prev ? function () { applySnap(prev); touch(); } : null);
     touch(); flushNow();
   }
+
   /* ---- elimina tutti i dati ---- */
   async function resetGo(el) {
     var lay = layerOf('reset'); if (!lay) return;
     if (!S.demo && !twoTap(el, 'resetgo')) return;
     el.disabled = true;
     try {
-      if (PER.db) {
-        clearTimeout(PER.timer); PER.canWrite = false;
-        var all = await metaRef().collection('c').get();
-        for (var i = 0; i < all.docs.length; i++) await retried(function () { return chunkRef(all.docs[i].id).delete(); });
-        try { await PER.snaps.wipe(); } catch (e) {}
-        await retried(function () { return metaRef().delete(); });
-      }
-    } catch (e) { el.disabled = false; PER.canWrite = true; var m = $('#rs-msg'); if (m) { m.textContent = 'Non riesco a cancellare i dati dell’account. Riprova.'; m.className = 'msg bad'; } return; }
-    cacheClear(); PER.base = 0; PER.committed = {}; PER.dirty = false; PER.status = 'boot'; PER.conf = null;
+      clearTimeout(PER.timer); PER.canWrite = false;
+      if (PER.db) await PER.repo.clear();
+    } catch (e) { el.disabled = false; PER.canWrite = true; var m = $('#rs-msg'); if (m) { m.textContent = 'Non riesco a cancellare i dati. Riprova.'; m.className = 'msg bad'; } return; }
+    PER.base = 0; PER.sig = ''; PER.dirty = false; PER.status = 'ok'; PER.conf = null;
+    if (BC) { try { BC.postMessage({ reset: true }); } catch (e) {} }
     while (L.length) L.pop().el.remove(); document.body.classList.remove('lock');
     emptyState(); S.tab = 'home'; welcome();
   }
@@ -2743,24 +2242,13 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
     if (document.visibilityState === 'hidden') { if (PER.canWrite && PER.dirty) { clearTimeout(PER.timer); flush(); } }
     else checkRemote();
   });
-  // Cambio di giorno con l'app aperta e visibile: ricarica (e registra le nuove scadenze).
-  setInterval(function () { if (document.visibilityState === 'visible' && ymd(new Date()) !== TODAY) checkRemote(); }, 60000);
-
-  /* testi specifici di questa build */
-  function welcomeNote() { return PER.db ? 'I tuoi dati restano nel tuo account.' : 'Qui i dati restano solo su questo dispositivo.'; }
-  function storageNote() { return PER.db ? 'I dati sono salvati nel tuo account e solo tu puoi leggerli. Esporta un backup ogni tanto: è la tua copia di sicurezza.' : 'Qui i dati restano solo su questo dispositivo e possono andare persi. Esporta un backup spesso.'; }
-  function conflictNote() { return 'Un altro dispositivo ha salvato modifiche mentre lavoravi qui.'; }
-  function savedLabel() { return 'Salvati nell’account'; }
-  function resetScope() { return 'da questo account e da questo dispositivo'; }
-  function testHooks() { return { chunksOf: chunksOf, assemble: assemble, flush: flush, flushNow: flushNow, checkRemote: checkRemote, reallyDirty: reallyDirty, docId: docId }; }
-  function versionRow() { return ''; }
-  function checkUpdate() {}
+  function testHooks() { return { flush: flush, flushNow: flushNow, checkRemote: checkRemote, repo: PER.repo, backupFile: backupFile }; }
 
   /* ================= eventi ================= */
   function act(n, el) {
     var d = el.dataset, lay = topL(), st = lay ? lay.st : null, al, id;
     switch (n) {
-      case 'tab': S.tab = d.tab; render(true); window.scrollTo(0, 0); break;
+      case 'tab': S.tab = d.tab; render(); window.scrollTo(0, 0); break;
       case 'hide': S.hide = !S.hide; savePrefs(); render(); break;
       case 'scope': sheetScope(); break;
       case 'setscope': S.homeView = d.v; popLayer(); break;
@@ -2948,9 +2436,6 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
   // Mentre scrivi la nota il tastierino si nasconde: la schermata non si sposta.
   document.addEventListener('focusin', function (e) { if (e.target.id === 'a-note') { var al = layerOf('add'); if (al) al.el.classList.add('typing'); } });
   document.addEventListener('focusout', function (e) { if (e.target.id === 'a-note') { var al = layerOf('add'); if (al) al.el.classList.remove('typing'); } });
-  // Premere «Salva» mentre si scrive la nota: senza questo il campo perde il focus, ricompare il tastierino,
-  // il pulsante si sposta e il clic va perso. Tenendo il focus, il pulsante resta fermo sotto il dito/mouse.
-  document.addEventListener('mousedown', function (e) { if (e.target.closest && e.target.closest('#a-save') && document.activeElement && document.activeElement.id === 'a-note') e.preventDefault(); });
   // Grafico del patrimonio: il dito (o il mouse) scorre sulla curva e mostra il valore di quel giorno.
   document.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('#nw-svg')) nwPointer(e); });
   document.addEventListener('pointermove', function (e) { if (e.target.closest && e.target.closest('#nw-svg') && (e.pointerType === 'mouse' || e.buttons)) nwPointer(e); });
@@ -2971,8 +2456,6 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
   });
 
   window.__UF = Object.assign(testHooks(), { P: PER, snapState: snapState, applySnap: applySnap, validateSnap: validateSnap, readBackup: readBackup, hash53: hash53, stable: stable, boot: boot, summ: summ, exportBackup: exportBackup, emptyState: emptyState, S: S, L: L, balance: balance, netWorth: netWorth, parseCents: parseCents, isinOk: isinOk, posValue: posValue, alloc: alloc, buckets: buckets, range: range, stats: stats, scopeValue: scopeValue, scopeSet: scopeSet, act: act, render: render, nwSeries: nwSeries, firstDate: firstDate, delPlan: delPlan, accName: accName, nwRange: nwRange, pctS: pctS, chgPct: chgPct, nwPointer: nwPointer, posValue: posValue, portfolioValue: portfolioValue, posCalc: posCalc, posStat: posStat, xirr: xirr, runRules: runRules, nthDate: nthDate, lotsOk: lotsOk, pxAt: pxAt, snapAll: snapAll, restoreAll: restoreAll, parsePx: parsePx, delPosPlan: delPosPlan,  TODAY: TODAY, money: money, addDays: addDays, dn: dn, ymd: ymd, parseD: parseD, posById: posById, encryptBackup: encryptBackup, decryptBackup: decryptBackup, snapCapture: snapCapture, remBanner: remBanner, gz: gz, gunz: gunz });
-  boot();
+    window.addEventListener('uf-toast', function (e) { toast(String(e.detail || '')); });
+boot();
 })();
-</script>
-
-</body></html>

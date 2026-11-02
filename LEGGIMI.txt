@@ -1,0 +1,20 @@
+UFinance Track - versione PWA offline (cartella da pubblicare cosi' com'e')
+
+INSTALLAZIONE SU IPHONE
+1. Pubblica il contenuto di questa cartella su un hosting statico HTTPS gratuito
+   (es. Netlify Drop: trascina lo zip su app.netlify.com/drop). Serve solo per scaricare l'app la prima volta.
+2. Apri l'indirizzo con Safari > Condividi > "Aggiungi a Home".
+3. Apri l'app dall'icona: la prima apertura scarica tutto, poi funziona anche in modalita' aereo.
+
+DATI
+- Restano solo sul dispositivo (IndexedDB). Nessun dato viene inviato in rete.
+- Esporta un backup spesso (Impostazioni > Esporta backup) e salvalo su File/iCloud.
+- Un aggiornamento dell'app non cancella mai i dati (nemmeno quando cambia il formato: i dati vengono convertiti).
+
+AGGIORNARE L'APP
+Sostituisci i file sull'hosting con la nuova cartella: all'apertura l'app mostra
+"Aggiornamento disponibile"; tocchi il banner e i dati restano.
+
+CAPACITOR (FUTURO)
+Tutto l'accesso ai dati e' in js/repo.js (window.UFRepo). Per SQLite nativo basta scrivere
+un adattatore con la stessa interfaccia (open, load, commit, readRev, clear, persist, estimate).
