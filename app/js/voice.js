@@ -94,7 +94,7 @@
   /* ---- categorie: parole chiave → nome della categoria (se esiste tra quelle dell'utente) ---- */
   var CAT_KW = [
     ['Salute', 'farmacia|farmaci|medicin\\w*|medico|dottore|dentista|visita|analisi del sangue|ospedale|ticket|ottico|occhiali', 'spesa'],
-    ['Alimentari', 'supermercato|fatto la spesa|la spesa\\b|spesa al|alimentari|conad|coop|esselunga|lidl|carrefour|eurospin|pam|aldi|penny|panetteria|pane|frutta|verdura|macellaio|pescheria', 'spesa'],
+    ['Alimentari', 'supermercato|fatto la spesa|la spesa\\b|di spesa\\b|spesa al|alimentari|conad|coop|esselunga|lidl|carrefour|eurospin|pam|aldi|penny|panetteria|pane|frutta|verdura|macellaio|pescheria', 'spesa'],
     ['Ristoranti', 'ristorante|pizzeria|pizza|trattoria|osteria|sushi|bar\\b|caffe|colazione|pranzo|cena|aperitivo|spritz|kebab|mcdonald\\w*|burger|gelato|take ?away|deliveroo|glovo|just eat', 'spesa'],
     ['Trasporti', 'benzina|carburante|gasolio|diesel|pieno|treno|trenitalia|italo|autobus|bus\\b|metro|taxi|uber|parcheggio|autostrada|pedaggio|telepass|biglietto|monopattino|bici', 'spesa'],
     ['Casa', 'affitto|bolletta|bollette|luce|gas\\b|acqua|condominio|internet|wifi|fibra|tari|mutuo|ikea|arredamento|pulizie', 'spesa'],
@@ -138,6 +138,12 @@
     var m = /\b(da|dal|dalla|dallo|dai|con|col|con la|con il|dalla mia|dal mio)\s+(?:mia |mio |la |il |l')?$|\b(a|ad|al|alla|allo|ai|sul|sulla|su|verso|per|nel|nella|in)\s+(?:mia |mio |la |il |l')?$/.exec(s.slice(Math.max(0, pos - 16), pos));
     return !m ? '' : m[1] ? 'from' : 'to';
   }
+  // una parola che non può essere un nome di persona
+  var NOTNAME = /^(per|con|dal|dalla|dallo|dai|dagli|sul|sulla|sui|nel|nella|che|chi|cui|ieri|oggi|domani|stamattina|stasera|stamani|tramite|via|dopo|prima|quando|perche|pagat|ridar|restit|prest|mandat|inviat|bonific|contant|euro|farmac|supermerc|ristor|carta|cash|dire|tutto|tutti|anche|poi|cena|pranzo|spesa|pizza|regalo|affitto)/;
+  function notName(w, accounts) {
+    if (STOP[w] || NOTNAME.test(w) || BANKS.test(w) || MONTHS.indexOf(w) >= 0 || WD.indexOf(w) >= 0 || wordNum(w) !== null) return true;
+    return accounts.some(function (a) { return fold(a.name).split(/[^a-z0-9]+/).indexOf(w) >= 0; });
+  }
   // persona: prima dopo «a/ad/per/verso» (destinatario), poi dopo «da/di» (es. «ricevuto da Marco»)
   function personOf(s, accounts) {
     var accWords = {}; accounts.forEach(function (a) { fold(a.name).split(/[^a-z0-9]+/).forEach(function (w) { if (w) accWords[w] = 1; }); });
@@ -146,7 +152,7 @@
       var re = new RegExp('\\b(?:' + preps[k] + ')\\s+([a-z]{3,})', 'g'), m;
       while ((m = re.exec(s))) {
         var w = m[1];
-        if (STOP[w] || accWords[w] || BANKS.test(w) || MONTHS.indexOf(w) >= 0 || WD.indexOf(w) >= 0 || wordNum(w) !== null || /^(pagat|ridar|restit|prest|mandat|inviat|bonific|contant|ieri|oggi|euro|farmac|supermerc|ristor|carta|cash|quando|dire)/.test(w)) continue;
+        if (accWords[w] || notName(w, accounts)) continue;
         return cap(w);
       }
     }
@@ -159,6 +165,17 @@
   var TRIG = /\b(ho |abbiamo |mi (?:hanno|ha) )?(pagat[oaie]|spes[oaie]|comprat[oaie]|acquistat[oaie]|pres[oaie]|ricevut[oaie]|incassat[oaie]|guadagnat[oaie]|mandat[oaie]|inviat[oaie]|fatto un bonifico|bonificat[oaie]|trasferit[oaie]|spostat[oaie]|girat[oaie]|versat[oaie]|prelevat[oaie]|prestat[oaie]|ricaricat[oaie]|ridat[oaie]|restituit[oaie]|res[oa]|rimborsat[oaie]|dat[oaie])\b/g;
   // virgola e punto separano solo se seguiti da spazio: «12,50» e «12.50» restano importi
   var SEP = /(,(?=\s|$)|;|\.(?=\s|$)|\be\b|\bed\b|\bpoi\b|\binoltre\b|\banche\b|\bdopo\b|\bpiu\b)/;
+  var DATE_ONLY = new RegExp('^(oggi|stamattina|stamani|stasera|ieri|l\'?altro ?ieri|altroieri|avantieri|domenica|lunedi|martedi|mercoledi|giovedi|venerdi|sabato|(?:il |lo )?\\d{1,2}(?:\\s+(' + MONTHS.join('|') + '))?)$');
+  // più importi con «e» nella stessa azione («20 euro di benzina e 15 euro di pizza»): un movimento per importo
+  function splitAmounts(seg) {
+    var re = /\s(?:e|ed|,)\s+(?=(?:[a-z']+\s+){0,3}?(?:€\s*)?\d+(?:[.,]\d+)?\s*(?:€|euro\b))/g, cuts = [], m;
+    while ((m = re.exec(seg))) cuts.push(m.index);
+    if (!cuts.length || !/(?:€|euro\b)/.test(seg.slice(0, cuts[0]))) return [seg];
+    var t = TRIG; t.lastIndex = 0; var v = t.exec(seg), verb = v ? seg.slice(v.index, v.index + v[0].length) + ' ' : '';
+    var parts = [seg.slice(0, cuts[0])];
+    for (var i = 0; i < cuts.length; i++) parts.push(verb + seg.slice(cuts[i], i + 1 < cuts.length ? cuts[i + 1] : seg.length).replace(/^\s*(?:e|ed|,)\s+/, ''));
+    return parts;
+  }
   function segments(s) {
     var idx = [], m; TRIG.lastIndex = 0;
     while ((m = TRIG.exec(s))) {
@@ -166,10 +183,12 @@
       if (!idx.length) { idx.push(st); continue; }
       var prev = idx[idx.length - 1], gap = s.slice(prev, st), first = /^\S+\s*/.exec(gap)[0].length, body = gap.slice(first);
       // senza connettivo si divide solo se l'azione precedente ha già il suo importo («ho pagato 12,50 euro ho preso…»)
-      if (!SEP.test(body)) { if (/\d/.test(body)) idx.push(st); continue; }
+      if (!SEP.test(body)) { if (m[1] && /\d/.test(body)) idx.push(st); continue; }
       // si taglia all'ultimo connettivo prima del verbo: «… e oggi ho ricevuto» → «oggi ho ricevuto» va con la seconda azione
-      var re = new RegExp(SEP.source, 'g'), mm, cut = -1; while ((mm = re.exec(body))) cut = mm.index;
-      idx.push(prev + first + cut);
+      var re = new RegExp(SEP.source, 'g'), mm, cut = -1, cutEnd = 0; while ((mm = re.exec(body))) { cut = mm.index; cutEnd = re.lastIndex; }
+      var tail = body.slice(cutEnd).trim();
+      if (!tail || DATE_ONLY.test(tail)) idx.push(prev + first + cut);
+      else if (m[1] || /\d/.test(body)) idx.push(st);
     }
     if (!idx.length) return s.trim() ? [s.trim()] : [];
     var out = [];
@@ -185,13 +204,14 @@
   function parse(text, ctx) {
     var today = ctx.today, accounts = ctx.accounts || [], cats = ctx.cats || [], s0 = fold(text).replace(/\s+/g, ' ');
     var shared = dateOf(s0, today), items = [];
-    segments(s0).forEach(function (s) {
+    var segs = []; segments(s0).forEach(function (x) { segs = segs.concat(splitAmounts(x)); });
+    segs.forEach(function (s) {
       var it = { kind: 'spesa', loan: false, cents: amount(s), accId: '', toId: '', catId: '', date: dateOf(s, today), note: '', person: '', newAcc: null, warn: [], src: s };
       if (!hasDate(s) && shared !== today) it.date = shared; // data detta una volta per tutta la frase
       var refs = accRefs(s, accounts), from = null, to = null;
       refs.forEach(function (r) { var p = prepBefore(s, r.pos); if (p === 'to' && !to) to = r.a; else if (p === 'from' && !from) from = r.a; else if (!from) from = r.a; else if (!to) to = r.a; });
       var person = personOf(s, accounts), rel = REL.exec(s), relName = false;
-      if (rel && (!person || fold(person) === rel[1])) { person = rel[2] && !STOP[rel[2]] ? cap(rel[2]) : cap(rel[1]); relName = !rel[2]; }
+      if (rel && (!person || fold(person) === rel[1])) { var nmOk = rel[2] && !notName(rel[2], accounts); person = nmOk ? cap(rel[2]) : cap(rel[1]); relName = !nmOk; }
       var credit = function (nm) {
         if (!nm) return null; var f = fold(nm), cr = accounts.filter(function (a) { return a.type === 'credito'; });
         return cr.filter(function (a) { return fold(a.name) === f; })[0] || cr.filter(function (a) { return new RegExp('\\b' + reEsc(f) + '\\b').test(fold(a.name)); })[0] || null;
@@ -221,7 +241,7 @@
           it.kind = 'giro'; it.loan = true; it.person = person || (c2 ? c2.name : ''); it.accId = (liq(from) || liq(to) || {}).id || ctx.defAcc;
           if (c2) it.toId = c2.id; else { it.toId = '__new__'; it.newAcc = { name: person, type: 'credito' }; }
           it.note = it.person ? 'Prestito ' + aTo(it.person) : 'Prestito';
-          if (!it.person) it.warn.push('Scrivi il nome della persona.'); else if (relName) it.warn.push('Controlla il nome della persona.');
+          if (!it.person) it.warn.push('Scrivi il nome della persona.'); else if (relName && it.toId === '__new__') it.warn.push('Controlla il nome della persona.');
         } else { it.kind = 'spesa'; it.accId = (liq(from) || {}).id || ctx.defAcc; it.note = (/bonific/.test(s) ? 'Bonifico' : 'Pagamento') + (person ? ' ' + aTo(person) : ''); var cb = catOf(s, 'spesa', cats); it.catId = cb.id; }
       } else if (/\b(trasferit|spostat|girat|versat|ricaricat)/.test(s) && from && to) {
         it.kind = 'giro'; it.accId = from.id; it.toId = to.id; it.note = /ricaric/.test(s) ? 'Ricarica' : 'Giroconto';

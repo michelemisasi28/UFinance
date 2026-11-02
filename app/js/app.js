@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · ab9ba903';
+window.UF_BUILD = '2026-11-02 · b2effd0d';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -621,7 +621,7 @@ window.UF_BUILD = '2026-11-02 · ab9ba903';
     var tv = 0, ti = 0, tg = 0, stats = S.pos.map(function (p) { var z = posStat(p); tv += z.value; ti += z.k.invested; tg += z.gain; return z; });
     var stale = S.pos.filter(pxStale).length;
     h += '<section class="sec"><div class="sech"><h2>Investimenti</h2>' + (S.pos.length ? '<button class="tbtn" data-act="pxall">🏷️ Aggiorna valori</button>' : '') + '</div>';
-    if (stale) h += '<button class="banner" data-act="pxall" style="text-align:left;width:100%">' + (stale === 1 ? '1 investimento non aggiornato' : stale + ' investimenti non aggiornati') + ' da più di 7 giorni: il guadagno potrebbe non essere attuale. Tocca per aggiornarli (meno di un minuto).</button>';
+    if (stale) h += '<button class="banner" data-act="pxall" style="text-align:left;width:100%">' + (stale === 1 ? '1 investimento non aggiornato' : stale + ' investimenti non aggiornati') + ' di recente: il guadagno potrebbe non essere attuale. Tocca per aggiornarli (meno di un minuto).</button>';
     if (S.pos.length) {
       h += '<button class="card invsum" data-act="posinv"><div class="three"><div><span class="k">Valore attuale</span><span class="n">' + money(tv) + '</span></div><div><span class="k">Versato</span><span class="n">' + money(ti) + '</span></div><div><span class="k">Guadagno</span><span class="n ' + (tg >= 0 ? 'pos' : 'neg') + '">' + moneyS(tg) + '<br><span class="sb">' + pctS(ti > 0 ? tg / ti : null) + '</span></span></div></div><span class="sparkcap">Andamento ' + svg('right') + '</span></button>';
       h += '<button class="lnk" data-act="invhelp" style="align-self:flex-start">Come leggere valore, versato e guadagno</button>';
@@ -741,7 +741,7 @@ window.UF_BUILD = '2026-11-02 · ab9ba903';
   function openAdd(o) {
     if (!S.accounts.length) { toast('Crea prima un conto.'); return; }
     var t = o.tx || null, mode = t ? t.kind : (o.mode || 'spesa');
-    var accId = t ? t.accId : (S.lastAcc && acc(S.lastAcc) ? S.lastAcc : S.accounts[0].id);
+    var accId = t ? t.accId : defAccId();
     var st = { edit: t ? t.id : null, mode: mode, amt: t ? amtStr(t.cents) : '', accId: accId, toId: t && t.toId ? t.toId : otherAcc(accId), catId: t ? (t.catId || '') : '', date: t ? t.date : TODAY, note: t ? t.note : '', rep: '' };
     pushLayer('screen', 'add', addHtml(), st, { refresh: syncAdd });
     syncAdd();
@@ -2196,8 +2196,13 @@ window.UF_BUILD = '2026-11-02 · ab9ba903';
     rec.onend = function () { if (REC === rec) REC = null; micState(false); if (layerOf('voice') && fin.trim()) voiceParse(); };
     try { rec.start(); micState(true); } catch (e) { REC = null; voiceErr('Non riesco ad avviare il microfono: riprova.'); }
   }
+  // conto proposto di default per un nuovo movimento: l'ultimo usato, ma mai un conto di credito
+  function defAccId() {
+    var la = acc(S.lastAcc); if (la && la.type !== 'credito') return la.id;
+    return (S.accounts.filter(function (a) { return a.type === 'liquidita'; })[0] || S.accounts.filter(function (a) { return a.type !== 'credito'; })[0] || S.accounts[0]).id;
+  }
   function voiceCtx() {
-    var def = S.lastAcc && acc(S.lastAcc) ? S.lastAcc : (S.accounts.filter(function (a) { return a.type === 'liquidita'; })[0] || S.accounts[0]).id;
+    var def = defAccId();
     return { today: TODAY, defAcc: def, accounts: S.accounts.map(function (a) { return { id: a.id, name: a.name, type: a.type, bal: balance(a.id) }; }), cats: S.cats.map(function (c) { return { id: c.id, name: c.name, kind: c.kind }; }) };
   }
   function voiceParse() {
@@ -2211,7 +2216,7 @@ window.UF_BUILD = '2026-11-02 · ab9ba903';
       if (!acc(it.accId)) it.accId = vc.defAcc;
       if (it.kind === 'giro' && !it.loan && (!acc(it.toId) || it.toId === it.accId)) it.toId = otherAcc(it.accId);
       if (it.loan && it.toId !== '__new__' && !acc(it.toId)) it.toId = '__new__';
-      return { k: it.loan ? 'prestito' : it.kind, amt: it.cents ? amtStr(it.cents) : '', accId: it.accId, toId: it.toId, catId: it.catId, date: it.date, note: it.note, pname: it.newAcc ? it.newAcc.name : (it.person || ''), accWarn: (it.warn || []).filter(function (w) { return /Conto|Contanti/.test(w); })[0] || '' };
+      return { k: it.loan ? 'prestito' : it.kind, amt: it.cents ? amtStr(it.cents) : '', accId: it.accId, toId: it.toId, catId: it.catId, date: it.date, note: it.note, pname: it.newAcc ? it.newAcc.name : (it.person || ''), accWarn: (it.warn || []).filter(function (w) { return /Conto|Contanti/.test(w); }).join(' · '), nWarn: (it.warn || []).filter(function (w) { return !/^Importo|Conto|Contanti/.test(w); }).join(' · ') };
     });
     voiceDraw();
   }
@@ -2228,7 +2233,7 @@ window.UF_BUILD = '2026-11-02 · ab9ba903';
     } else if (it.k === 'giro') h += fld('A', '<select data-vf="to">' + accOpts(it.toId && it.toId !== '__new__' ? it.toId : otherAcc(it.accId)) + '</select>') + '</div>';
     else h += fld('Categoria', '<select data-vf="cat"><option value="">Senza categoria</option>' + cats.map(function (c) { return '<option value="' + c.id + '"' + (c.id === it.catId ? ' selected' : '') + '>' + esc(c.icon + ' ' + c.name) + '</option>'; }).join('') + '</select>') + '</div>';
     h += '<div class="fgrid">' + fld('Data', '<input type="date" data-vf="date" max="' + TODAY + '" value="' + it.date + '">') + fld('Nota', '<input data-vf="note" data-in="vf" maxlength="60" autocomplete="off" value="' + esc(it.note || '') + '">') + '</div>';
-    var w = []; if (amtBad) w.push('Importo da inserire'); if (it.accWarn) w.push(it.accWarn);
+    var w = []; if (amtBad) w.push('Importo da inserire'); if (it.accWarn) w.push(it.accWarn); if (it.nWarn && (it.k === 'prestito' || it.k === 'giro')) w.push(it.nWarn);
     return h + (w.length ? '<p class="vwarn">⚠️ ' + esc(w.join(' · ')) + '</p>' : '') + '</div>';
   }
   function voiceDraw() {
@@ -2252,7 +2257,7 @@ window.UF_BUILD = '2026-11-02 · ab9ba903';
     else if (f === 'cat') it.catId = v;
     else if (f === 'date') it.date = v;
     else if (f === 'note') it.note = v;
-    else if (f === 'pname') it.pname = v;
+    else if (f === 'pname') { it.pname = v; it.nWarn = ''; }
     else if (f === 'amt') { it.amt = v; el.classList.toggle('miss', !(parseCents(v || '') > 0)); }
     if (redraw) voiceDraw();
   }
@@ -2288,7 +2293,8 @@ window.UF_BUILD = '2026-11-02 · ab9ba903';
       if (tx.kind === 'giro') tx.toId = to; else tx.catId = it.catId || '';
       S.tx.push(tx); last = tx;
     });
-    S.lastAcc = items[0].accId;
+    // ultimo conto usato = il primo conto «vero» del gruppo (per una restituzione, quello che riceve i soldi)
+    items.some(function (it) { var c = [it.accId, it.toId].filter(function (x) { return acc(x) && acc(x).type !== 'credito'; })[0]; if (c) S.lastAcc = c; return !!c; });
     var n = items.length; popLayer();
     toast((n === 1 ? '1 movimento registrato' : n + ' movimenti registrati') + budNote(last), function () { restoreAll(snap); });
   }
