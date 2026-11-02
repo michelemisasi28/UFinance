@@ -1,0 +1,12 @@
+# Netlify pubblica solo l'app (la cartella dist), non i file di progetto come .claude/
+[build]
+  command = "rm -rf dist && mkdir -p dist && cp index.html dist/index.html"
+  publish = "dist"
+
+# L'HTML va sempre ricontrollato: il telefono riceve subito la versione nuova
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
