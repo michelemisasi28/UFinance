@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · 5a160dd7';
+window.UF_BUILD = '2026-11-02 · 277e0094';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -3227,7 +3227,7 @@ window.UF_BUILD = '2026-11-02 · 5a160dd7';
   }
   function kbField(el) {
     if (!el || !el.tagName || el.disabled || el.readOnly) return false;
-    if (el.tagName === 'TEXTAREA') return true;
+    if (el.tagName === 'TEXTAREA') return false; // testo lungo (frase dettata): conta di più mettere il cursore dove si tocca
     return el.tagName === 'INPUT' && !/^(checkbox|radio|range|color|file|image|button|submit|reset|date|time|datetime-local|month|week)$/.test(el.type);
   }
   function noAutoScroll(el) { el.style.transform = 'translateY(-2000px)'; requestAnimationFrame(function () { requestAnimationFrame(function () { el.style.transform = ''; }); }); }
@@ -3253,7 +3253,7 @@ window.UF_BUILD = '2026-11-02 · 5a160dd7';
   window.addEventListener('scroll', function () { if (lockY !== null && L.length && (window.scrollY || 0) !== 0) window.scrollTo(0, 0); }, { passive: true });
   document.addEventListener('focusin', function (e) {
     var el = e.target; if (!L.length || !el.closest || !el.closest('.layer')) return;
-    if (IOS && kbField(el) && !el.style.transform) noAutoScroll(el); // frecce ‹ › della tastiera iOS
+    if (IOS && kbField(el) && !el.style.transform && !document.documentElement.classList.contains('kb')) noAutoScroll(el); // tastiera non ancora aperta (es. etichetta toccata)
     setTimeout(revealFocus, 350);
   });
   // Una sola decisione per gesto (consenti/blocca), presa sullo spostamento totale dopo qualche pixel:

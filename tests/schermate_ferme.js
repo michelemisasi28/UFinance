@@ -82,6 +82,7 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   let lb = await layerBox();
   ok(lb.h === 844 && lb.top === 0, 'tastiera aperta: la schermata resta ferma e a tutta altezza (' + JSON.stringify(lb) + ')');
   ok((await hdr()) === h0, 'tastiera aperta: l’intestazione non si è mossa');
+  ok(await p.evaluate(() => __UF.L[0].el.querySelector('.scrf .btn').getBoundingClientRect().bottom <= 450), 'tastiera aperta: il pulsante «Crea conto» resta sopra la tastiera');
   ok(await p.evaluate(() => document.documentElement.classList.contains('kb')), 'stato «tastiera aperta» riconosciuto');
   await p.focus('#af-gc'); await tick(p, 500);
   const vis = await p.evaluate(() => { const r = document.getElementById('af-gc').getBoundingClientRect(), s = __UF.L[0].el.querySelector('.scrb').getBoundingClientRect(); return r.top >= s.top && r.bottom <= 450; });
@@ -160,6 +161,14 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(!(await p.evaluate(() => document.documentElement.classList.contains('lock') || document.body.classList.contains('lock'))), 'dopo il reset la pagina non resta bloccata');
   await p.evaluate(() => window.scrollTo(0, 250)); await tick(p, 100);
   ok((await p.evaluate(() => window.scrollY)) > 0, 'dopo il reset la Home scorre di nuovo');
+
+  // ---- Nuovo movimento: scrivendo la nota il pulsante «Salva» resta sopra la tastiera ----
+  await p.evaluate(() => { __UF.S.tab = 'home'; __UF.render(); }); await open('add');
+  await kbd(450, 0); await p.focus('#a-note'); await tick(p, 400);
+  ok(await p.evaluate(() => { const r = document.getElementById('a-save').getBoundingClientRect(); return r.bottom <= 450 && r.top > 0; }), 'nota del movimento: «Salva» resta sopra la tastiera');
+  ok(await p.evaluate(() => Math.round(__UF.L[0].el.querySelector('.scrh').getBoundingClientRect().top) === 0), 'nota del movimento: l’intestazione resta ferma');
+  await kbd(null); await p.evaluate(() => document.activeElement.blur()); await tick(p, 100);
+  await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
 
   ok(!errs.length, 'nessun errore JavaScript' + (errs.length ? ': ' + errs.join(' | ') : ''));
   await b.close();

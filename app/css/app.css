@@ -238,9 +238,9 @@ p { margin: 0; }
 .layer.fixed .scrb { overflow: hidden; gap: 10px; }
 .layer.fixed .scrb > * { flex: none; }
 @media (max-height: 640px) { .layer.fixed .scrb { overflow-y: auto; } .layer.fixed { touch-action: pan-y; } }
-/* Tastiera aperta (iPhone): la schermata non si sposta né si ridimensiona; sotto il contenuto si aggiunge lo spazio
-   coperto dalla tastiera, così ogni campo si può portare in vista scorrendo solo il contenuto. I fogli dal basso salgono sopra la tastiera. */
-html.kb .layer .scrb { padding-bottom: calc(12px + var(--kbh, 0px)); }
+/* Tastiera aperta (iPhone): la schermata non si sposta e l'intestazione resta ferma; lo spazio coperto dalla tastiera
+   si toglie dal fondo, così i pulsanti («Salva», «Crea conto») restano sopra la tastiera e il contenuto scorre. I fogli salgono sopra la tastiera. */
+html.kb .layer.screen .scr { padding-bottom: var(--kbh, 0px); } html.kb .layer .scrb { padding-bottom: 12px; } html.kb .layer.screen .scrf { padding-bottom: 8px; }
 html.kb .layer.fixed .scrb { overflow-y: auto; } html.kb .layer.fixed { touch-action: pan-y; }
 html.kb .layer.sheet { padding-bottom: var(--kbh, 0px); }
 .nwcard.cu .nwsvg { max-height: clamp(80px, calc(100vh - 600px), 30vh); max-height: clamp(80px, calc(100dvh - 600px), 30dvh); }
