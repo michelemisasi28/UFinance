@@ -186,11 +186,33 @@ oneF('ho spostato 100 euro da Unicredit verso ING', x => x[0].kind === 'giro' &&
 one('ho versato 50 euro sulla Revolut dalla banca', x => x[0].kind === 'giro' && x[0].accId === 'a2' && x[0].toId === '__newacc__' && x[0].newFrom.name === 'Revolut', '«versato sulla Revolut dalla banca»: giroconto verso il nuovo conto Revolut, non una spesa');
 one('ho trasferito 100 euro dalla N26 al conto risparmio', x => x[0].kind === 'giro' && x[0].accId === '__newacc__' && x[0].newFrom.name === 'N26' && x[0].toId === 'a3', '«dalla N26 al conto risparmio»: giroconto dal nuovo conto N26');
 one('ho spostato 200 euro dal conto Fineco alla banca', x => x[0].kind === 'giro' && x[0].accId === '__newacc__' && x[0].newFrom.name === 'Fineco' && x[0].toId === 'a2', '«dal conto Fineco alla banca»: giroconto dal nuovo conto Fineco');
-one('Marco mi ha ridato 20 euro sul conto Fineco', x => x[0].warn.some(w => /Fineco/.test(w)), 'restituzione su un conto inesistente: avviso, non accredito silenzioso');
+one('Marco mi ha ridato 20 euro sul conto Fineco', x => x[0].kind === 'giro' && x[0].accId === 'k1' && x[0].toId === '__newacc__' && x[0].newFrom.name === 'Fineco', 'restituzione sul conto Fineco inesistente: proposto come nuovo conto, non accredito silenzioso sulla banca');
 one('ho pagato 20 euro con la carta Visa', x => x[0].accId === 'a5' && !x[0].newFrom, '«carta Visa» → Carta di credito, nessun conto «Visa»');
 one('ho pagato 20 euro con la mastercard', x => !x[0].newFrom, '«mastercard»: nessun conto creato');
 one('ho prelevato 50 euro dal bancomat', x => x[0].kind === 'giro' && !x[0].warn.some(w => /Bancomat/.test(w)), '«prelevato dal bancomat»: nessun avviso fuorviante');
 ['ho pagato 80 euro il conto dal dentista', 'ho pagato 12 euro conto bar'].forEach(t => one(t, x => x[0].accId !== 'a3', '«' + t + '»: non finisce sul Conto risparmio'));
 one('ho messo 100 euro sul conto risparmio', x => x.length && x[0].accId !== '__newacc__', '«sul conto risparmio» resta riconosciuto');
+
+// Revisione 3
+['ho trasferito 200 euro al conto risparmio', 'ho messo 100 euro sul conto risparmio', 'ho versato 100 euro sul conto risparmio'].forEach(t => one(t, x => x[0].kind === 'giro' && x[0].toId === 'a3' && x[0].accId === 'a2', '«' + t + '»: giroconto dal conto predefinito al risparmio, non una spesa'));
+one('ho trasferito 50 euro ai contanti', x => x[0].kind === 'giro' && x[0].toId === 'a1' && x[0].accId === 'a2', '«ai contanti»: giroconto verso i contanti');
+one('ho trasferito 100 euro alla N26', x => x[0].kind === 'giro' && x[0].accId === 'a2' && x[0].toId === '__newacc__' && x[0].newFrom.name === 'N26', '«alla N26» inesistente: giroconto verso il nuovo conto N26');
+one('ho trasferito 100 euro dal conto Fineco alla N26', x => x[0].kind === 'giro' && (x[0].accId === '__newacc__' || x[0].toId === '__newacc__') && x[0].warn.some(w => /non trovato/.test(w)), 'due conti mancanti: giroconto, uno proposto e avviso per l’altro');
+['ho pagato 20 euro con la mia carta', 'ho speso 30 euro con la mia carta al supermercato'].forEach(t => one(t, x => x[0].accId === 'a5', '«' + t + '» → Carta di credito'));
+one('ho ricaricato la carta di 50 euro', x => x[0].kind === 'giro' ? x[0].toId === 'a5' : x[0].accId === 'a5', '«ricaricato la carta» riconosce la carta');
+['ho pagato la rata del mutuo 500 euro a BNL', 'ho dato 20 euro a BNL', 'ho fatto un bonifico di 100 euro alla N26'].forEach(t => one(t, x => x.every(i => i.accId !== '__newacc__' && !i.newFrom), '«' + t + '»: la banca che riceve non diventa un conto di pagamento'));
+oneF('ho pagato la rata 300 euro a ING', x => x[0].accId !== 'i1', '«a ING» (riceve): non addebita il Conto ING');
+const ctxV = JSON.parse(JSON.stringify(ctx)); ctxV.accounts.push({ id: 'k9', name: 'Crediti verso amici', type: 'credito', bal: 15000 }, { id: 'pp', name: 'Postepay', type: 'liquidita' });
+const oneV = (t, f, m) => { const x = V.parse(t, ctxV); ok(f(x), m, x); };
+oneV('ho spostato 100 euro verso Revolut', x => x[0].accId !== 'k9' && x[0].toId !== 'k9', '«verso Revolut»: il credito «Crediti verso amici» non c’entra');
+oneV('ho trasferito 300 euro verso Unicredit dalla banca', x => x[0].kind === 'giro' && x[0].accId === 'a2' && x[0].toId === 'u1', '«verso Unicredit dalla banca»: giroconto banca → Unicredit');
+oneF('ho pagato 10 euro con la carta di credito e 5 euro con la carta Visa', x => !x[0].warn.length, 'più importi: nessun avviso estraneo sul primo movimento');
+oneF('ho pagato 10 euro con la carta di credito e 5 euro con la carta Amex', x => !x[0].warn.length && x[1].accId === '__newacc__', 'più importi: «carta Amex» solo sul secondo movimento');
+['ho prelevato 50 euro dalla N26', 'ho prelevato 50 euro dal conto Fineco'].forEach(t => one(t, x => x[0].kind === 'giro' && x[0].accId === '__newacc__' && x[0].toId === 'a1', '«' + t + '» inesistente: prelievo dal nuovo conto'));
+
+one('ho spostato 50 euro dal conto Fineco alla carta Hype', x => x[0].kind === 'giro' && x[0].toId !== 'a5' && x[0].warn.some(w => /non trovato/.test(w)), '«alla carta Hype» inesistente: non va sulla Carta di credito; un conto proposto e avviso per l’altro');
+one('ho ricaricato la postepay di 50 euro dalla banca', x => x[0].kind === 'giro' && x[0].accId === 'a2' && x[0].toId === '__newacc__' && x[0].newFrom.name === 'Postepay', 'ricarica di una Postepay inesistente: giroconto verso il nuovo conto');
+oneV('ho ricaricato la postepay di 50 euro dalla banca', x => x[0].kind === 'giro' && x[0].accId === 'a2' && x[0].toId === 'pp', 'ricarica della Postepay esistente');
+one('ho dato 20 euro alla carta Esselunga', x => !x[0].newFrom, '«alla carta X» fuori da un trasferimento: nessun conto creato');
 
 console.log(fails ? `\n${fails} FALLITI` : '\nTUTTI PASSATI'); process.exit(fails ? 1 : 0);

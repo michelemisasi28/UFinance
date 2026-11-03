@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-03 · 6f87fa51';
+window.UF_BUILD = '2026-11-03 · c9210bd2';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -2291,7 +2291,7 @@ window.UF_BUILD = '2026-11-03 · 6f87fa51';
     var mk = [];
     if (it.accId === '__newacc__' || (it.k === 'giro' && it.toId === '__newacc__')) mk.push('il conto «' + it.newAccName + '» (liquidità, saldo iniziale 0)');
     if (it.catId === '__newcat__' && it.k === it.newCatKind) mk.push('la categoria «' + it.newCatName + '»');
-    if (mk.length) h += '<p class="hint vnew">➕ Alla conferma verrà creat' + (mk.length > 1 ? 'i ' : (it.accId === '__newacc__' ? 'o ' : 'a ')) + esc(mk.join(' e ')) + '. Puoi sceglierne un altro dal menu.</p>';
+    if (mk.length) h += '<p class="hint vnew">➕ Alla conferma verrà creat' + (mk.length > 1 ? 'i ' : (mk[0].indexOf('il conto') === 0 ? 'o ' : 'a ')) + esc(mk.join(' e ')) + '. Puoi sceglierne un altro dal menu.</p>';
     var w = []; if (amtBad) w.push('Importo da inserire'); if (it.accWarn) w.push(it.accWarn); if (it.nWarn && it.k === 'prestito' && it.toId === '__new__') w.push(it.nWarn); // solo se c'è il campo del nome
     return h + (w.length ? '<p class="vwarn">⚠️ ' + esc(w.join(' · ')) + '</p>' : '') + '</div>';
   }

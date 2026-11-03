@@ -93,6 +93,7 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   await btn({ a: 'voice' }); await tick(p, 300);
   await p.fill('#v-text', 'ho versato 50 euro sulla Revolut dalla banca'); await p.evaluate(() => __UF.voiceParse()); await tick(p, 300);
   const gv = await p.evaluate(() => ({ k: document.querySelector('.vcard [data-vf="k"]').value, to: document.querySelector('.vcard [data-vf="to"]').value, nw: __UF.netWorth ? __UF.netWorth() : null }));
+  ok(await p.evaluate(() => /verrà creato il conto «Revolut»/.test(document.querySelector('.vcard .vnew').textContent)), 'anteprima: «verrà creato il conto «Revolut»» (genere corretto)');
   ok(gv.k === 'giro' && gv.to === '__newacc__', 'anteprima: «versato sulla Revolut dalla banca» è un giroconto verso «➕ Nuovo conto «Revolut»»');
   await p.click('#v-ok'); await tick(p, 400);
   const ga = await p.evaluate(() => { const r = __UF.S.accounts.find(a => a.name === 'Revolut'), t = __UF.S.tx[__UF.S.tx.length - 1]; return { ok: !!r && t.kind === 'giro' && t.toId === r.id, bal: r && __UF.balance(r.id), nw: __UF.netWorth ? __UF.netWorth() : null }; });
