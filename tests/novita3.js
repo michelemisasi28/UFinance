@@ -83,7 +83,7 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(pr === 68887845971, 'prezzo salvato con precisione (68.887,845971 €)');
   const n0 = cgReq.length; await p.evaluate(() => __UF.cgFetch(false)); ok(cgReq.length === n0, 'entro un minuto nessuna nuova richiesta');
   btc = 69100; await p.clock.runFor(76000); await tick(p, 600);
-  const pr2 = await p.evaluate(() => { const x = __UF.S.pos.find(y => y.cgId === 'bitcoin'); return __UF.pxAt(x, __UF.TODAY); });
+  let pr2 = 0; for (let k = 0; k < 20 && pr2 !== 69100000000; k++) { await tick(p, 250); pr2 = await p.evaluate(() => { const x = __UF.S.pos.find(y => y.cgId === 'bitcoin'); return __UF.pxAt(x, __UF.TODAY); }); } // attende la risposta
   ok(cgReq.length > n0 && pr2 === 69100000000, JSON.stringify([n0, cgReq.length, pr2]) +  'dopo un minuto, con l’app aperta, il prezzo si aggiorna da solo (69.100 €)');
   const id = await p.evaluate(() => __UF.S.pos.find(y => y.cgId === 'bitcoin').id);
   await btn({ a: 'posopen', d: { id } }); await tick(p, 300);
