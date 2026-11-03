@@ -166,4 +166,18 @@ one('ho ricevuto 50 euro di regalo', x => x[0].kind === 'entrata' && x[0].catId 
 one('ho pagato 8 euro al cinema con la carta Amex e 20 euro di regalo categoria compleanni', x => x.length === 2 && x.every(i => i.accId === '__newacc__' && i.newFrom.name === 'Amex') && x[1].newCat && x[1].newCat.name === 'Compleanni', 'due importi, «carta Amex» detta una volta: entrambi sul nuovo conto Amex (non sulla Carta di credito)');
 one('ho prestato 50 euro ad Antonio con Revolut', x => x[0].loan && x[0].accId !== '__newacc__', 'prestito: il conto mancante non viene creato in automatico (resta l’avviso)');
 
+// Revisione: conti chiamati «Conto X» / «Carta X», falsi positivi, banche dal nome breve
+const ctxF = JSON.parse(JSON.stringify(ctx)); ctxF.accounts.push({ id: 'f1', name: 'Conto Fineco', type: 'liquidita' }, { id: 'h1', name: 'Carta Hype', type: 'debito' }, { id: 'n1', name: 'Carta N26', type: 'liquidita' }, { id: 'i1', name: 'Conto ING', type: 'liquidita' });
+const PF = t => V.parse(t, ctxF), oneF = (t, f, m) => { const x = PF(t); ok(f(x), m, x); };
+oneF('ho pagato 20 euro dal conto Fineco', x => x[0].accId === 'f1' && !x[0].newFrom, '«dal conto Fineco» → Conto Fineco esistente');
+oneF('ho ricevuto 100 euro sul conto Fineco', x => x[0].kind === 'entrata' && x[0].accId === 'f1', '«sul conto Fineco» → entrata su Conto Fineco');
+oneF('ho pagato 20 euro con la carta Hype', x => x[0].accId === 'h1', '«con la carta Hype» → Carta Hype');
+oneF('ho trasferito 100 euro dal conto Fineco ai contanti', x => x[0].kind === 'giro' && x[0].accId === 'f1' && x[0].toId === 'a1', 'giroconto dal Conto Fineco ai contanti');
+oneF('ho spostato 50 euro dal conto Fineco alla carta Hype', x => x[0].kind === 'giro' && x[0].accId === 'f1' && x[0].toId === 'h1', 'giroconto dal Conto Fineco alla Carta Hype');
+oneF('ho pagato 20 euro con la N26', x => x[0].accId === 'n1' && !x[0].newFrom, '«con la N26» → Carta N26 esistente, nessun doppione');
+oneF('ho pagato 20 euro con ING', x => x[0].accId === 'i1' && !x[0].newFrom, '«con ING» → Conto ING esistente, nessun doppione');
+['ho comprato carta igienica 5 euro', 'ho comprato una carta regalo da 50 euro', 'ho pagato 60 euro il conto alla romana', 'ho pagato 80 euro il conto dal dentista', 'ho pagato 12 euro conto bar', 'ho pagato 12 euro conto telefonico', 'ho pagato 30 euro con la carta ricaricabile', 'ho pagato 30 euro con la carta virtuale', 'ho pagato 20 euro con il bancomat', 'ho pagato 20 euro con la carta bancomat']
+  .forEach(t => one(t, x => x.every(i => i.accId !== '__newacc__' && !i.newFrom), 'nessun conto inventato: «' + t + '»'));
+one('ho pagato 20 euro con il bancomat', x => x[0].warn.some(w => /Bancomat/.test(w)), '«bancomat»: resta l’avviso, nessuna creazione');
+
 console.log(fails ? `\n${fails} FALLITI` : '\nTUTTI PASSATI'); process.exit(fails ? 1 : 0);

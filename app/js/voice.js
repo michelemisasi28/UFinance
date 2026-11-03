@@ -142,13 +142,24 @@
   }
   // conti nominati nel testo; «carta X» / «conto X»: conta il nome X, non la parola generica «carta»/«conto»
   // (che altrimenti indicherebbe un altro conto). miss = nome X che non corrisponde a nessun conto.
+  function accHas(a, w) { return fold(a.name).split(/[^a-z0-9]+/).indexOf(w) >= 0; }
+  // Solo dopo una preposizione di pagamento/accredito («con la carta X», «dal conto X», «sul conto X»): così
+  // «carta igienica», «il conto alla romana», «conto bar» non diventano conti.
+  var SPEC = /\b(?:con|col|dal|dalla|da|sul|sulla|su)\s+(?:la |il |l'|mia |mio |una |un )?(conto|carta)\s+([a-z0-9]{3,})\b/g;
+  function specWord(w) { return !(GENERIC[w] || STOP[w] || ACC_EXCL[w] || NOCREATE[w] || wordNum(w) !== null || MONTHS.indexOf(w) >= 0); }
   function refsOf(s, accounts) {
-    var refs = accRefs(s, accounts), miss = '', spec = /\b(?:conto|carta)\s+([a-z0-9]{3,})\b/g, sp;
-    while ((sp = spec.exec(s))) {
-      var w0 = sp[1]; if (GENERIC[w0] || STOP[w0] || ACC_EXCL[w0] || wordNum(w0) !== null || MONTHS.indexOf(w0) >= 0) continue;
-      var at = sp.index; refs = refs.filter(function (r) { return r.pos !== at; });
-      if (!accounts.some(function (a) { return fold(a.name).split(/[^a-z0-9]+/).indexOf(w0) >= 0; })) miss = miss || cap(w0);
+    var refs = accRefs(s, accounts), miss = '', sp; SPEC.lastIndex = 0;
+    while ((sp = SPEC.exec(s))) {
+      var w0 = sp[2]; if (!specWord(w0)) continue;
+      var at = sp.index + sp[0].length - w0.length - 1 - sp[1].length; // posizione di «conto»/«carta»
+      var own = accounts.filter(function (a) { return accHas(a, w0); });
+      // il riferimento alla sola parola «carta»/«conto» vale solo se quel conto contiene anche X («Conto Fineco», «Carta Hype»)
+      var st0 = sp.index, en0 = sp.index + sp[0].length; // tutta l'espressione «con la carta X» (anche la chiave «con la carta»)
+      refs = refs.filter(function (r) { return r.pos < st0 || r.pos >= en0 || accHas(r.a, w0); });
+      if (own.length) { if (!refs.some(function (r) { return own.indexOf(r.a) >= 0; })) refs.push({ a: own[0], pos: at }); }
+      else miss = miss || cap(w0);
     }
+    refs.sort(function (x, y) { return x.pos - y.pos; });
     return { refs: refs, miss: miss };
   }
   function prepBefore(s, pos) {
@@ -176,7 +187,9 @@
     return '';
   }
   // nomi di banche e servizi di pagamento: mai scambiati per persone
-  var ACC_EXCL = { corrente: 1, prepagata: 1, principale: 1, deposito: 1, cointestato: 1, personale: 1, aziendale: 1, business: 1, online: 1, nuovo: 1, nuova: 1, vecchio: 1, vecchia: 1, solita: 1, solito: 1, per: 1, con: 1, tua: 1, sua: 1, nostra: 1, nostro: 1, contactless: 1 };
+  // nomi generici (bancomat = carta del conto corrente): mai creati in automatico, resta l'avviso
+  var NOCREATE = { bancomat: 1, banca: 1, banco: 1, credit: 1, carta: 1, conto: 1 };
+  var ACC_EXCL = { igienica: 1, igienico: 1, regalo: 1, ricaricabile: 1, virtuale: 1, fedelta: 1, bancario: 1, bancaria: 1, cointestata: 1, telefonico: 1, telefonica: 1, prepagato: 1, alla: 1, allo: 1, alle: 1, agli: 1, dal: 1, dai: 1, dalla: 1, nel: 1, nella: 1, sul: 1, sulla: 1, del: 1, della: 1, degli: 1, delle: 1, dello: 1, bar: 1, ristorante: 1, pizza: 1, cena: 1, pranzo: 1, hotel: 1, albergo: 1, corrente: 1, prepagata: 1, principale: 1, deposito: 1, cointestato: 1, personale: 1, aziendale: 1, business: 1, online: 1, nuovo: 1, nuova: 1, vecchio: 1, vecchia: 1, solita: 1, solito: 1, per: 1, con: 1, tua: 1, sua: 1, nostra: 1, nostro: 1, contactless: 1 };
   var BANKS = /^(unicredit|intesa|sanpaolo|fineco|bper|bnl|mps|montepaschi|credem|ing|revolut|n26|hype|satispay|paypal|poste|postepay|bancoposta|mediolanum|widiba|webank|chebanca|bancomat|amex|nexi|wise|bunq|illimity|isybank|buddybank|sella|crédit|credit|agricole|deutsche|banca|banco)$/;
 
   /* ---- divisione della frase in azioni ---- */
@@ -255,7 +268,13 @@
       var crRef = credit(person) || (from && from.type === 'credito' ? from : null) || (to && to.type === 'credito' ? to : null);
       // conto nominato ma assente (solo nomi riconoscibili come banca o servizio di pagamento)
       var named = /\b(?:dalla|dal|da|con|sulla|sul|su)\s+(?:la |il |l'|mia |mio )?([a-z0-9]+)\b/g, nm2, missingAcc = '';
-      while ((nm2 = named.exec(s))) if (BANKS.test(nm2[1]) && !refs.some(function (r) { return fold(r.a.name).indexOf(nm2[1]) >= 0; })) { missingAcc = cap(nm2[1]); break; }
+      var warnAcc = '';
+      while ((nm2 = named.exec(s))) {
+        var bw = nm2[1]; if (!BANKS.test(bw) || refs.some(function (r) { return fold(r.a.name).indexOf(bw) >= 0; })) continue;
+        var ex2 = accounts.filter(function (a) { return a.type !== 'credito' && accHas(a, bw); })[0]; // «con la N26» e il conto «Carta N26» esiste
+        if (ex2) { if (!from && prepBefore(s, nm2.index + nm2[0].length - bw.length) !== 'to') from = ex2; else if (!to) to = ex2; break; }
+        if (NOCREATE[bw]) warnAcc = warnAcc || cap(bw); else { missingAcc = cap(bw); break; }
+      }
       if (!missingAcc) missingAcc = specMiss; // «con la carta Amex», «dal conto Mediolanum»
 
       if ((/\b(prelevat|prelievo)/.test(s) || (/\bbancomat\b/.test(s) && !/\b(pagat|spes[oaie]|comprat|acquistat|prestat|dat[oaie]|mandat|inviat)/.test(s))) && !/\bpagat/.test(s)) {
@@ -289,7 +308,7 @@
       }
       // conto nominato che non esiste: si propone di crearlo (verrà creato alla conferma)
       if (missingAcc && it.accId === ctx.defAcc && !it.loan) { it.accId = '__newacc__'; it.newFrom = { name: missingAcc, type: 'liquidita' }; }
-      else if (missingAcc && it.accId === ctx.defAcc) it.warn.push('Conto «' + missingAcc + '» non trovato: scegli il conto.');
+      else if ((missingAcc || warnAcc) && it.accId === ctx.defAcc) it.warn.push('Conto «' + (missingAcc || warnAcc) + '» non trovato: scegli il conto.');
       // categoria riconosciuta o nominata che non esiste: si propone di crearla
       if (it.kind !== 'giro' && it.catMake) { it.catId = '__newcat__'; it.newCat = { name: it.catMake, kind: it.kind }; }
       delete it.catMake;

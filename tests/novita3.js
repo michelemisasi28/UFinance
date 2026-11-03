@@ -49,29 +49,43 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
 
   // ---------- 2. investimento già posseduto con prezzo medio ----------
   await p.evaluate(() => { __UF.S.tab = 'portfolio'; __UF.render(); });
-  const mk = async (kind, by, name, q, px, pmc) => {
+  const mk = async (kind, by, name, q, px, pmc, pmd) => {
     await btn({ a: 'newpos' }); await tick(p, 200);
     if (kind === 'crypto') await btn({ a: 'pkind', d: { k: 'crypto' } });
     await btn({ a: 'pmode', d: { m: 'oggi' } }); if (by === 'val') await btn({ a: 'pby', d: { k: 'val' } }); await tick(p, 150);
-    await p.fill('#p-name', name); await p.fill('#p-px', px); await p.fill(by === 'val' ? '#p-val' : '#p-qty', q); if (pmc !== null) await p.fill('#p-pmc', pmc);
+    await p.fill('#p-name', name); await p.fill('#p-px', px); await p.fill(by === 'val' ? '#p-val' : '#p-qty', q); if (pmc !== null) await p.fill('#p-pmc', pmc); if (pmd) await p.fill('#p-pmd', pmd);
     await p.click('[data-act="savepos"]'); await tick(p, 400);
-    return p.evaluate(n => { const x = __UF.S.pos.find(y => y.name === n); if (!x) return null; const st = __UF.posStat(x), c = __UF.posCalc(x); return { qty: x.lots[0].qty, tot: x.lots[0].tot, lotPx: x.lots[0].px, val: st.value, gain: st.gain, px: __UF.pxAt(x, __UF.TODAY), msg: (document.querySelector('#p-msg') || {}).textContent || '' }; }, name);
+    return p.evaluate(n => { const x = __UF.S.pos.find(y => y.name === n); if (!x) return null; const st = __UF.posStat(x), c = __UF.posCalc(x); return { d: x.lots[0].d, xirr: st.xirr, qty: x.lots[0].qty, tot: x.lots[0].tot, lotPx: x.lots[0].px, val: st.value, gain: st.gain, px: __UF.pxAt(x, __UF.TODAY), msg: (document.querySelector('#p-msg') || {}).textContent || '' }; }, name);
   };
-  let r = await mk('inv', 'qty', 'ETF Prova', '10', '100', '80');
-  ok(r && r.qty === 1000000000 && r.tot === 80000 && r.val === 100000 && r.gain === 20000 && r.px === 100000000, 'ETF già posseduto: 10 quote, prezzo oggi 100, medio 80 → versato 800 €, valore 1.000 €, guadagno +200 € (' + JSON.stringify(r) + ')');
+  let r = await mk('inv', 'qty', 'ETF Prova', '10', '100', '80', '2023-11-20');
+  ok(r && r.d === '2023-11-20' && r.xirr !== null && Math.abs(r.xirr - 0.0772) < 0.002 && r.qty === 1000000000 && r.tot === 80000 && r.val === 100000 && r.gain === 20000 && r.px === 100000000, 'ETF già posseduto dal 20/11/2023: 10 quote, oggi 100, medio 80 → versato 800 €, valore 1.000 €, +200 €, rendimento annuo ≈ 7,7% (non gonfiato) (' + JSON.stringify(r) + ')');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
-  r = await mk('crypto', 'qty', 'Bitcoin Prova', '0,05', '68000', '52000,50');
+  r = await mk('crypto', 'qty', 'Bitcoin Prova', '0,05', '68000', '52000,50', '2025-01-15');
   if (!r) console.log('MSG', await p.evaluate(() => document.getElementById('p-msg') && document.getElementById('p-msg').textContent));
   ok(r && r.tot === 260003 && r.val === 340000 && r.gain === 79997, 'cripto già posseduta: 0,05 × medio 52.000,50 = 2.600,03 € versati; valore 3.400 €; guadagno 799,97 € (' + JSON.stringify(r) + ')');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
-  r = await mk('inv', 'val', 'ETF Valore', '1500', '50', '40');
+  r = await mk('inv', 'val', 'ETF Valore', '1500', '50', '40', '2024-05-02');
   ok(r && r.qty === 3000000000 && r.tot === 120000 && r.val === 150000, 'per valore: 1.500 € a 50 → 30 quote; medio 40 → versato 1.200 € (' + JSON.stringify(r) + ')');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
   r = await mk('inv', 'qty', 'ETF Senza', '10', '100', null);
   ok(r && r.tot === 100000 && r.gain === 0, 'senza prezzo medio: come prima (versato = valore di oggi, guadagno 0)');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
-  r = await mk('inv', 'qty', 'ETF Errato', '10', '100', 'abc');
+  r = await mk('inv', 'qty', 'ETF Errato', '10', '100', 'abc', '2024-01-01');
   ok(r === null && await p.evaluate(() => /Prezzo medio/.test(document.getElementById('p-msg').textContent)), 'prezzo medio non valido: errore, nessun investimento creato');
+  await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
+
+  r = await mk('inv', 'qty', 'ETF SenzaData', '10', '100', '80', '');
+  ok(r === null && await p.evaluate(() => /da quando lo possiedi/.test(document.getElementById('p-msg').textContent)), 'prezzo medio senza data: chiede la data del primo acquisto');
+  await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
+
+  // ---------- revisione: cambio di tipo nell'anteprima vocale ----------
+  await btn({ a: 'voice' }); await tick(p, 300);
+  await p.fill('#v-text', 'ho pagato 20 euro categoria palestra'); await p.evaluate(() => __UF.voiceParse()); await tick(p, 300);
+  await p.selectOption('.vcard [data-vf="k"]', 'entrata'); await tick(p, 200);
+  const kc = await p.evaluate(() => ({ opt: [...document.querySelectorAll('.vcard [data-vf="cat"] option')].some(o => o.value === '__newcat__'), hint: !!document.querySelector('.vcard .vnew') }));
+  ok(!kc.opt && !kc.hint, 'passando a Entrata sparisce la proposta «Nuova «Palestra»» (era di spesa)');
+  await p.selectOption('.vcard [data-vf="k"]', 'spesa'); await tick(p, 200);
+  ok(await p.evaluate(() => document.querySelector('.vcard [data-vf="cat"]').value === '__newcat__'), 'tornando a Spesa la proposta ritorna');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
 
   // ---------- 3. CoinGecko: euro, dato aggiornato ogni minuto, orario del dato ----------
@@ -85,6 +99,13 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   btc = 69100; await p.clock.runFor(76000); await tick(p, 600);
   let pr2 = 0; for (let k = 0; k < 20 && pr2 !== 69100000000; k++) { await tick(p, 250); pr2 = await p.evaluate(() => { const x = __UF.S.pos.find(y => y.cgId === 'bitcoin'); return __UF.pxAt(x, __UF.TODAY); }); } // attende la risposta
   ok(cgReq.length > n0 && pr2 === 69100000000, JSON.stringify([n0, cgReq.length, pr2]) +  'dopo un minuto, con l’app aperta, il prezzo si aggiorna da solo (69.100 €)');
+  // revisione: con errori (429) le richieste rallentano invece di ripetersi ogni 15 s
+  await ctx.unroute('https://api.coingecko.com/**'); const e429 = [];
+  await ctx.route('https://api.coingecko.com/**', r => { e429.push(r.request().url()); r.fulfill({ status: 429, headers: { 'access-control-allow-origin': '*' }, body: '' }); });
+  await p.evaluate(() => { __UF.CG.next = 0; __UF.CG.retried = true; window.__cgN = 0; const f0 = window.fetch; window.fetch = function (u) { if (String(u).includes('coingecko')) window.__cgN++; return f0.apply(this, arguments); }; });
+  for (let k = 0; k < 36; k++) { await p.clock.runFor(5000); await tick(p, 150); } // passi brevi: la risposta arriva prima del timeout di 10 s
+  const nTry = await p.evaluate(() => window.__cgN);
+  ok(nTry >= 1 && nTry <= 3 && e429.length === nTry, 'CoinGecko risponde 429: in 3 minuti al massimo 3 richieste (fatte ' + nTry + '), non 12');
   const id = await p.evaluate(() => __UF.S.pos.find(y => y.cgId === 'bitcoin').id);
   await btn({ a: 'posopen', d: { id } }); await tick(p, 300);
   ok(/prezzo delle 09:58/.test(await p.evaluate(() => document.querySelector('.layer').textContent)), 'scheda: mostra l’orario del dato di CoinGecko («prezzo delle 09:58»)');

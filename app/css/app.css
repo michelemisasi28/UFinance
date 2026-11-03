@@ -107,7 +107,7 @@ p { margin: 0; }
 .x { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); flex: none; }
 @media (max-height: 600px) { .layer.fixed .scrb .hint { display: none; } }
 .pform { gap: 10px; }
-@media (max-height: 720px) { .pform { gap: 8px; } .pform .hint { display: none; } .layer.fixed .pform .seg button { min-height: 38px; } }
+@media (max-height: 780px) { .pform { gap: 8px; } .pform .hint { display: none; } .layer.fixed .pform .seg button { min-height: 38px; } }
 @media (max-height: 600px) { .pform { gap: 6px; } .layer.fixed .pform input, .layer.fixed .pform select { min-height: 42px; padding-top: 8px; padding-bottom: 8px; } .layer.fixed .pform .fld { gap: 4px; } .layer.fixed .pform .seg button { min-height: 34px; } .layer.fixed .scrf { padding-top: 4px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); } .layer.fixed .scrf .btn { min-height: 46px; } .layer.fixed .scrb { padding-bottom: 2px; } }
 .fld label .opt, .fld label .req { font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 4px; }
 .fld label .req { color: var(--out); }
@@ -378,7 +378,7 @@ body:has(#fabw .fab.mic) { padding-bottom: calc(200px + env(safe-area-inset-bott
 .grid.icos { grid-template-columns: repeat(8, 1fr); gap: 6px; }
 .grid.icos button { font-size: 20px; border-radius: 10px; }
 @media (max-height: 720px) { .pform > .fld .hint { display: none; } .pform .wrapchips { gap: 6px; } .pform .wrapchips .chip { min-height: 32px; padding: 0 10px; font-size: 13px; } }
-@media (max-height: 720px) { .pform { gap: 8px; } .pform input, .pform select { min-height: 42px; padding-top: 8px; padding-bottom: 8px; } .pform .fld { gap: 4px; } .pickico { padding: 6px 12px; } }
+@media (max-height: 780px) { .pform { gap: 8px; } .pform input, .pform select { min-height: 42px; padding-top: 8px; padding-bottom: 8px; } .pform .fld { gap: 4px; } .pickico { padding: 6px 12px; } }
 .seg.s4 { grid-template-columns: repeat(4, 1fr); }
 .seg.s4 button { min-height: 40px; font-size: 14px; padding: 0 2px; }
 .seg button:disabled { opacity: 0.4; }

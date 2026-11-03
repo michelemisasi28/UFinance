@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-03 · 03aaef0f';
+window.UF_BUILD = '2026-11-03 · c8303789';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -1418,9 +1418,10 @@ window.UF_BUILD = '2026-11-03 · 03aaef0f';
         '<p class="hint">Con un conto scelto, l’importo esce dal conto. Il prezzo di oggi, se lo lasci vuoto, è quello d’acquisto.</p>';
     } else {
       h += seg2('p-by', 'pby', 'k', st.by, [['qty', 'So la quantità'], ['val', 'So il valore']]) +
-        '<div class="fgrid">' + (st.by === 'qty' ? fld('Quantità posseduta', '<input id="p-qty" inputmode="decimal" autocomplete="off" placeholder="0">', 'p-qty') : fld('Valore di oggi (' + SYM[S.cur] + ')', '<input id="p-val" inputmode="decimal" autocomplete="off" placeholder="0,00">', 'p-val')) +
-        fld('Prezzo medio <span class="opt">opz.</span>', '<input id="p-pmc" inputmode="decimal" autocomplete="off" placeholder="d’acquisto">', 'p-pmc') + '</div>' +
-        '<p class="hint">Il prezzo oggi è obbligatorio. Prezzo medio d’acquisto (per 1 ' + (cry ? 'unità' : 'quota') + ', lo trovi nell’app del broker): l’app calcola subito il guadagno; senza, il guadagno parte da oggi.</p>';
+        (st.by === 'qty' ? fld('Quantità posseduta', '<input id="p-qty" inputmode="decimal" autocomplete="off" placeholder="0">', 'p-qty') : fld('Valore di oggi (' + SYM[S.cur] + ')', '<input id="p-val" inputmode="decimal" autocomplete="off" placeholder="0,00">', 'p-val')) +
+        '<div class="fgrid">' + fld('Prezzo medio <span class="opt">opz.</span>', '<input id="p-pmc" inputmode="decimal" autocomplete="off" placeholder="d’acquisto">', 'p-pmc') +
+        fld('Comprato dal', '<input type="date" id="p-pmd" max="' + TODAY + '">', 'p-pmd') + '</div>' +
+        '<p class="hint">Prezzo medio e data (anche indicativa): dall’app del broker.</p>';
     }
     form.innerHTML = h; formRestore(form, keep);
     var m = el.querySelector('#p-msg'); if (m) { m.textContent = ''; m.className = 'msg'; }
@@ -1456,16 +1457,19 @@ window.UF_BUILD = '2026-11-03 · 03aaef0f';
       if (px === null) return err('Inserisci il prezzo di oggi.');
       var pmcRaw = g('#p-pmc') ? g('#p-pmc').value.trim() : '', pmc = pmcRaw ? parsePx(pmcRaw) : null;
       if (pmcRaw && (pmc === null || pmc <= 0)) return err('Prezzo medio d’acquisto non valido.');
+      var pmd = g('#p-pmd') ? g('#p-pmd').value : '';
+      if (pmc && !pmd) return err('Con il prezzo medio indica da quando lo possiedi (anche indicativa): serve al rendimento annuo.');
+      if (pmc) { var pde = dateOk(pmd, null) || (dRange(pmd) ? '' : 'Data non valida.'); if (pde) return err(pde); }
       if (st.by === 'qty') {
         var q2 = parseQty(g('#p-qty').value); if (q2 === null || q2 <= 0) return err('Quantità non valida (max 8 decimali).');
         var t2 = valCents(q2, px); if (t2 <= 0) return err('Valore troppo piccolo.'); if (t2 > 99999999999) return err('Valore troppo grande.');
         lot = { id: uid('l'), d: TODAY, qty: q2, px: px, fee: 0, tot: t2, txId: '', rule: '', est: false };
-        if (pmc) { var c2 = valCents(q2, pmc); if (c2 <= 0) return err('Prezzo medio troppo piccolo.'); if (c2 > 99999999999) return err('Prezzo medio troppo grande.'); lot.px = pmc; lot.tot = c2; }
+        if (pmc) { var c2 = valCents(q2, pmc); if (c2 <= 0) return err('Prezzo medio troppo piccolo.'); if (c2 > 99999999999) return err('Prezzo medio troppo grande.'); lot.px = pmc; lot.tot = c2; lot.d = pmd; }
       } else {
         var t3 = parseCents(g('#p-val').value); if (t3 === null || t3 <= 0) return err('Valore non valido.');
         var q3 = pacQty(t3, 0, px); if (q3 <= 0) return err('Valore troppo piccolo.'); if (q3 > QMAX) return err('Quantità troppo grande: controlla il prezzo.');
         lot = { id: uid('l'), d: TODAY, qty: q3, px: px, fee: 0, tot: t3, txId: '', rule: '', est: false };
-        if (pmc) { var c3 = valCents(q3, pmc); if (c3 <= 0) return err('Prezzo medio troppo piccolo.'); if (c3 > 99999999999) return err('Prezzo medio troppo grande.'); lot.px = pmc; lot.tot = c3; }
+        if (pmc) { var c3 = valCents(q3, pmc); if (c3 <= 0) return err('Prezzo medio troppo piccolo.'); if (c3 > 99999999999) return err('Prezzo medio troppo grande.'); lot.px = pmc; lot.tot = c3; lot.d = pmd; }
       }
     }
     var p = { id: uid('p'), kind: st.kind, sym: sym, isin: isin, name: name, lots: [lot], prices: [] };
@@ -2097,7 +2101,7 @@ window.UF_BUILD = '2026-11-03 · 03aaef0f';
   /* ---------- prezzi automatici delle cripto (CoinGecko, solo se attivati) ---------- */
   // Prezzi cripto: CoinGecko aggiorna i dati dell'API pubblica ogni 60 secondi (docs.coingecko.com/reference/simple-price):
   // l'app li chiede all'apertura e poi ogni minuto mentre è aperta, mai dalla cache del browser.
-  var CG = { at: 0, upd: 0, err: '', busy: false, API: 'https://api.coingecko.com/api/v3/', EVERY: 60 * 1000 };
+  var CG = { at: 0, next: 0, fails: 0, upd: 0, err: '', busy: false, API: 'https://api.coingecko.com/api/v3/', EVERY: 60 * 1000 };
   var CG_ID = /^[a-z0-9][a-z0-9-]{0,99}$/;
   function cgGet(path) {
     var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, 10000);
@@ -2122,7 +2126,7 @@ window.UF_BUILD = '2026-11-03 · 03aaef0f';
   async function cgFetch(force) {
     if (!S.autoCry || CG.busy) return 0;
     if (navigator.onLine === false) { CG.err = 'offline'; return 0; }
-    if (!force && Date.now() - CG.at < CG.EVERY - 2000) return 0;
+    if (!force && Date.now() < CG.next) return 0; // al massimo una richiesta al minuto; dopo un errore si aspetta di più
     if (!S.pos.some(isCry)) return 0;
     CG.busy = true;
     try {
@@ -2138,12 +2142,14 @@ window.UF_BUILD = '2026-11-03 · 03aaef0f';
         var l = lastPx(p); if (l && l.d === TODAY && l.px === px) return;
         setPrice(p, TODAY, px, false); n++;
       });
-      CG.at = Date.now(); CG.err = ''; CG.retried = false; CG.upd = upd ? upd * 1000 : CG.at;
+      CG.at = Date.now(); CG.next = CG.at + CG.EVERY - 2000; CG.fails = 0; CG.err = ''; CG.retried = false; CG.upd = upd ? upd * 1000 : CG.at;
       var typing = document.activeElement && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName); // non ridisegna mentre si scrive
       if (n) { touch(); if (PER.canWrite && !PER.conf && !typing) { render(true); L.slice().forEach(function (ly) { if ((ly.name === 'posd' || ly.name === 'nw') && L.indexOf(ly) >= 0 && ly.refresh) ly.refresh(); }); } }
       return n;
     } catch (e) {
       CG.err = errCode(e);
+      // errore (429, rete, server): attesa crescente 1 → 2 → 5 → 15 minuti, azzerata al primo successo
+      CG.fails++; CG.next = Date.now() + [1, 2, 5, 15][Math.min(CG.fails, 4) - 1] * 60000;
       // troppe richieste (limite del piano gratuito di CoinGecko): un solo nuovo tentativo dopo 30 secondi
       if (CG.err === 'http_429' && !CG.retried) { CG.retried = true; setTimeout(function () { cgFetch(true); }, 30000); }
       return 0;
@@ -2264,7 +2270,7 @@ window.UF_BUILD = '2026-11-03 · 03aaef0f';
       if (it.catId === '__newcat__' && !it.newCat) it.catId = '';
       if (it.kind === 'giro' && !it.loan && (!acc(it.toId) || it.toId === it.accId)) it.toId = otherAcc(it.accId);
       if (it.loan && it.toId !== '__new__' && !acc(it.toId)) it.toId = '__new__';
-      return { k: it.loan ? 'prestito' : it.kind, amt: it.cents ? amtStr(it.cents) : '', accId: it.accId, toId: it.toId, catId: it.catId, date: it.date, note: it.note, pname: it.newAcc ? it.newAcc.name : (it.person || ''), newAccName: it.newFrom ? it.newFrom.name : '', newCatName: it.newCat ? it.newCat.name : '', accWarn: (it.warn || []).filter(function (w) { return /Conto|Contanti/.test(w); }).join(' · '), nWarn: (it.warn || []).filter(function (w) { return !/^Importo|Conto|Contanti/.test(w); }).join(' · ') };
+      return { k: it.loan ? 'prestito' : it.kind, amt: it.cents ? amtStr(it.cents) : '', accId: it.accId, toId: it.toId, catId: it.catId, date: it.date, note: it.note, pname: it.newAcc ? it.newAcc.name : (it.person || ''), newAccName: it.newFrom ? it.newFrom.name : '', newCatName: it.newCat ? it.newCat.name : '', newCatKind: it.newCat ? it.newCat.kind : '', accWarn: (it.warn || []).filter(function (w) { return /Conto|Contanti/.test(w); }).join(' · '), nWarn: (it.warn || []).filter(function (w) { return !/^Importo|Conto|Contanti/.test(w); }).join(' · ') };
     });
     voiceDraw();
   }
@@ -2280,11 +2286,11 @@ window.UF_BUILD = '2026-11-03 · 03aaef0f';
       h += fld('A (credito)', '<select data-vf="to"><option value="__new__"' + (it.toId === '__new__' ? ' selected' : '') + '>➕ Nuova persona</option>' + cr.map(function (a) { return '<option value="' + a.id + '"' + (it.toId === a.id ? ' selected' : '') + '>' + esc(a.icon + ' ' + a.name) + '</option>'; }).join('') + '</select>') + '</div>';
       if (it.toId === '__new__') h += fld('Nome della persona', '<input data-vf="pname" data-in="vf" maxlength="30" autocomplete="off" value="' + esc(it.pname || '') + '" placeholder="Es. Antonio">') + '<p class="hint">Verrà creato un conto di credito: i soldi prestati restano nel tuo patrimonio finché non te li restituisce.</p>';
     } else if (it.k === 'giro') h += fld('A', '<select data-vf="to">' + accOpts(it.toId && it.toId !== '__new__' ? it.toId : otherAcc(it.accId)) + '</select>') + '</div>';
-    else h += fld('Categoria', '<select data-vf="cat">' + (it.newCatName ? '<option value="__newcat__"' + (it.catId === '__newcat__' ? ' selected' : '') + '>➕ Nuova «' + esc(it.newCatName) + '»</option>' : '') + '<option value=""' + (it.catId ? '' : ' selected') + '>Senza categoria</option>' + cats.map(function (c) { return '<option value="' + c.id + '"' + (c.id === it.catId ? ' selected' : '') + '>' + esc(c.icon + ' ' + c.name) + '</option>'; }).join('') + '</select>') + '</div>';
+    else h += fld('Categoria', '<select data-vf="cat">' + (it.newCatName && it.k === it.newCatKind ? '<option value="__newcat__"' + (it.catId === '__newcat__' ? ' selected' : '') + '>➕ Nuova «' + esc(it.newCatName) + '»</option>' : '') + '<option value=""' + (it.catId ? '' : ' selected') + '>Senza categoria</option>' + cats.map(function (c) { return '<option value="' + c.id + '"' + (c.id === it.catId ? ' selected' : '') + '>' + esc(c.icon + ' ' + c.name) + '</option>'; }).join('') + '</select>') + '</div>';
     h += '<div class="fgrid">' + fld('Data', '<input type="date" data-vf="date" max="' + TODAY + '" value="' + it.date + '">') + fld('Nota', '<input data-vf="note" data-in="vf" maxlength="60" autocomplete="off" value="' + esc(it.note || '') + '">') + '</div>';
     var mk = [];
     if (it.accId === '__newacc__') mk.push('il conto «' + it.newAccName + '» (liquidità, saldo iniziale 0)');
-    if (it.catId === '__newcat__' && (it.k === 'spesa' || it.k === 'entrata')) mk.push('la categoria «' + it.newCatName + '»');
+    if (it.catId === '__newcat__' && it.k === it.newCatKind) mk.push('la categoria «' + it.newCatName + '»');
     if (mk.length) h += '<p class="hint vnew">➕ Alla conferma verrà creat' + (mk.length > 1 ? 'i ' : (it.accId === '__newacc__' ? 'o ' : 'a ')) + esc(mk.join(' e ')) + '. Puoi sceglierne un altro dal menu.</p>';
     var w = []; if (amtBad) w.push('Importo da inserire'); if (it.accWarn) w.push(it.accWarn); if (it.nWarn && it.k === 'prestito' && it.toId === '__new__') w.push(it.nWarn); // solo se c'è il campo del nome
     return h + (w.length ? '<p class="vwarn">⚠️ ' + esc(w.join(' · ')) + '</p>' : '') + '</div>';
@@ -2304,7 +2310,9 @@ window.UF_BUILD = '2026-11-03 · 03aaef0f';
       it.k = v;
       if (v === 'prestito' && (!acc(it.toId) || acc(it.toId).type !== 'credito')) it.toId = '__new__';
       if (v === 'giro' && (!acc(it.toId) || it.toId === it.accId)) it.toId = otherAcc(it.accId);
-      if ((v === 'spesa' || v === 'entrata') && it.catId && (!cat(it.catId) || cat(it.catId).kind !== v)) it.catId = '';
+      if ((v === 'spesa' || v === 'entrata') && it.catId && it.catId !== '__newcat__' && (!cat(it.catId) || cat(it.catId).kind !== v)) it.catId = '';
+      if (it.catId === '__newcat__' && v !== it.newCatKind) it.catId = '';
+      if (v === it.newCatKind && !it.catId && it.newCatName) it.catId = '__newcat__';
     } else if (f === 'acc') { it.accId = v; it.accWarn = ''; }
     else if (f === 'to') it.toId = v;
     else if (f === 'cat') it.catId = v;
@@ -2348,7 +2356,7 @@ window.UF_BUILD = '2026-11-03 · 03aaef0f';
         }
         it.accId = newAccs[key].id;
       }
-      if (it.catId === '__newcat__' && it.newCatName && (it.k === 'spesa' || it.k === 'entrata')) {
+      if (it.catId === '__newcat__' && it.newCatName && it.k === it.newCatKind) {
         var ck = it.k + '|' + it.newCatName.trim().toLowerCase(), cx = S.cats.filter(function (x) { return x.kind === it.k && x.name.toLowerCase() === it.newCatName.trim().toLowerCase(); })[0];
         if (!newCats[ck]) {
           if (cx) newCats[ck] = cx;
