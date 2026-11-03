@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-03 · 63aa3287';
+window.UF_BUILD = '2026-11-03 · 03aaef0f';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -1418,8 +1418,9 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
         '<p class="hint">Con un conto scelto, l’importo esce dal conto. Il prezzo di oggi, se lo lasci vuoto, è quello d’acquisto.</p>';
     } else {
       h += seg2('p-by', 'pby', 'k', st.by, [['qty', 'So la quantità'], ['val', 'So il valore']]) +
-        (st.by === 'qty' ? fld('Quantità posseduta', '<input id="p-qty" inputmode="decimal" autocomplete="off" placeholder="0">', 'p-qty') : fld('Valore di oggi (' + SYM[S.cur] + ')', '<input id="p-val" inputmode="decimal" autocomplete="off" placeholder="0,00">', 'p-val')) +
-        '<p class="hint">Il prezzo oggi è obbligatorio. Il rendimento parte da oggi.</p>';
+        '<div class="fgrid">' + (st.by === 'qty' ? fld('Quantità posseduta', '<input id="p-qty" inputmode="decimal" autocomplete="off" placeholder="0">', 'p-qty') : fld('Valore di oggi (' + SYM[S.cur] + ')', '<input id="p-val" inputmode="decimal" autocomplete="off" placeholder="0,00">', 'p-val')) +
+        fld('Prezzo medio <span class="opt">opz.</span>', '<input id="p-pmc" inputmode="decimal" autocomplete="off" placeholder="d’acquisto">', 'p-pmc') + '</div>' +
+        '<p class="hint">Il prezzo oggi è obbligatorio. Prezzo medio d’acquisto (per 1 ' + (cry ? 'unità' : 'quota') + ', lo trovi nell’app del broker): l’app calcola subito il guadagno; senza, il guadagno parte da oggi.</p>';
     }
     form.innerHTML = h; formRestore(form, keep);
     var m = el.querySelector('#p-msg'); if (m) { m.textContent = ''; m.className = 'msg'; }
@@ -1453,14 +1454,18 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
       if (px === null) px = lot.px;
     } else {
       if (px === null) return err('Inserisci il prezzo di oggi.');
+      var pmcRaw = g('#p-pmc') ? g('#p-pmc').value.trim() : '', pmc = pmcRaw ? parsePx(pmcRaw) : null;
+      if (pmcRaw && (pmc === null || pmc <= 0)) return err('Prezzo medio d’acquisto non valido.');
       if (st.by === 'qty') {
         var q2 = parseQty(g('#p-qty').value); if (q2 === null || q2 <= 0) return err('Quantità non valida (max 8 decimali).');
         var t2 = valCents(q2, px); if (t2 <= 0) return err('Valore troppo piccolo.'); if (t2 > 99999999999) return err('Valore troppo grande.');
         lot = { id: uid('l'), d: TODAY, qty: q2, px: px, fee: 0, tot: t2, txId: '', rule: '', est: false };
+        if (pmc) { var c2 = valCents(q2, pmc); if (c2 <= 0) return err('Prezzo medio troppo piccolo.'); if (c2 > 99999999999) return err('Prezzo medio troppo grande.'); lot.px = pmc; lot.tot = c2; }
       } else {
         var t3 = parseCents(g('#p-val').value); if (t3 === null || t3 <= 0) return err('Valore non valido.');
         var q3 = pacQty(t3, 0, px); if (q3 <= 0) return err('Valore troppo piccolo.'); if (q3 > QMAX) return err('Quantità troppo grande: controlla il prezzo.');
         lot = { id: uid('l'), d: TODAY, qty: q3, px: px, fee: 0, tot: t3, txId: '', rule: '', est: false };
+        if (pmc) { var c3 = valCents(q3, pmc); if (c3 <= 0) return err('Prezzo medio troppo piccolo.'); if (c3 > 99999999999) return err('Prezzo medio troppo grande.'); lot.px = pmc; lot.tot = c3; }
       }
     }
     var p = { id: uid('p'), kind: st.kind, sym: sym, isin: isin, name: name, lots: [lot], prices: [] };
@@ -2073,7 +2078,7 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
     if (q > 0) {
       h += '<div class="card fresh' + (stale ? ' old' : '') + '"><div class="fr1"><span>' + (auto ? (stale ? '⚠️ Prezzo automatico di ' : '⚡ Prezzo automatico · ') + (l ? agoL(l.d) : '—') : stale ? '⚠️ Valore di ' + (l ? agoL(l.d) : '—') : '🏷️ Valore aggiornato ' + (l ? agoL(l.d) : '—')) + '</span>' +
         (auto ? '<button class="tbtn" data-act="cgnow">Aggiorna ora</button>' : '<button class="tbtn pri" data-act="pricenew" data-id="' + id + '">Aggiorna valore</button>') + '</div>' +
-        '<p class="sb">' + (auto ? 'Da CoinGecko (' + esc(p.cgName || p.cgId) + ')' + (CG.at ? ' · ' + hhmm(CG.at) : '') + (CG.err ? ' · ultimo tentativo non riuscito' : '') : stale ? 'Il guadagno mostrato usa il prezzo del ' + shortD(l.d) + ': aggiornalo per vederlo attuale.' : 'Prezzo per ' + unitOf(p) + ': ' + (l ? pxStr(l.px) : '—')) + '</p></div>';
+        '<p class="sb">' + (auto ? 'Da CoinGecko (' + esc(p.cgName || p.cgId) + ')' + (CG.upd ? ' · prezzo delle ' + hhmm(CG.upd) : '') + (CG.err ? ' · ultimo tentativo non riuscito' : '') : stale ? 'Il guadagno mostrato usa il prezzo del ' + shortD(l.d) + ': aggiornalo per vederlo attuale.' : 'Prezzo per ' + unitOf(p) + ': ' + (l ? pxStr(l.px) : '—')) + '</p></div>';
       if (isCry(p) && S.autoCry && !p.cgId) h += '<button class="banner" data-act="cglink" style="text-align:left;width:100%">Non collegata a CoinGecko: tocca per cercarla.</button>';
     }
     h += '<div class="cells">' + cell('Prezzo medio di carico', q > 0 ? pxStr(avg) : '—', 'per ' + unitOf(p)) + cell('Prezzo attuale', l ? pxStr(l.px) : '—', l ? shortD(l.d) : '') +
@@ -2090,11 +2095,13 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
   }
 
   /* ---------- prezzi automatici delle cripto (CoinGecko, solo se attivati) ---------- */
-  var CG = { at: 0, err: '', busy: false, API: 'https://api.coingecko.com/api/v3/' };
+  // Prezzi cripto: CoinGecko aggiorna i dati dell'API pubblica ogni 60 secondi (docs.coingecko.com/reference/simple-price):
+  // l'app li chiede all'apertura e poi ogni minuto mentre è aperta, mai dalla cache del browser.
+  var CG = { at: 0, upd: 0, err: '', busy: false, API: 'https://api.coingecko.com/api/v3/', EVERY: 60 * 1000 };
   var CG_ID = /^[a-z0-9][a-z0-9-]{0,99}$/;
   function cgGet(path) {
     var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, 10000);
-    return fetch(CG.API + path, { signal: ctl ? ctl.signal : undefined, credentials: 'omit', referrerPolicy: 'no-referrer' })
+    return fetch(CG.API + path, { signal: ctl ? ctl.signal : undefined, credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' })
       .then(function (r) { clearTimeout(t); if (!r.ok) throw { code: 'http_' + r.status }; return r.json(); }, function (e) { clearTimeout(t); throw e; });
   }
   // collega le cripto senza id: simbolo identico (o nome), la più capitalizzata
@@ -2115,23 +2122,25 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
   async function cgFetch(force) {
     if (!S.autoCry || CG.busy) return 0;
     if (navigator.onLine === false) { CG.err = 'offline'; return 0; }
-    if (!force && Date.now() - CG.at < 15 * 60 * 1000) return 0;
+    if (!force && Date.now() - CG.at < CG.EVERY - 2000) return 0;
     if (!S.pos.some(isCry)) return 0;
     CG.busy = true;
     try {
       if (!CG.linked && S.pos.some(function (p) { return isCry(p) && !p.cgId; })) { CG.linked = true; await cgLink(); }
       var ps = S.pos.filter(function (p) { return isCry(p) && p.cgId && CG_ID.test(p.cgId); }); if (!ps.length) return 0;
       var cur = S.cur.toLowerCase(), ids = ps.map(function (p) { return p.cgId; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
-      var r = await cgGet('simple/price?ids=' + encodeURIComponent(ids.join(',')) + '&vs_currencies=' + cur), n = 0;
+      var r = await cgGet('simple/price?ids=' + encodeURIComponent(ids.join(',')) + '&vs_currencies=' + cur + '&include_last_updated_at=true&precision=full'), n = 0, upd = 0;
       ps.forEach(function (p) {
         var v = r && r[p.cgId] && r[p.cgId][cur];
         if (typeof v !== 'number' || !isFinite(v) || v <= 0) return;
+        var lu = r[p.cgId].last_updated_at; if (typeof lu === 'number' && lu > upd) upd = lu;
         var px = Math.round(v * 1e6); if (px <= 0 || px > PMAX || !posById(p.id)) return;
         var l = lastPx(p); if (l && l.d === TODAY && l.px === px) return;
         setPrice(p, TODAY, px, false); n++;
       });
-      CG.at = Date.now(); CG.err = '';
-      if (n) { touch(); if (PER.canWrite && !PER.conf) { render(true); L.slice().forEach(function (ly) { if ((ly.name === 'posd' || ly.name === 'nw') && L.indexOf(ly) >= 0 && ly.refresh) ly.refresh(); }); } }
+      CG.at = Date.now(); CG.err = ''; CG.retried = false; CG.upd = upd ? upd * 1000 : CG.at;
+      var typing = document.activeElement && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName); // non ridisegna mentre si scrive
+      if (n) { touch(); if (PER.canWrite && !PER.conf && !typing) { render(true); L.slice().forEach(function (ly) { if ((ly.name === 'posd' || ly.name === 'nw') && L.indexOf(ly) >= 0 && ly.refresh) ly.refresh(); }); } }
       return n;
     } catch (e) {
       CG.err = errCode(e);
@@ -2141,6 +2150,8 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
     }
     finally { CG.busy = false; }
   }
+  // Aggiornamento automatico ogni minuto mentre l'app è aperta e visibile (nessuna richiesta in background o offline).
+  setInterval(function () { if (document.visibilityState === 'visible' && PER.canWrite && S.autoCry && S.pos.some(isCry)) cgFetch(false); }, 15000); // controlla spesso, chiede al massimo una volta al minuto
   async function cgEnable(on) {
     S.autoCry = !!on; touch(); render();
     if (!on) { toast('Prezzi cripto automatici disattivati.'); return; }
@@ -2240,6 +2251,7 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
     var def = defAccId();
     return { today: TODAY, defAcc: def, accounts: S.accounts.map(function (a) { return { id: a.id, name: a.name, type: a.type, bal: balance(a.id) }; }), cats: S.cats.map(function (c) { return { id: c.id, name: c.name, kind: c.kind }; }) };
   }
+  var CAT_ICON = { Salute: '💊', Alimentari: '🛒', Ristoranti: '🍽️', Trasporti: '🚌', Casa: '🏠', Abbonamenti: '📱', Svago: '🎬', Stipendio: '💼', Rimborsi: '🧾', Regali: '🎁', Shopping: '🛍️', Animali: '🐶', Sport: '🏋️', Viaggi: '✈️', Istruzione: '📚', Auto: '🚗' };
   function voiceParse() {
     var lay = layerOf('voice'); if (!lay) return;
     var txt = lay.el.querySelector('#v-text').value.trim();
@@ -2248,10 +2260,11 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
     voiceErr('');
     var vc = voiceCtx();
     lay.st.items = UFVoice.parse(txt.slice(0, 1000), vc).slice(0, 20).map(function (it) {
-      if (!acc(it.accId)) it.accId = vc.defAcc;
+      if (!acc(it.accId) && !(it.accId === '__newacc__' && it.newFrom)) it.accId = vc.defAcc;
+      if (it.catId === '__newcat__' && !it.newCat) it.catId = '';
       if (it.kind === 'giro' && !it.loan && (!acc(it.toId) || it.toId === it.accId)) it.toId = otherAcc(it.accId);
       if (it.loan && it.toId !== '__new__' && !acc(it.toId)) it.toId = '__new__';
-      return { k: it.loan ? 'prestito' : it.kind, amt: it.cents ? amtStr(it.cents) : '', accId: it.accId, toId: it.toId, catId: it.catId, date: it.date, note: it.note, pname: it.newAcc ? it.newAcc.name : (it.person || ''), accWarn: (it.warn || []).filter(function (w) { return /Conto|Contanti/.test(w); }).join(' · '), nWarn: (it.warn || []).filter(function (w) { return !/^Importo|Conto|Contanti/.test(w); }).join(' · ') };
+      return { k: it.loan ? 'prestito' : it.kind, amt: it.cents ? amtStr(it.cents) : '', accId: it.accId, toId: it.toId, catId: it.catId, date: it.date, note: it.note, pname: it.newAcc ? it.newAcc.name : (it.person || ''), newAccName: it.newFrom ? it.newFrom.name : '', newCatName: it.newCat ? it.newCat.name : '', accWarn: (it.warn || []).filter(function (w) { return /Conto|Contanti/.test(w); }).join(' · '), nWarn: (it.warn || []).filter(function (w) { return !/^Importo|Conto|Contanti/.test(w); }).join(' · ') };
     });
     voiceDraw();
   }
@@ -2260,14 +2273,19 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
     var amtBad = !(parseCents(it.amt || '') > 0);
     var h = '<div class="card vcard" data-i="' + i + '"><div class="vtop"><select data-vf="k" aria-label="Tipo">' + VK.map(function (k) { return '<option value="' + k[0] + '"' + (it.k === k[0] ? ' selected' : '') + '>' + k[1] + '</option>'; }).join('') + '</select>' +
       '<input class="vamt' + (amtBad ? ' miss' : '') + '" data-vf="amt" data-in="vf" inputmode="decimal" autocomplete="off" placeholder="Importo" value="' + esc(it.amt || '') + '" aria-label="Importo"><button class="x" data-act="vdel" data-i="' + i + '" aria-label="Rimuovi">' + svg('x') + '</button></div>';
-    h += '<div class="fgrid">' + fld(giro ? 'Da' : it.k === 'spesa' ? 'Pagato con' : 'Accreditato su', '<select data-vf="acc">' + accOpts(it.accId) + '</select>');
+    var newA = it.newAccName ? '<option value="__newacc__"' + (it.accId === '__newacc__' ? ' selected' : '') + '>➕ Nuovo conto «' + esc(it.newAccName) + '»</option>' : '';
+    h += '<div class="fgrid">' + fld(giro ? 'Da' : it.k === 'spesa' ? 'Pagato con' : 'Accreditato su', '<select data-vf="acc">' + newA + accOpts(it.accId) + '</select>');
     if (it.k === 'prestito') {
       var cr = S.accounts.filter(function (a) { return a.type === 'credito'; });
       h += fld('A (credito)', '<select data-vf="to"><option value="__new__"' + (it.toId === '__new__' ? ' selected' : '') + '>➕ Nuova persona</option>' + cr.map(function (a) { return '<option value="' + a.id + '"' + (it.toId === a.id ? ' selected' : '') + '>' + esc(a.icon + ' ' + a.name) + '</option>'; }).join('') + '</select>') + '</div>';
       if (it.toId === '__new__') h += fld('Nome della persona', '<input data-vf="pname" data-in="vf" maxlength="30" autocomplete="off" value="' + esc(it.pname || '') + '" placeholder="Es. Antonio">') + '<p class="hint">Verrà creato un conto di credito: i soldi prestati restano nel tuo patrimonio finché non te li restituisce.</p>';
     } else if (it.k === 'giro') h += fld('A', '<select data-vf="to">' + accOpts(it.toId && it.toId !== '__new__' ? it.toId : otherAcc(it.accId)) + '</select>') + '</div>';
-    else h += fld('Categoria', '<select data-vf="cat"><option value="">Senza categoria</option>' + cats.map(function (c) { return '<option value="' + c.id + '"' + (c.id === it.catId ? ' selected' : '') + '>' + esc(c.icon + ' ' + c.name) + '</option>'; }).join('') + '</select>') + '</div>';
+    else h += fld('Categoria', '<select data-vf="cat">' + (it.newCatName ? '<option value="__newcat__"' + (it.catId === '__newcat__' ? ' selected' : '') + '>➕ Nuova «' + esc(it.newCatName) + '»</option>' : '') + '<option value=""' + (it.catId ? '' : ' selected') + '>Senza categoria</option>' + cats.map(function (c) { return '<option value="' + c.id + '"' + (c.id === it.catId ? ' selected' : '') + '>' + esc(c.icon + ' ' + c.name) + '</option>'; }).join('') + '</select>') + '</div>';
     h += '<div class="fgrid">' + fld('Data', '<input type="date" data-vf="date" max="' + TODAY + '" value="' + it.date + '">') + fld('Nota', '<input data-vf="note" data-in="vf" maxlength="60" autocomplete="off" value="' + esc(it.note || '') + '">') + '</div>';
+    var mk = [];
+    if (it.accId === '__newacc__') mk.push('il conto «' + it.newAccName + '» (liquidità, saldo iniziale 0)');
+    if (it.catId === '__newcat__' && (it.k === 'spesa' || it.k === 'entrata')) mk.push('la categoria «' + it.newCatName + '»');
+    if (mk.length) h += '<p class="hint vnew">➕ Alla conferma verrà creat' + (mk.length > 1 ? 'i ' : (it.accId === '__newacc__' ? 'o ' : 'a ')) + esc(mk.join(' e ')) + '. Puoi sceglierne un altro dal menu.</p>';
     var w = []; if (amtBad) w.push('Importo da inserire'); if (it.accWarn) w.push(it.accWarn); if (it.nWarn && it.k === 'prestito' && it.toId === '__new__') w.push(it.nWarn); // solo se c'è il campo del nome
     return h + (w.length ? '<p class="vwarn">⚠️ ' + esc(w.join(' · ')) + '</p>' : '') + '</div>';
   }
@@ -2300,7 +2318,8 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
     var lay = layerOf('voice'); if (!lay) return;
     var items = lay.st.items, errs = [];
     items.forEach(function (it, n) {
-      var c = parseCents((it.amt || '').trim()), a = acc(it.accId), d = it.date, lab = '#' + (n + 1) + ' ';
+      var c = parseCents((it.amt || '').trim()), d = it.date, lab = '#' + (n + 1) + ' ';
+      var a = it.accId === '__newacc__' && it.newAccName ? { id: '__newacc__', name: it.newAccName, openDate: d } : acc(it.accId); // conto da creare: parte dalla data del movimento
       if (c === null || c <= 0) return errs.push(lab + 'importo');
       if (!a) return errs.push(lab + 'conto');
       if (!dRange(d) || d > TODAY) return errs.push(lab + 'data');
@@ -2312,7 +2331,32 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
       }
     });
     if (errs.length) return voiceErr('Da completare: ' + errs.join(', ') + '.');
-    var snap = snapAll(), last = null;
+    var snap = snapAll(), catSnap = JSON.parse(JSON.stringify(S.cats)), last = null, made = [];
+    // conti e categorie proposti dalla voce: creati una volta sola (anche se usati da più movimenti)
+    var newAccs = {}, newCats = {};
+    items.forEach(function (it) {
+      if (it.accId === '__newacc__' && it.newAccName) {
+        var key = it.newAccName.trim().toLowerCase(), ex = S.accounts.filter(function (x) { return x.type !== 'credito' && x.name.toLowerCase() === key; })[0];
+        if (!newAccs[key]) {
+          if (ex) newAccs[key] = ex;
+          else {
+            var nm = it.newAccName.trim().slice(0, 30), k = 2, name = nm; while (S.accounts.some(function (x) { return x.name.toLowerCase() === name.toLowerCase(); })) name = nm + ' (' + k++ + ')';
+            var sb = subsOf('liquidita')[0], od = items.filter(function (y) { return y.accId === '__newacc__' && y.newAccName.trim().toLowerCase() === key; }).map(function (y) { return y.date; }).sort()[0];
+            newAccs[key] = { id: uid('a'), name: name, type: 'liquidita', sub: sb ? sb.id : '', icon: ICONS[3], color: COLORS[0], opening: 0, openDate: od };
+            S.accounts.push(newAccs[key]); made.push('conto «' + name + '»');
+          }
+        }
+        it.accId = newAccs[key].id;
+      }
+      if (it.catId === '__newcat__' && it.newCatName && (it.k === 'spesa' || it.k === 'entrata')) {
+        var ck = it.k + '|' + it.newCatName.trim().toLowerCase(), cx = S.cats.filter(function (x) { return x.kind === it.k && x.name.toLowerCase() === it.newCatName.trim().toLowerCase(); })[0];
+        if (!newCats[ck]) {
+          if (cx) newCats[ck] = cx;
+          else { newCats[ck] = { id: uid('c'), kind: it.k, name: it.newCatName.trim().slice(0, 24), icon: CAT_ICON[it.newCatName] || ICONS[19] }; S.cats.push(newCats[ck]); made.push('categoria «' + newCats[ck].name + '»'); }
+        }
+        it.catId = newCats[ck].id;
+      } else if (it.catId === '__newcat__') it.catId = '';
+    });
     items.forEach(function (it) {
       var c = parseCents(it.amt.trim()), to = it.toId;
       if (it.k === 'prestito' && to === '__new__') {
@@ -2331,7 +2375,7 @@ window.UF_BUILD = '2026-11-03 · 63aa3287';
     // ultimo conto usato = il primo conto «vero» del gruppo (per una restituzione, quello che riceve i soldi)
     items.some(function (it) { var c = [it.accId, it.toId].filter(function (x) { return acc(x) && acc(x).type !== 'credito'; })[0]; if (c) S.lastAcc = c; return !!c; });
     var n = items.length; popLayer();
-    toast((n === 1 ? '1 movimento registrato' : n + ' movimenti registrati') + budNote(last), function () { restoreAll(snap); });
+    toast((n === 1 ? '1 movimento registrato' : n + ' movimenti registrati') + (made.length ? ' · creat' + (made.length > 1 ? 'i ' : made[0].indexOf('conto') === 0 ? 'o ' : 'a ') + made.join(', ') : '') + budNote(last), function () { restoreAll(snap); if (made.some(function (m) { return m.indexOf('categoria') === 0; })) S.cats = catSnap; });
   }
 
   /* ---------- tutorial guidato (alla prima apertura; rivedibile da Impostazioni) ---------- */

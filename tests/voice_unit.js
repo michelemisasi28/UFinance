@@ -45,7 +45,7 @@ ok(r[0].date === '2026-11-16' && r[0].catId === 'c3', 'lunedì → lunedì 16 no
 r = P('ho ricevuto 50 euro da Marco per la cena');
 ok(r[0].kind === 'entrata' && r[0].cents === 5000, 'ricevuto da Marco: entrata', r);
 r = P('ho pagato 8 euro al cinema con la Revolut');
-ok(r[0].warn.some(w => /Revolut/.test(w)), 'conto non esistente nominato con «con la»: avviso', r);
+ok(r[0].accId === '__newacc__' && r[0].newFrom.name === 'Revolut' && r[0].newFrom.type === 'liquidita' && !r[0].warn.length, 'conto non esistente nominato con «con la»: proposto il nuovo conto «Revolut»', r);
 r = P('ciao come stai');
 ok(r.length === 1 && r[0].cents === null, 'frase senza importo: proposta con importo da inserire', r);
 
@@ -150,5 +150,20 @@ q('ho prestato 50 euro a mio fratello col bancomat', x => x[0].loan, 'G5#7 prest
 q('ho prelevato 50 euro al bancomat', x => x[0].kind === 'giro' && x[0].toId === 'a1', 'G5#7 «prelevato al bancomat»: prelievo');
 q('ho dato 20 euro a mio fratello che me li ridà', x => x[0].loan, 'G5#8 «che me li ridà» al presente: prestito');
 q('ho dato 20 euro ad Anna che me li rende', x => x[0].loan && x[0].toId === 'k3', 'G5#8 «che me li rende»: prestito ad Anna');
+
+// Nuovo: conti e categorie mancanti proposti per la creazione automatica
+one('ho pagato 30 euro con la carta Amex', x => x[0].accId === '__newacc__' && x[0].newFrom.name === 'Amex', 'carta «Amex» inesistente → nuovo conto Amex');
+one('ho speso 12 euro dal conto Mediolanum', x => x[0].accId === '__newacc__' && x[0].newFrom.name === 'Mediolanum', 'conto «Mediolanum» inesistente → nuovo conto');
+one('ho ricevuto 200 euro su N26', x => x[0].kind === 'entrata' && x[0].accId === '__newacc__' && x[0].newFrom.name === 'N26', 'entrata su N26 inesistente → nuovo conto N26');
+one('ho pagato 20 euro con la carta di credito', x => x[0].accId === 'a5' && !x[0].newFrom, '«carta di credito» esistente: nessun nuovo conto');
+one('ho pagato 20 euro dal conto corrente', x => x[0].accId !== '__newacc__', '«conto corrente»: non è un nome di conto da creare');
+one('ho pagato 20 euro con la carta Unicredit', x => x[0].accId === 'u1' && !x[0].newFrom, 'carta Unicredit: usa il conto Unicredit esistente');
+one('ho pagato 15 euro al cinema', x => x[0].catId === '__newcat__' && x[0].newCat.name === 'Svago' && x[0].newCat.kind === 'spesa', 'cinema senza categoria «Svago» → nuova categoria Svago');
+one('ho speso 40 euro categoria palestra', x => x[0].catId === '__newcat__' && x[0].newCat.name === 'Palestra', '«categoria palestra» inesistente → nuova categoria Palestra');
+one('ho speso 40 euro di spesa categoria alimentari', x => x[0].catId === 'c1' && !x[0].newCat, '«categoria alimentari» esistente: usa quella');
+one('netflix 12,99', x => x[0].catId === 'c7' && !x[0].newCat, 'Netflix: categoria Abbonamenti esistente');
+one('ho ricevuto 50 euro di regalo', x => x[0].kind === 'entrata' && x[0].catId === '__newcat__' && x[0].newCat.name === 'Regali' && x[0].newCat.kind === 'entrata', 'regalo senza categoria «Regali» → nuova categoria di entrata');
+one('ho pagato 8 euro al cinema con la carta Amex e 20 euro di regalo categoria compleanni', x => x.length === 2 && x.every(i => i.accId === '__newacc__' && i.newFrom.name === 'Amex') && x[1].newCat && x[1].newCat.name === 'Compleanni', 'due importi, «carta Amex» detta una volta: entrambi sul nuovo conto Amex (non sulla Carta di credito)');
+one('ho prestato 50 euro ad Antonio con Revolut', x => x[0].loan && x[0].accId !== '__newacc__', 'prestito: il conto mancante non viene creato in automatico (resta l’avviso)');
 
 console.log(fails ? `\n${fails} FALLITI` : '\nTUTTI PASSATI'); process.exit(fails ? 1 : 0);

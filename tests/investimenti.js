@@ -87,7 +87,7 @@ const T = async (p, sel) => ((await p.textContent(sel)) || '').replace(/\u00a0/g
   const urls = cgReq.join(' ');
   ok(!/12500|0\.0125|875|p3|qty/i.test(urls) && cgReq.every(u => u.startsWith('https://api.coingecko.com/api/v3/')), 'privacy: alle richieste vanno solo simbolo e id, mai quantità o valori');
   const nReq = cgReq.length; await p.evaluate(() => __UF.cgFetch(false));
-  ok(cgReq.length === nReq, 'limite: nessuna nuova richiesta entro 15 minuti');
+  ok(cgReq.length === nReq, 'limite: nessuna nuova richiesta entro 1 minuto');
   await p.click('[data-tab="portfolio"]'); await tick(p);
   ok((await T(p, '[data-act="posopen"][data-id="p3"]')).includes('⚡ auto'), 'Portfolio: cripto segnata «auto»');
   await p.click('.tbtn[data-act="pxall"]'); await tick(p);
