@@ -236,4 +236,11 @@ one('ho girato 50 euro sui contanti', x => x[0].kind === 'giro' && x[0].toId ===
 
 ['ho trasferito 50 euro alla Postepay di mia figlia', 'ho ricaricato la postepay di mia figlia 50 euro', 'ho versato 50 euro sul conto Fineco di mio fratello'].forEach(t => one(t, x => !x[0].newFrom, '«' + t + '»: conto di un’altra persona, nessun conto tuo creato'));
 
+// Revisione finale
+['ho pagato con la carta ieri 35 euro', 'ho pagato con la carta 120 euro', 'ho pagato con la carta stamattina 20 euro', 'ho speso con la carta solo 5 euro'].forEach(t => one(t, x => x[0].accId === 'a5' && !x[0].newFrom, '«' + t + '» → Carta di credito, nessun conto inventato'));
+['ho ricevuto sul conto 1500 euro', 'ho speso con il conto 300 euro'].forEach(t => one(t, x => !x[0].newFrom, '«' + t + '»: nessun conto «1500»/«300»'));
+const ctxI = { today: '2026-11-20', defAcc: 'a1', accounts: [{ id: 'a1', name: 'Contanti', type: 'liquidita' }, { id: 'ci', name: 'Conto Intesa', type: 'liquidita' }, { id: 'a5', name: 'Carta di credito', type: 'debito' }], cats: ctx.cats };
+['stipendio 1500 euro sul conto corrente', 'ho pagato 20 euro con il conto corrente'].forEach(t => { const x = V.parse(t, ctxI); ok(x[0].accId === 'ci', '«' + t + '» → Conto Intesa (unico «conto»)', x); });
+['benzina 40 euro carta', 'caffè 2 euro carta'].forEach(t => one(t, x => x[0].accId === 'a5', '«' + t + '» → Carta di credito'));
+
 console.log(fails ? `\n${fails} FALLITI` : '\nTUTTI PASSATI'); process.exit(fails ? 1 : 0);

@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-03 · c82fcaf5';
+window.UF_BUILD = '2026-11-03 · ee5761e1';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -1458,6 +1458,7 @@ window.UF_BUILD = '2026-11-03 · c82fcaf5';
       var pmcRaw = g('#p-pmc') ? g('#p-pmc').value.trim() : '', pmc = pmcRaw ? parsePx(pmcRaw) : null;
       if (pmcRaw && (pmc === null || pmc <= 0)) return err('Prezzo medio non valido.');
       var pmd = g('#p-pmd') ? g('#p-pmd').value : '';
+      if (pmd && !pmc) return err('Inserisci anche il prezzo medio (o togli la data).');
       if (pmc && !pmd) return err('Indica da quando lo possiedi (anche circa).');
       if (pmc) { var pde = dateOk(pmd, null) || (dRange(pmd) ? '' : 'Data non valida.'); if (pde) return err(pde); }
       if (st.by === 'qty') {
@@ -2291,7 +2292,7 @@ window.UF_BUILD = '2026-11-03 · c82fcaf5';
     var mk = [];
     if (it.accId === '__newacc__' || (it.k === 'giro' && it.toId === '__newacc__')) mk.push('il conto «' + it.newAccName + '» (liquidità, saldo iniziale 0)');
     if (it.catId === '__newcat__' && it.k === it.newCatKind) mk.push('la categoria «' + it.newCatName + '»');
-    if (mk.length) h += '<p class="hint vnew">➕ Alla conferma verrà creat' + (mk.length > 1 ? 'i ' : (mk[0].indexOf('il conto') === 0 ? 'o ' : 'a ')) + esc(mk.join(' e ')) + '. Puoi sceglierne un altro dal menu.</p>';
+    if (mk.length) h += '<p class="hint vnew">➕ Alla conferma ' + (mk.length > 1 ? 'verranno creati ' : 'verrà creat' + (mk[0].indexOf('il conto') === 0 ? 'o ' : 'a ')) + esc(mk.join(' e ')) + '. Puoi sceglierne un altro dal menu.</p>';
     var w = []; if (amtBad) w.push('Importo da inserire'); if (it.accWarn) w.push(it.accWarn); if (it.nWarn && it.k === 'prestito' && it.toId === '__new__') w.push(it.nWarn); // solo se c'è il campo del nome
     return h + (w.length ? '<p class="vwarn">⚠️ ' + esc(w.join(' · ')) + '</p>' : '') + '</div>';
   }
@@ -2346,6 +2347,7 @@ window.UF_BUILD = '2026-11-03 · c82fcaf5';
       var key = it.newAccName.trim().toLowerCase();
       if (!newAccs[key]) {
         var ex = S.accounts.filter(function (x) { return x.type !== 'credito' && x.name.toLowerCase() === key; })[0];
+        if (ex && items.some(function (y) { return y.newAccName && y.newAccName.trim().toLowerCase() === key && y.date < ex.openDate; })) ex = null; // movimenti prima del suo saldo: meglio un conto nuovo
         if (ex) newAccs[key] = ex;
         else {
           var nm = it.newAccName.trim().slice(0, 30), k = 2, name = nm; while (S.accounts.some(function (x) { return x.name.toLowerCase() === name.toLowerCase(); })) name = nm + ' (' + k++ + ')';

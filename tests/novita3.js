@@ -28,6 +28,7 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(prev.length === 2 && prev.every(x => x.acc === '__newacc__' && /Nuovo conto «Amex»/.test(x.accTxt)), 'anteprima: proposto «➕ Nuovo conto «Amex»» per entrambi i movimenti');
   ok(/Svago/.test(prev[0].catTxt) && prev[1].cat === '__newcat__' && /Nuova «Compleanni»/.test(prev[1].catTxt), 'anteprima: cinema → «Svago» esistente; proposta la nuova categoria «Compleanni»');
   ok(/verrà creat/.test(prev[0].hint) && /Amex/.test(prev[0].hint), 'anteprima: avviso «Alla conferma verrà creato…»');
+  ok(/verranno creati il conto «Amex».* e la categoria «Compleanni»/.test(prev[1].hint), 'anteprima: «verranno creati il conto … e la categoria …» (' + prev[1].hint + ')');
   await p.click('#v-ok'); await tick(p, 500);
   const after = await p.evaluate(() => { const S = __UF.S, a = S.accounts.filter(x => x.name === 'Amex'), sv = S.cats.filter(c => c.name === 'Svago' && c.kind === 'spesa'), cp = S.cats.filter(c => c.name === 'Compleanni'); const tx = S.tx.slice(-2); return { na: a.length, type: a[0] && a[0].type, open: a[0] && a[0].openDate, opening: a[0] && a[0].opening, sv: sv.length, cp: cp.length, txAcc: tx.every(t => a[0] && t.accId === a[0].id), txCat: tx[0].catId === (sv[0] || {}).id && tx[1].catId === (cp[0] || {}).id, bal: a[0] && __UF.balance(a[0].id), toast: document.getElementById('toast').textContent, valid: __UF.validateSnap(__UF.snapState()) }; });
   ok(after.na === 1 && after.type === 'liquidita' && after.opening === 0 && after.open === '2026-11-19', 'conferma: creato UN solo conto «Amex» (liquidità, saldo 0 dal giorno del movimento)');
@@ -74,6 +75,9 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(r === null && await p.evaluate(() => /Prezzo medio/.test(document.getElementById('p-msg').textContent)), 'prezzo medio non valido: errore, nessun investimento creato');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
 
+  r = await mk('inv', 'qty', 'ETF SoloData', '1', '100', null, '2023-01-01');
+  ok(r === null && await p.evaluate(() => /prezzo medio/.test(document.getElementById('p-msg').textContent)), 'data senza prezzo medio: chiede il prezzo medio invece di ignorare la data');
+  await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
   r = await mk('inv', 'qty', 'ETF SenzaData', '10', '100', '80', '');
   ok(r === null && await p.evaluate(() => /da quando lo possiedi/.test(document.getElementById('p-msg').textContent)), 'prezzo medio senza data: chiede la data del primo acquisto');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
@@ -118,7 +122,7 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   const pr = await p.evaluate(() => { const x = __UF.S.pos.find(y => y.cgId === 'bitcoin'); return x ? __UF.pxAt(x, __UF.TODAY) : null; });
   ok(pr === 68887845971, 'prezzo salvato con precisione (68.887,845971 €)');
   const n0 = cgReq.length; await p.evaluate(() => __UF.cgFetch(false)); ok(cgReq.length === n0, 'entro un minuto nessuna nuova richiesta');
-  btc = 69100; await p.clock.runFor(76000); await tick(p, 600);
+  btc = 69100; for (let k = 0; k < 16; k++) { await p.clock.runFor(5000); await tick(p, 150); } // passi brevi: la risposta arriva prima del timeout di 10 s
   let pr2 = 0; for (let k = 0; k < 20 && pr2 !== 69100000000; k++) { await tick(p, 250); pr2 = await p.evaluate(() => { const x = __UF.S.pos.find(y => y.cgId === 'bitcoin'); return __UF.pxAt(x, __UF.TODAY); }); } // attende la risposta
   ok(cgReq.length > n0 && pr2 === 69100000000, JSON.stringify([n0, cgReq.length, pr2]) +  'dopo un minuto, con l’app aperta, il prezzo si aggiorna da solo (69.100 €)');
   // revisione: con errori (429) le richieste rallentano invece di ripetersi ogni 15 s

@@ -127,7 +127,7 @@
   var STOP = { il: 1, lo: 1, la: 1, i: 1, gli: 1, le: 1, un: 1, uno: 1, una: 1, mio: 1, mia: 1, miei: 1, mie: 1, suo: 1, sua: 1, me: 1, te: 1, lui: 1, lei: 1, noi: 1, voi: 1, loro: 1, conto: 1, carta: 1, banca: 1, bonifico: 1, euro: 1, che: 1, e: 1, ed: 1, pagare: 1, casa: 1, cena: 1, pranzo: 1 };
   var NAMEPREP = { verso: 1, della: 1, delle: 1, degli: 1, dello: 1, nella: 1, sulla: 1, dalla: 1, alla: 1, presso: 1, tra: 1, fra: 1 }; // parole dei nomi dei conti che sono preposizioni
   function accRefs(s, accounts) {
-    var out = [], cnt = {};
+    var out = [], cnt = {}, hasCC = accounts.some(function (a) { return a.type === 'liquidita' && /(^|[^a-z])(c\/c|cc|corrente)([^a-z]|$)/.test(fold(a.name)); });
     // una parola generica («banca», «carta», «risparmio») vale se un solo conto la contiene
     accounts.forEach(function (a) { fold(a.name).split(/[^a-z0-9]+/).forEach(function (w) { if (w) cnt[w] = (cnt[w] || 0) + 1; }); });
     accounts.forEach(function (a) {
@@ -139,8 +139,9 @@
         var k = keys[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), m;
         if (GENERIC[keys[i]]) { // «conto», «carta», «banca» da sole valgono solo come conto di pagamento («dal conto», «con la carta»), non «il conto del bar»
           var poss = keys[i] === 'conto' ? '' : '(?:mia |mio )?'; // «sul mio conto» è ambiguo (quale conto?): non si indovina
-          var after = '(?!\\s+(?:corrente|di|del|della|dei|degli|delle|dello)\\b)'; // «conto corrente», «carta del telefono», «conto di Marco»
+          var after = '(?!\\s+(?:' + (hasCC ? 'corrente|' : '') + 'di|del|della|dei|degli|delle|dello)\\b)'; // «conto corrente» va al conto C/C se c'è // «conto corrente», «carta del telefono», «conto di Marco»
           m = new RegExp('\\b(?:con|col|dal|dalla|da|sul|sulla|su|nel|nella|in|al|alla|a|verso)\\s+(?:(?:la|il) |l\'|una |un )?' + poss + '(' + k + ')\\b' + after).exec(s) ||
+            (keys[i] !== 'conto' ? new RegExp('(?:€|\\beuro|\\d)\\s+(' + k + ')\\s*$').exec(s) : null) || // «benzina 40 euro carta»
             new RegExp('\\bricaricat[oaie]\\s+(?:(?:la|il) |l\')?(?:mia |mio )?(' + k + ')(?=\\s*$|\\s+(?:di|da|con)\\s+(?:€|\\d)|\\s+\\d)').exec(s); // «ho ricaricato la carta (di 50 euro)», non «la carta del telefono»
           if (m) { out.push({ a: a, pos: m.index + m[0].length - m[1].length }); break; }
           continue;
@@ -163,7 +164,7 @@
   function refsOf(s, accounts) {
     var refs = accRefs(s, accounts), miss = '', missPos = -1, extra = '', sp; SPEC.lastIndex = 0;
     while ((sp = SPEC.exec(s))) {
-      var w0 = sp[3]; if (!specWord(w0)) continue;
+      var w0 = sp[3]; if (!specWord(w0) || (!BANKS.test(w0) && !accounts.some(function (a) { return accHas(a, w0); }))) continue; // solo nomi di banche/servizi noti o conti esistenti («carta ieri», «conto 1500» no)
       if (/^ricaric/.test(sp[1]) && !BANKS.test(w0) && !accounts.some(function (a) { return accHas(a, w0); })) continue; // «ricaricato la carta carburante»: non è un conto
       var at = sp.index + sp[0].length - w0.length - 1 - sp[2].length; // posizione di «conto»/«carta»
       var own = accounts.filter(function (a) { return accHas(a, w0); });
