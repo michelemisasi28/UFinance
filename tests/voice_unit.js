@@ -215,4 +215,25 @@ one('ho ricaricato la postepay di 50 euro dalla banca', x => x[0].kind === 'giro
 oneV('ho ricaricato la postepay di 50 euro dalla banca', x => x[0].kind === 'giro' && x[0].accId === 'a2' && x[0].toId === 'pp', 'ricarica della Postepay esistente');
 one('ho dato 20 euro alla carta Esselunga', x => !x[0].newFrom, '«alla carta X» fuori da un trasferimento: nessun conto creato');
 
+// Revisione 4
+['ho versato l\'affitto di 400 euro dalla banca', 'ho versato la caparra di 500 euro dalla banca', 'ho ricaricato il telefono 10 euro con la carta'].forEach(t => one(t, x => x[0].kind === 'spesa', '«' + t + '»: spesa (senza destinazione non è un giroconto)'));
+one('ho ricaricato la tessera dell\'autobus 20 euro in contanti', x => x[0].kind === 'spesa' && x[0].accId === 'a1' && x[0].catId === 'c3', 'tessera dell’autobus in contanti: spesa Trasporti dai contanti');
+['ho ricaricato la carta del telefono 10 euro', 'ho ricaricato la carta carburante 50 euro', 'ho ricaricato il conto gioco 20 euro'].forEach(t => one(t, x => x[0].kind === 'spesa' && x[0].accId !== 'a5' && x[0].accId !== 'a3', '«' + t + '»: spesa, non giroconto verso carta/conto'));
+one('ho ricaricato la carta Hype di 20 euro', x => x[0].kind === 'giro' && x[0].toId === '__newacc__' && x[0].newFrom.name === 'Hype', '«ricaricato la carta Hype» inesistente: giroconto verso il nuovo conto Hype');
+oneF('ho ricaricato la carta Hype di 20 euro dalla banca', x => x[0].kind === 'giro' && x[0].accId === 'a2' && x[0].toId === 'h1', '«ricaricato la carta Hype dalla banca»: banca → Hype');
+const ctxB = JSON.parse(JSON.stringify(ctx)); ctxB.defAcc = 'a2';
+one('ho versato 100 euro in banca', x => x[0].kind === 'giro' && x[0].toId === 'a2' && x[0].accId === 'a1' && x[0].warn.some(w => /origine/.test(w)), '«versato in banca» col conto predefinito = banca: dai contanti alla banca, con avviso');
+one('ho depositato 200 euro in banca', x => x[0].kind === 'giro' && x[0].toId === 'a2', '«depositato in banca»: giroconto, non spesa');
+one('ho versato 50 euro in contanti sul conto risparmio', x => x[0].kind === 'giro' && x[0].accId === 'a1' && x[0].toId === 'a3', '«in contanti sul conto risparmio»: dai contanti al risparmio');
+one('ho preso 20 euro di benzina con la carta e 10 euro di caffè in contanti', x => x[0].accId === 'a5' && x[1].accId === 'a1', 'benzina con la carta, caffè in contanti');
+one('ho pagato 15 euro in contanti e 10 euro con la carta', x => x[0].accId === 'a1' && x[1].accId === 'a5', '15 in contanti, 10 con la carta');
+const ctxR = JSON.parse(JSON.stringify(ctx)); ctxR.accounts.push({ id: 'a6', name: 'Risparmio vacanza', type: 'risparmio' });
+ok((r => r.length === 2 && r.every(i => i.kind === 'giro') && r[1].toId === 'a6')(V.parse('ho messo 20 euro sul conto risparmio e 30 euro sul risparmio vacanza', ctxR)), '«messo … e 30 euro sul risparmio vacanza»: entrambi versamenti', V.parse('ho messo 20 euro sul conto risparmio e 30 euro sul risparmio vacanza', ctxR));
+['ho trasferito 100 euro sul conto corrente', 'ho trasferito 100 euro al conto di Marco', 'ho trasferito 100 euro sul mio conto'].forEach(t => one(t, x => !(x[0].kind === 'giro' && x[0].toId === 'a3'), '«' + t + '»: non va sul Conto risparmio'));
+one('ho trasferito 100 euro sul conto corrente', x => x[0].toId === 'a2' || x[0].kind !== 'giro', '«sul conto corrente» → Banca C/C');
+one('ho pagato 10 euro con la Revolut e 5 euro con la carta', x => x[0].accId === '__newacc__' && x[1].accId === 'a5', 'Revolut (nuovo) e carta: ognuno il suo conto');
+one('ho girato 50 euro sui contanti', x => x[0].kind === 'giro' && x[0].toId === 'a1', '«sui contanti»: destinazione contanti');
+
+['ho trasferito 50 euro alla Postepay di mia figlia', 'ho ricaricato la postepay di mia figlia 50 euro', 'ho versato 50 euro sul conto Fineco di mio fratello'].forEach(t => one(t, x => !x[0].newFrom, '«' + t + '»: conto di un’altra persona, nessun conto tuo creato'));
+
 console.log(fails ? `\n${fails} FALLITI` : '\nTUTTI PASSATI'); process.exit(fails ? 1 : 0);

@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-03 · c9210bd2';
+window.UF_BUILD = '2026-11-03 · c82fcaf5';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -2270,7 +2270,7 @@ window.UF_BUILD = '2026-11-03 · c9210bd2';
       if (it.catId === '__newcat__' && !it.newCat) it.catId = '';
       if (it.kind === 'giro' && !it.loan && !(it.toId === '__newacc__' && it.newFrom) && (!acc(it.toId) || it.toId === it.accId)) it.toId = otherAcc(it.accId);
       if (it.loan && it.toId !== '__new__' && !acc(it.toId)) it.toId = '__new__';
-      return { k: it.loan ? 'prestito' : it.kind, amt: it.cents ? amtStr(it.cents) : '', accId: it.accId, toId: it.toId, catId: it.catId, date: it.date, note: it.note, pname: it.newAcc ? it.newAcc.name : (it.person || ''), newAccName: it.newFrom ? it.newFrom.name : '', newCatName: it.newCat ? it.newCat.name : '', newCatKind: it.newCat ? it.newCat.kind : '', accWarn: (it.warn || []).filter(function (w) { return /Conto|Contanti/.test(w); }).join(' · '), nWarn: (it.warn || []).filter(function (w) { return !/^Importo|Conto|Contanti/.test(w); }).join(' · ') };
+      return { k: it.loan ? 'prestito' : it.kind, amt: it.cents ? amtStr(it.cents) : '', accId: it.accId, toId: it.toId, catId: it.catId, date: it.date, note: it.note, pname: it.newAcc ? it.newAcc.name : (it.person || ''), newAccName: it.newFrom ? it.newFrom.name : '', newCatName: it.newCat ? it.newCat.name : '', newCatKind: it.newCat ? it.newCat.kind : '', accWarn: (it.warn || []).filter(function (w) { return /Conto|Contanti|conti/.test(w); }).join(' · '), nWarn: (it.warn || []).filter(function (w) { return !/^Importo|Conto|Contanti|conti/.test(w); }).join(' · ') };
     });
     voiceDraw();
   }
