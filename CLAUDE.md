@@ -49,9 +49,10 @@ LEGGIMI.txt, README.md
   `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` e `Claude-Session: <link della sessione>`.
 
 ## Pubblicare (procedura obbligatoria)
+**Crediti Netlify** (piano Free, 300/mese, limite rigido): ogni pubblicazione su `main` costa **15 crediti** (≈ 20 al mese); al 100% tutti i progetti vanno in pausa fino al ciclo successivo («Site not available»). Quindi: lavoro, correzioni intermedie, test e CLAUDE.md vanno **solo su `funzioni`**; su `main` **una sola pubblicazione per rilascio**, quando tutto è verificato. `netlify.toml` ha `ignore` = salta la build se `app/` non cambia (commit di soli documenti/test non costano). Il 3/11/2026 eravamo al 75% (≈15 pubblicazioni in 2 giorni). Fonti: https://www.netlify.com/pricing/ · https://docs.netlify.com/manage/accounts-and-billing/billing/billing-for-credit-based-plans/how-credits-work/
 1. `node tools/stamp.js` (cambia `sw.js` → sui telefoni compare «Aggiornamento disponibile»).
 2. `tests/esegui.sh` → tutte le suite devono passare, **compreso `aggiornamento.js`** (dati identici aggiornando dalla versione originale, dalla prima pubblicata e da quella **ora online**).
-3. Commit e `git push origin main` (+ `git push origin main:funzioni`).
+3. Commit e `git push origin main` (+ `git push origin main:funzioni`) — una volta sola per rilascio (vedi crediti sopra).
 4. Attendi che `https://ufinanceapp.netlify.app/sw.js` contenga la nuova `BUILD`, poi `SITO=<build> tests/esegui.sh` oppure `NOBADGE=1 node tests/sito_pubblicato.js <build>`.
 5. Non pubblicare su `main` codice non verificato/revisionato: per salvare lavoro in corso usa il ramo `funzioni`.
 
@@ -83,6 +84,7 @@ Conti (4 tipi, sottotipologie, data del saldo, obiettivi di risparmio) · movime
 6. Sessione 2, 3/11/2026: pubblicata `63aa3287` (schermate ferme). Richieste dell'utente: voce che crea conti/categorie mancanti, prezzo medio per investimenti già posseduti, CoinGecko impreciso (verificato: CoinGecko 68.887,85 € vs Kraken/Coinbase/Bitstamp ±20 €; il ritardo era dell'app, 15 min → ora 1 min). Sei giri di revisione (soprattutto sulla voce: trasferimenti, falsi positivi «carta igienica»/«carta ieri», banche corte N26/ING, «in contanti», «conto corrente»), tutti corretti; confronto con la versione online su ~1.160 casi frase×contesto. Build `986c5a05`.
 
 ## Lavoro aperto
+- **Crediti Netlify al 75%** il 3/11/2026: restano ≈ 5 pubblicazioni fino al rinnovo (data in Netlify → Billing). Verificare nella lista dei deploy che i commit senza modifiche ad `app/` risultino annullati («Canceled»/«Skipped»).
 - Riquadro «Powered by Netlify»: **spento** (verificato il 2/11/2026, nessun `#nl-badge-frame`).
 - **[Utente] Provare sull'iPhone** la build `986c5a05`: voce con conti/categorie nuovi, prezzo medio, prezzi cripto ogni minuto; e le schermate ferme ( nuovo/modifica conto, acquisto/vendita, categorie, ricorrenze; tastiera aperta): la tastiera iOS è stata solo simulata in Chromium. Limite noto: al primo tocco su un campo già pieno il cursore va alla posizione predefinita (secondo tocco = posizione nativa).
 - Voce: raccogliere dall'utente le frasi interpretate male e trasformarle in test + correzioni.

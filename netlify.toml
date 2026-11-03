@@ -4,6 +4,9 @@
   # Nessuna compilazione: la PWA si pubblica così com'è.
   # Il comando è esplicito per sostituire quello rimasto salvato nelle impostazioni del sito su Netlify.
   command = "echo 'Nessuna compilazione: pubblico la cartella app/'"
+  # Crediti Netlify (piano Free: 300/mese, 15 per ogni pubblicazione in produzione): se il commit non cambia app/
+  # la build viene annullata e non si pubblica nulla. https://docs.netlify.com/build/configure-builds/ignore-builds/
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF app/"
 
 # HTML, service worker e manifest vanno sempre ricontrollati: gli aggiornamenti arrivano subito.
 [[headers]]
