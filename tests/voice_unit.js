@@ -180,4 +180,17 @@ oneF('ho pagato 20 euro con ING', x => x[0].accId === 'i1' && !x[0].newFrom, '«
   .forEach(t => one(t, x => x.every(i => i.accId !== '__newacc__' && !i.newFrom), 'nessun conto inventato: «' + t + '»'));
 one('ho pagato 20 euro con il bancomat', x => x[0].warn.some(w => /Bancomat/.test(w)), '«bancomat»: resta l’avviso, nessuna creazione');
 
+// Revisione 2: giroconti con conti corti o mancanti, falsi positivi residui
+oneF('ho trasferito 300 euro dalla banca a N26', x => x[0].kind === 'giro' && x[0].accId === 'a2' && x[0].toId === 'n1', '«dalla banca a N26»: giroconto verso Carta N26');
+oneF('ho spostato 100 euro da Unicredit verso ING', x => x[0].kind === 'giro' && x[0].accId === 'u1' && x[0].toId === 'i1', '«da Unicredit verso ING»: giroconto');
+one('ho versato 50 euro sulla Revolut dalla banca', x => x[0].kind === 'giro' && x[0].accId === 'a2' && x[0].toId === '__newacc__' && x[0].newFrom.name === 'Revolut', '«versato sulla Revolut dalla banca»: giroconto verso il nuovo conto Revolut, non una spesa');
+one('ho trasferito 100 euro dalla N26 al conto risparmio', x => x[0].kind === 'giro' && x[0].accId === '__newacc__' && x[0].newFrom.name === 'N26' && x[0].toId === 'a3', '«dalla N26 al conto risparmio»: giroconto dal nuovo conto N26');
+one('ho spostato 200 euro dal conto Fineco alla banca', x => x[0].kind === 'giro' && x[0].accId === '__newacc__' && x[0].newFrom.name === 'Fineco' && x[0].toId === 'a2', '«dal conto Fineco alla banca»: giroconto dal nuovo conto Fineco');
+one('Marco mi ha ridato 20 euro sul conto Fineco', x => x[0].warn.some(w => /Fineco/.test(w)), 'restituzione su un conto inesistente: avviso, non accredito silenzioso');
+one('ho pagato 20 euro con la carta Visa', x => x[0].accId === 'a5' && !x[0].newFrom, '«carta Visa» → Carta di credito, nessun conto «Visa»');
+one('ho pagato 20 euro con la mastercard', x => !x[0].newFrom, '«mastercard»: nessun conto creato');
+one('ho prelevato 50 euro dal bancomat', x => x[0].kind === 'giro' && !x[0].warn.some(w => /Bancomat/.test(w)), '«prelevato dal bancomat»: nessun avviso fuorviante');
+['ho pagato 80 euro il conto dal dentista', 'ho pagato 12 euro conto bar'].forEach(t => one(t, x => x[0].accId !== 'a3', '«' + t + '»: non finisce sul Conto risparmio'));
+one('ho messo 100 euro sul conto risparmio', x => x.length && x[0].accId !== '__newacc__', '«sul conto risparmio» resta riconosciuto');
+
 console.log(fails ? `\n${fails} FALLITI` : '\nTUTTI PASSATI'); process.exit(fails ? 1 : 0);

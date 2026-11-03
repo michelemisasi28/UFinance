@@ -78,6 +78,27 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(r === null && await p.evaluate(() => /da quando lo possiedi/.test(document.getElementById('p-msg').textContent)), 'prezzo medio senza data: chiede la data del primo acquisto');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
 
+  // revisione 2: con un messaggio d'errore il modulo resta fermo anche su iPhone 12-14 (390×797 + safe area)
+  await p.setViewportSize({ width: 390, height: 797 }); await p.addStyleTag({ content: '.scrf{padding-bottom:46px!important}' });
+  for (const [pmc, pmd, lab] of [['80', '', 'senza data'], ['abc', '2024-01-01', 'prezzo non valido']]) {
+    await btn({ a: 'newpos' }); await btn({ a: 'pmode', d: { m: 'oggi' } }); await tick(p, 150);
+    await p.fill('#p-name', 'Prova ' + lab); await p.fill('#p-px', '100'); await p.fill('#p-qty', '1'); await p.fill('#p-pmc', pmc); if (pmd) await p.fill('#p-pmd', pmd);
+    await p.click('[data-act="savepos"]'); await tick(p, 300);
+    ok(await p.evaluate(() => { const l = __UF.L[__UF.L.length - 1].el; return document.getElementById('p-msg').textContent.length > 0 && !l.classList.contains('scrolls'); }), 'errore «' + lab + '» visibile e modulo ancora fermo a 390×797');
+    await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); });
+  }
+  await p.setViewportSize({ width: 390, height: 844 }); await p.evaluate(() => document.querySelectorAll('style').forEach(st => { if (st.textContent.includes('46px')) st.remove(); }));
+
+  // ---------- revisione 2: giroconto verso un conto nuovo ----------
+  await btn({ a: 'voice' }); await tick(p, 300);
+  await p.fill('#v-text', 'ho versato 50 euro sulla Revolut dalla banca'); await p.evaluate(() => __UF.voiceParse()); await tick(p, 300);
+  const gv = await p.evaluate(() => ({ k: document.querySelector('.vcard [data-vf="k"]').value, to: document.querySelector('.vcard [data-vf="to"]').value, nw: __UF.netWorth ? __UF.netWorth() : null }));
+  ok(gv.k === 'giro' && gv.to === '__newacc__', 'anteprima: «versato sulla Revolut dalla banca» è un giroconto verso «➕ Nuovo conto «Revolut»»');
+  await p.click('#v-ok'); await tick(p, 400);
+  const ga = await p.evaluate(() => { const r = __UF.S.accounts.find(a => a.name === 'Revolut'), t = __UF.S.tx[__UF.S.tx.length - 1]; return { ok: !!r && t.kind === 'giro' && t.toId === r.id, bal: r && __UF.balance(r.id), nw: __UF.netWorth ? __UF.netWorth() : null }; });
+  ok(ga.ok && ga.bal === 5000 && ga.nw === gv.nw, 'conferma: creato «Revolut» con +50 €, patrimonio invariato');
+  await p.click('#toast [data-act="undo"]'); await tick(p, 300);
+
   // ---------- revisione: cambio di tipo nell'anteprima vocale ----------
   await btn({ a: 'voice' }); await tick(p, 300);
   await p.fill('#v-text', 'ho pagato 20 euro categoria palestra'); await p.evaluate(() => __UF.voiceParse()); await tick(p, 300);

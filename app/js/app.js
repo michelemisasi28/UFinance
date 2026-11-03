@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-03 · c8303789';
+window.UF_BUILD = '2026-11-03 · 6f87fa51';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -1456,9 +1456,9 @@ window.UF_BUILD = '2026-11-03 · c8303789';
     } else {
       if (px === null) return err('Inserisci il prezzo di oggi.');
       var pmcRaw = g('#p-pmc') ? g('#p-pmc').value.trim() : '', pmc = pmcRaw ? parsePx(pmcRaw) : null;
-      if (pmcRaw && (pmc === null || pmc <= 0)) return err('Prezzo medio d’acquisto non valido.');
+      if (pmcRaw && (pmc === null || pmc <= 0)) return err('Prezzo medio non valido.');
       var pmd = g('#p-pmd') ? g('#p-pmd').value : '';
-      if (pmc && !pmd) return err('Con il prezzo medio indica da quando lo possiedi (anche indicativa): serve al rendimento annuo.');
+      if (pmc && !pmd) return err('Indica da quando lo possiedi (anche circa).');
       if (pmc) { var pde = dateOk(pmd, null) || (dRange(pmd) ? '' : 'Data non valida.'); if (pde) return err(pde); }
       if (st.by === 'qty') {
         var q2 = parseQty(g('#p-qty').value); if (q2 === null || q2 <= 0) return err('Quantità non valida (max 8 decimali).');
@@ -2268,7 +2268,7 @@ window.UF_BUILD = '2026-11-03 · c8303789';
     lay.st.items = UFVoice.parse(txt.slice(0, 1000), vc).slice(0, 20).map(function (it) {
       if (!acc(it.accId) && !(it.accId === '__newacc__' && it.newFrom)) it.accId = vc.defAcc;
       if (it.catId === '__newcat__' && !it.newCat) it.catId = '';
-      if (it.kind === 'giro' && !it.loan && (!acc(it.toId) || it.toId === it.accId)) it.toId = otherAcc(it.accId);
+      if (it.kind === 'giro' && !it.loan && !(it.toId === '__newacc__' && it.newFrom) && (!acc(it.toId) || it.toId === it.accId)) it.toId = otherAcc(it.accId);
       if (it.loan && it.toId !== '__new__' && !acc(it.toId)) it.toId = '__new__';
       return { k: it.loan ? 'prestito' : it.kind, amt: it.cents ? amtStr(it.cents) : '', accId: it.accId, toId: it.toId, catId: it.catId, date: it.date, note: it.note, pname: it.newAcc ? it.newAcc.name : (it.person || ''), newAccName: it.newFrom ? it.newFrom.name : '', newCatName: it.newCat ? it.newCat.name : '', newCatKind: it.newCat ? it.newCat.kind : '', accWarn: (it.warn || []).filter(function (w) { return /Conto|Contanti/.test(w); }).join(' · '), nWarn: (it.warn || []).filter(function (w) { return !/^Importo|Conto|Contanti/.test(w); }).join(' · ') };
     });
@@ -2285,11 +2285,11 @@ window.UF_BUILD = '2026-11-03 · c8303789';
       var cr = S.accounts.filter(function (a) { return a.type === 'credito'; });
       h += fld('A (credito)', '<select data-vf="to"><option value="__new__"' + (it.toId === '__new__' ? ' selected' : '') + '>➕ Nuova persona</option>' + cr.map(function (a) { return '<option value="' + a.id + '"' + (it.toId === a.id ? ' selected' : '') + '>' + esc(a.icon + ' ' + a.name) + '</option>'; }).join('') + '</select>') + '</div>';
       if (it.toId === '__new__') h += fld('Nome della persona', '<input data-vf="pname" data-in="vf" maxlength="30" autocomplete="off" value="' + esc(it.pname || '') + '" placeholder="Es. Antonio">') + '<p class="hint">Verrà creato un conto di credito: i soldi prestati restano nel tuo patrimonio finché non te li restituisce.</p>';
-    } else if (it.k === 'giro') h += fld('A', '<select data-vf="to">' + accOpts(it.toId && it.toId !== '__new__' ? it.toId : otherAcc(it.accId)) + '</select>') + '</div>';
+    } else if (it.k === 'giro') h += fld('A', '<select data-vf="to">' + (it.newAccName ? '<option value="__newacc__"' + (it.toId === '__newacc__' ? ' selected' : '') + '>➕ Nuovo conto «' + esc(it.newAccName) + '»</option>' : '') + accOpts(it.toId && it.toId !== '__new__' && it.toId !== '__newacc__' ? it.toId : (it.toId === '__newacc__' ? '' : otherAcc(it.accId))) + '</select>') + '</div>';
     else h += fld('Categoria', '<select data-vf="cat">' + (it.newCatName && it.k === it.newCatKind ? '<option value="__newcat__"' + (it.catId === '__newcat__' ? ' selected' : '') + '>➕ Nuova «' + esc(it.newCatName) + '»</option>' : '') + '<option value=""' + (it.catId ? '' : ' selected') + '>Senza categoria</option>' + cats.map(function (c) { return '<option value="' + c.id + '"' + (c.id === it.catId ? ' selected' : '') + '>' + esc(c.icon + ' ' + c.name) + '</option>'; }).join('') + '</select>') + '</div>';
     h += '<div class="fgrid">' + fld('Data', '<input type="date" data-vf="date" max="' + TODAY + '" value="' + it.date + '">') + fld('Nota', '<input data-vf="note" data-in="vf" maxlength="60" autocomplete="off" value="' + esc(it.note || '') + '">') + '</div>';
     var mk = [];
-    if (it.accId === '__newacc__') mk.push('il conto «' + it.newAccName + '» (liquidità, saldo iniziale 0)');
+    if (it.accId === '__newacc__' || (it.k === 'giro' && it.toId === '__newacc__')) mk.push('il conto «' + it.newAccName + '» (liquidità, saldo iniziale 0)');
     if (it.catId === '__newcat__' && it.k === it.newCatKind) mk.push('la categoria «' + it.newCatName + '»');
     if (mk.length) h += '<p class="hint vnew">➕ Alla conferma verrà creat' + (mk.length > 1 ? 'i ' : (it.accId === '__newacc__' ? 'o ' : 'a ')) + esc(mk.join(' e ')) + '. Puoi sceglierne un altro dal menu.</p>';
     var w = []; if (amtBad) w.push('Importo da inserire'); if (it.accWarn) w.push(it.accWarn); if (it.nWarn && it.k === 'prestito' && it.toId === '__new__') w.push(it.nWarn); // solo se c'è il campo del nome
@@ -2334,7 +2334,7 @@ window.UF_BUILD = '2026-11-03 · c8303789';
       if (d < a.openDate) return errs.push(lab + 'data prima del saldo iniziale di «' + a.name + '»');
       if (it.k === 'giro' || it.k === 'prestito') {
         if (it.k === 'prestito' && it.toId === '__new__') { if (!(it.pname || '').trim()) errs.push(lab + 'nome della persona'); return; }
-        var b = acc(it.toId); if (!b || b.id === a.id) return errs.push(lab + 'scegli due conti diversi');
+        var b = it.toId === '__newacc__' && it.newAccName ? { id: '__newacc__', name: it.newAccName, openDate: d } : acc(it.toId); if (!b || b.id === a.id) return errs.push(lab + 'scegli due conti diversi');
         if (d < b.openDate) return errs.push(lab + 'data prima del saldo iniziale di «' + b.name + '»');
       }
     });
@@ -2342,20 +2342,23 @@ window.UF_BUILD = '2026-11-03 · c8303789';
     var snap = snapAll(), catSnap = JSON.parse(JSON.stringify(S.cats)), last = null, made = [];
     // conti e categorie proposti dalla voce: creati una volta sola (anche se usati da più movimenti)
     var newAccs = {}, newCats = {};
-    items.forEach(function (it) {
-      if (it.accId === '__newacc__' && it.newAccName) {
-        var key = it.newAccName.trim().toLowerCase(), ex = S.accounts.filter(function (x) { return x.type !== 'credito' && x.name.toLowerCase() === key; })[0];
-        if (!newAccs[key]) {
-          if (ex) newAccs[key] = ex;
-          else {
-            var nm = it.newAccName.trim().slice(0, 30), k = 2, name = nm; while (S.accounts.some(function (x) { return x.name.toLowerCase() === name.toLowerCase(); })) name = nm + ' (' + k++ + ')';
-            var sb = subsOf('liquidita')[0], od = items.filter(function (y) { return y.accId === '__newacc__' && y.newAccName.trim().toLowerCase() === key; }).map(function (y) { return y.date; }).sort()[0];
-            newAccs[key] = { id: uid('a'), name: name, type: 'liquidita', sub: sb ? sb.id : '', icon: ICONS[3], color: COLORS[0], opening: 0, openDate: od };
-            S.accounts.push(newAccs[key]); made.push('conto «' + name + '»');
-          }
+    function newAccFor(it) {
+      var key = it.newAccName.trim().toLowerCase();
+      if (!newAccs[key]) {
+        var ex = S.accounts.filter(function (x) { return x.type !== 'credito' && x.name.toLowerCase() === key; })[0];
+        if (ex) newAccs[key] = ex;
+        else {
+          var nm = it.newAccName.trim().slice(0, 30), k = 2, name = nm; while (S.accounts.some(function (x) { return x.name.toLowerCase() === name.toLowerCase(); })) name = nm + ' (' + k++ + ')';
+          var sb = subsOf('liquidita')[0], od = items.filter(function (y) { return y.newAccName && y.newAccName.trim().toLowerCase() === key && (y.accId === '__newacc__' || ((y.k === 'giro') && y.toId === '__newacc__')); }).map(function (y) { return y.date; }).sort()[0];
+          newAccs[key] = { id: uid('a'), name: name, type: 'liquidita', sub: sb ? sb.id : '', icon: ICONS[3], color: COLORS[0], opening: 0, openDate: od };
+          S.accounts.push(newAccs[key]); made.push('conto «' + name + '»');
         }
-        it.accId = newAccs[key].id;
       }
+      return newAccs[key].id;
+    }
+    items.forEach(function (it) {
+      if (it.accId === '__newacc__' && it.newAccName) it.accId = newAccFor(it);
+      if (it.k === 'giro' && it.toId === '__newacc__' && it.newAccName) it.toId = newAccFor(it);
       if (it.catId === '__newcat__' && it.newCatName && it.k === it.newCatKind) {
         var ck = it.k + '|' + it.newCatName.trim().toLowerCase(), cx = S.cats.filter(function (x) { return x.kind === it.k && x.name.toLowerCase() === it.newCatName.trim().toLowerCase(); })[0];
         if (!newCats[ck]) {
