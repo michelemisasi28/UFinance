@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-03 · ee5761e1';
+window.UF_BUILD = '2026-11-03 · 986c5a05';
 (function () {
   'use strict';
   /* ================= utilità ================= */

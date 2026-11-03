@@ -140,10 +140,10 @@
         if (GENERIC[keys[i]]) { // «conto», «carta», «banca» da sole valgono solo come conto di pagamento («dal conto», «con la carta»), non «il conto del bar»
           var poss = keys[i] === 'conto' ? '' : '(?:mia |mio )?'; // «sul mio conto» è ambiguo (quale conto?): non si indovina
           var after = '(?!\\s+(?:' + (hasCC ? 'corrente|' : '') + 'di|del|della|dei|degli|delle|dello)\\b)'; // «conto corrente» va al conto C/C se c'è // «conto corrente», «carta del telefono», «conto di Marco»
-          m = new RegExp('\\b(?:con|col|dal|dalla|da|sul|sulla|su|nel|nella|in|al|alla|a|verso)\\s+(?:(?:la|il) |l\'|una |un )?' + poss + '(' + k + ')\\b' + after).exec(s) ||
-            (keys[i] !== 'conto' ? new RegExp('(?:€|\\beuro|\\d)\\s+(' + k + ')\\s*$').exec(s) : null) || // «benzina 40 euro carta»
+          var mEnd = keys[i] !== 'conto' ? new RegExp('(?:€|\\d|\\b(?!(?:di|del|della|dello|la|il|lo|una|un|le|mia|mio|tua|sua|in)\\b)[a-z]+)\\s+(' + k + ')\\s*$').exec(s) : null;
+          m = new RegExp('\\b(?:con|col|dal|dalla|da|sul|sulla|su|nel|nella|in|al|alla|a|verso)\\s+(?:(?:la|il) |l\'|una |un )?' + poss + '(' + k + ')\\b' + after).exec(s) || mEnd || // «benzina 40 euro carta»
             new RegExp('\\bricaricat[oaie]\\s+(?:(?:la|il) |l\')?(?:mia |mio )?(' + k + ')(?=\\s*$|\\s+(?:di|da|con)\\s+(?:€|\\d)|\\s+\\d)').exec(s); // «ho ricaricato la carta (di 50 euro)», non «la carta del telefono»
-          if (m) { out.push({ a: a, pos: m.index + m[0].length - m[1].length }); break; }
+          if (m) { out.push({ a: a, pos: m.index + m[0].length - m[1].length, end: m === mEnd }); break; }
           continue;
         }
         m = new RegExp('\\b' + k + '\\b').exec(s);
@@ -270,7 +270,7 @@
       if (!hasDate(s) && shared !== today) it.date = shared; // data detta una volta per tutta la frase
       var rs = refsOf(s, accounts), refs = rs.refs, from = null, to = null, specMiss = rs.miss, specDir = rs.dir;
       var toViaA = false, fromPrep = '', XV = /\b(trasferit|spostat|girat|versat|ricaricat)/.test(s); // nei trasferimenti «da X» è l'origine, l'altro conto la destinazione // destinazione detta con «a / al / alla / verso» (chi riceve), non «su / sul» (dove si addebita)
-      refs.forEach(function (r) { var p = prepBefore(s, r.pos); if (/contant/.test(fold(r.a.name)) && /\bin\s+$/.test(s.slice(Math.max(0, r.pos - 4), r.pos))) p = 'from'; /* «in contanti» = come si paga */ if (p === 'to' && !to) { to = r.a; toViaA = /\b(a|ad|al|alla|allo|ai|verso)\s+(?:(?:la|il) |l'|una |un )?(?:mia |mio )?$/.test(s.slice(Math.max(0, r.pos - 16), r.pos)); } else if (p === 'from' && !from) { from = r.a; fromPrep = p; } else if (p === 'from' && fromPrep === '' && !to && XV) { to = from; from = r.a; fromPrep = p; } else if (!from) { from = r.a; fromPrep = p; } else if (!to) to = r.a; });
+      refs.forEach(function (r) { var p = prepBefore(s, r.pos); if (/contant/.test(fold(r.a.name)) && /\bin\s+$/.test(s.slice(Math.max(0, r.pos - 4), r.pos))) p = 'from'; /* «in contanti» = come si paga */ if (!p && r.end) p = 'from'; /* «40 euro carta» = come si paga */ if (p === 'to' && !to) { to = r.a; toViaA = /\b(a|ad|al|alla|allo|ai|verso)\s+(?:(?:la|il) |l'|una |un )?(?:mia |mio )?$/.test(s.slice(Math.max(0, r.pos - 16), r.pos)); } else if (p === 'from' && !from) { from = r.a; fromPrep = p; } else if (p === 'from' && fromPrep === '' && !to && XV) { to = from; from = r.a; fromPrep = p; } else if (!from) { from = r.a; fromPrep = p; } else if (!to) to = r.a; });
       if (parent !== s) { // conto detto una volta per più importi («… e 15 euro di pizza con la carta»); mai un credito
         var pf = null, rp = refsOf(parent, accounts); if (!specMiss && !refs.length) { specMiss = rp.miss; specDir = rp.dir; } rp.refs.forEach(function (r) { if (r.a.type !== 'credito' && prepBefore(parent, r.pos) !== 'to' && !pf) pf = r.a; });
         var ownBank = false, ob = /\b(?:dalla|dal|da|con)\s+(?:(?:la|il) |l'|una |un )?(?:mia |mio )?([a-z0-9]+)\b/g, obm; while ((obm = ob.exec(s))) if (BANKS.test(obm[1]) && !NOCREATE[obm[1]]) ownBank = true;

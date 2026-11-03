@@ -243,4 +243,10 @@ const ctxI = { today: '2026-11-20', defAcc: 'a1', accounts: [{ id: 'a1', name: '
 ['stipendio 1500 euro sul conto corrente', 'ho pagato 20 euro con il conto corrente'].forEach(t => { const x = V.parse(t, ctxI); ok(x[0].accId === 'ci', '«' + t + '» → Conto Intesa (unico «conto»)', x); });
 ['benzina 40 euro carta', 'caffè 2 euro carta'].forEach(t => one(t, x => x[0].accId === 'a5', '«' + t + '» → Carta di credito'));
 
+// Verifica finale: «… carta/banca» a fine frase = come si paga
+one('ho ricaricato il telefono 10 euro carta', x => x[0].kind === 'spesa' && x[0].accId === 'a5', '«ricaricato il telefono 10 euro carta»: spesa dalla carta');
+one('ho ricaricato Satispay 20 euro carta', x => x[0].kind === 'giro' ? x[0].accId === 'a5' : x[0].accId === 'a5', '«ricaricato Satispay 20 euro carta»: i soldi escono dalla carta');
+['ho speso 20 euro al bar carta', 'ho pagato 30 euro la cena carta', 'ho prestato 20 euro a Marco carta'].forEach(t => one(t, x => x[0].accId === 'a5', '«' + t + '» → carta'));
+one('ho pagato 20 euro al bar banca', x => x[0].accId === 'a2', '«… al bar banca» → banca');
+
 console.log(fails ? `\n${fails} FALLITI` : '\nTUTTI PASSATI'); process.exit(fails ? 1 : 0);
