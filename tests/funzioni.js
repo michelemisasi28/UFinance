@@ -61,6 +61,8 @@ const tick = (p, ms = 200) => p.waitForTimeout(ms);
 
   // ---------- obiettivi ----------
   await p.click('[data-tab="conti"]'); await p.click('[data-act="acc"][data-id="a6"]'); await p.click('.layer [data-act="accedit"]'); await tick(p);
+  ok(await p.isVisible('[data-act="agoal"]') && !(await p.isVisible('#af-goal')), 'obiettivo: si apre con «+ Obiettivo di risparmio»');
+  await p.click('[data-act="agoal"]'); await tick(p, 100);
   ok(await p.isVisible('#af-goal'), 'obiettivo disponibile per un conto di risparmio');
   await p.fill('#af-gc', '1500'); await p.fill('#af-gd', '2027-06-30'); await p.click('[data-act="saveacc"]'); await tick(p, 600);
   const g = await p.evaluate(() => { const a = __UF.S.accounts.find(a => a.id === 'a6'); const x = __UF.goalInfo(a); return { bal: x.bal, left: x.left, per: x.per, months: x.months }; });

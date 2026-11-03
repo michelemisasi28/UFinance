@@ -84,6 +84,7 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok((await hdr()) === h0, 'tastiera aperta: l’intestazione non si è mossa');
   ok(await p.evaluate(() => __UF.L[0].el.querySelector('.scrf .btn').getBoundingClientRect().bottom <= 450), 'tastiera aperta: il pulsante «Crea conto» resta sopra la tastiera');
   ok(await p.evaluate(() => document.documentElement.classList.contains('kb')), 'stato «tastiera aperta» riconosciuto');
+  await p.evaluate(() => { const b = document.querySelector('[data-act="agoal"]'); if (b && !b.hidden) __UF.act('agoal', b); document.activeElement && document.activeElement.blur(); });
   await p.focus('#af-gc'); await tick(p, 500);
   const vis = await p.evaluate(() => { const r = document.getElementById('af-gc').getBoundingClientRect(), s = __UF.L[0].el.querySelector('.scrb').getBoundingClientRect(); return r.top >= s.top && r.bottom <= 450; });
   ok(vis, 'il campo «Importo da raggiungere» viene portato in vista sopra la tastiera');
@@ -181,24 +182,53 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
 
   // ---- Tutte le schermate dei moduli stanno nello schermo e sono ferme (390×844) ----
-  const forms = await p.evaluate(async () => {
+  const checkForms = () => p.evaluate(async () => {
     const U = __UF, btn = o => { const b = document.createElement('button'); Object.assign(b.dataset, o || {}); return b; }, out = [];
     const pos = U.S.pos[0], a0 = U.S.accounts[0], rule = U.S.rules.find(r => r.type !== 'pac');
-    const cases = [['nuovo conto', 'newacc', {}], ['modifica conto', 'accedit', { id: a0.id }], ['nuovo investimento', 'newpos', {}], ['acquisto', 'lotnew', { id: pos.id, dir: 'buy' }], ['vendita', 'lotnew', { id: pos.id, dir: 'sell' }], ['modifica acquisto', 'lotedit', { pos: pos.id, id: pos.lots[0].id }], ['aggiorna valore', 'pricenew', { id: pos.id }], ['nuova categoria', 'newcatm', { k: 'spesa' }], ['modifica categoria', 'editcat', { id: U.S.cats[0].id }], ['elimina conto', 'delaccopen', { id: a0.id }], ['elimina investimento', 'delposopen', { id: pos.id }], ['nuovo PAC', 'pacnew', { id: pos.id }], ['nuovo movimento', 'add', {}]].concat(rule ? [['modifica ricorrenza', 'ruleopen', { id: rule.id }]] : []);
-    for (const [lab, a, d] of cases) {
-      U.act(a, btn(d)); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const risp = U.S.accounts.find(a => a.type === 'risparmio');
+    const cases = [['nuovo conto', 'newacc', {}], ['conto risparmio con obiettivo', 'accedit', { id: risp.id }, 'agoal'], ['modifica conto', 'accedit', { id: a0.id }], ['nuovo investimento', 'newpos', {}], ['acquisto', 'lotnew', { id: pos.id, dir: 'buy' }], ['vendita', 'lotnew', { id: pos.id, dir: 'sell' }], ['modifica acquisto', 'lotedit', { pos: pos.id, id: pos.lots[0].id }], ['aggiorna valore', 'pricenew', { id: pos.id }], ['nuova categoria', 'newcatm', { k: 'spesa' }], ['modifica categoria', 'editcat', { id: U.S.cats[0].id }], ['elimina conto', 'delaccopen', { id: a0.id }], ['elimina investimento', 'delposopen', { id: pos.id }], ['nuovo PAC', 'pacnew', { id: pos.id }], ['nuovo movimento', 'add', {}]].concat(rule ? [['modifica ricorrenza', 'ruleopen', { id: rule.id }]] : []);
+    for (const [lab, a, d, then] of cases) {
+      U.act(a, btn(d)); if (then) U.act(then, btn()); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       const l = U.L[U.L.length - 1].el; out.push([lab, !l.classList.contains('scrolls') && getComputedStyle(l).touchAction === 'none']);
       while (U.L.length) U.act('close', btn());
     }
     return out;
   });
-  const bad = forms.filter(f => !f[1]).map(f => f[0]);
-  ok(!bad.length, 'tutte le schermate dei moduli sono ferme (' + forms.length + ' controllate)' + (bad.length ? ' — non ferme: ' + bad.join(', ') : ''));
+  for (const [w, h, safe] of [[390, 844, 0], [390, 797, 34], [375, 768, 34], [430, 885, 34]]) {
+    await p.setViewportSize({ width: w, height: h });
+    // safe area di iPhone (barra in basso): Chromium la considera 0, qui la si simula
+    await p.evaluate(sf => { let st = document.getElementById('__safe'); if (!st) { st = document.createElement('style'); st.id = '__safe'; document.head.appendChild(st); } st.textContent = sf ? '.scrf{padding-bottom:' + (12 + sf) + 'px!important} .panel{padding-bottom:' + (20 + sf) + 'px!important}' : ''; }, safe);
+    await tick(p, 200);
+    const forms = await checkForms();
+    const bad = forms.filter(f => !f[1]).map(f => f[0]);
+    ok(!bad.length, w + '×' + h + (safe ? ' (con safe area)' : '') + ': tutte le schermate dei moduli sono ferme (' + forms.length + ' controllate)' + (bad.length ? ' — non ferme: ' + bad.join(', ') : ''));
+  }
+  await p.setViewportSize({ width: 390, height: 844 }); await p.evaluate(() => document.getElementById('__safe').textContent = ''); await tick(p, 200);
   // le liste lunghe scorrono, ma senza rimbalzo
   await p.evaluate(() => __UF.act('txlist', document.createElement('button'))); await tick(p, 300);
   ok(await p.evaluate(() => { const l = __UF.L[0].el; return l.classList.contains('scrolls') && getComputedStyle(l).touchAction !== 'none' && getComputedStyle(l.querySelector('.scrb')).overscrollBehaviorY === 'none'; }), 'elenco movimenti: scorre (è una lista lunga) ma senza rimbalzo');
   ok(!(await drag(200, 600, 300)), 'elenco movimenti: il dito fa scorrere la lista');
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
+
+  // ---- Revisione: a schermo basso restano visibili gli avvisi importanti ----
+  await p.setViewportSize({ width: 375, height: 667 }); await tick(p, 200);
+  await p.evaluate(() => { const b = document.createElement('button'); b.dataset.id = __UF.S.accounts[0].id; __UF.act('accedit', b); }); await tick(p, 300);
+  ok(await p.evaluate(() => { const e = document.getElementById('af-eff'); return !!e && getComputedStyle(e).display !== 'none' && /Saldo attuale/.test(e.textContent); }), '375×667: in Modifica conto resta visibile «Saldo attuale … →»');
+  await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); const b = document.createElement('button'); b.dataset.id = __UF.S.accounts[0].id; __UF.act('delaccopen', b); }); await tick(p, 300);
+  ok(await p.evaluate(() => [...__UF.L[0].el.querySelectorAll('.hint')].every(h => getComputedStyle(h).display !== 'none')), '375×667: in Elimina conto restano visibili i riepiloghi');
+  await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 200);
+  await p.setViewportSize({ width: 390, height: 844 }); await tick(p, 200);
+  // ---- Revisione: trascinamento verticale su una riga che scorre solo in orizzontale ----
+  const ax = await p.evaluate(() => {
+    const L = document.createElement('div'); L.className = 'layer screen'; L.innerHTML = '<div class="scr"><div class="scrb"><div class="chips" id="__ch">' + '<button class="chip">Conto lungo</button>'.repeat(12) + '</div></div></div>';
+    document.body.appendChild(L); __UF.L.push({ el: L, kind: 'screen', name: '__t', st: {} });
+    const ch = document.getElementById('__ch'), t = ch.firstChild, r = t.getBoundingClientRect(), x = r.left + 10, y = r.top + 10;
+    const T = (cx, cy) => new Touch({ identifier: 9, target: t, clientX: cx, clientY: cy });
+    const go = (dx, dy) => { t.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, cancelable: true, touches: [T(x, y)], changedTouches: [T(x, y)] })); const ev = new TouchEvent('touchmove', { bubbles: true, cancelable: true, touches: [T(x + dx, y + dy)], changedTouches: [T(x + dx, y + dy)] }); t.dispatchEvent(ev); t.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [], changedTouches: [T(x, y)] })); return ev.defaultPrevented; };
+    const res = { vert: go(1, 20), hor: go(-20, 1) };
+    __UF.L.pop(); L.remove(); return res;
+  });
+  ok(ax.vert === true && ax.hor === false, 'riga di chip: il trascinamento verticale è bloccato, quello orizzontale fa scorrere la riga (' + JSON.stringify(ax) + ')');
 
   ok(!errs.length, 'nessun errore JavaScript' + (errs.length ? ': ' + errs.join(' | ') : ''));
   await b.close();

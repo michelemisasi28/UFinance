@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-02 · c29bd0f2';
+window.UF_BUILD = '2026-11-03 · 63aa3287';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -921,18 +921,19 @@ window.UF_BUILD = '2026-11-02 · c29bd0f2';
   }
   function openAccForm(id) {
     var a = id ? acc(id) : null;
-    var st = { id: id || null, type: a ? a.type : 'liquidita', sub: a ? (a.sub || '') : ((subsOf('liquidita')[0] || {}).id || ''), icon: a ? a.icon : ICONS[3], col: a ? a.color : COLORS[0], n: a ? accTxCount(id) : 0 };
+    var st = { id: id || null, type: a ? a.type : 'liquidita', sub: a ? (a.sub || '') : ((subsOf('liquidita')[0] || {}).id || ''), icon: a ? a.icon : ICONS[3], col: a ? a.color : COLORS[0], n: a ? accTxCount(id) : 0, goalOn: !!(a && a.goal) };
     var html = scrHead(a ? 'Modifica conto' : 'Nuovo conto', false) +
-      '<div class="scrb pform"><button type="button" class="card prev pickico" id="af-prev" data-act="aicopen" aria-label="Cambia icona e colore"></button>' +
+      '<div class="scrb pform"><button type="button" class="card prev pickico" id="af-prev" data-act="aicopen"></button>' +
       '<div class="fld"><label for="af-name">Nome</label><input id="af-name" maxlength="30" autocomplete="off" data-in="accname" placeholder="Es. Conto Revolut" value="' + esc(a ? a.name : '') + '"></div>' +
-      '<div class="fld"><span class="lab">Tipo</span><div class="wrapchips" id="af-types"></div></div>' +
-      '<div class="fld"><span class="lab">Sottotipologia</span><div class="wrapchips" id="af-subs"></div></div>' +
+      '<div class="fld"><span class="lab">Tipo</span><div class="seg s4" role="radiogroup" aria-label="Tipo" id="af-types"></div></div>' +
+      '<div class="fld"><label for="af-sub">Sottotipologia</label><select id="af-sub" data-chg="asub"></select></div>' +
       '<div class="fld"><div class="fgrid">' +
       fld('<span id="af-ol">Saldo iniziale</span>', '<input id="af-open" inputmode="decimal" autocomplete="off" data-in="accopen" placeholder="0,00" value="' + (a && a.opening !== 0 ? amtStr(Math.abs(a.opening)) : '') + '">', 'af-open') +
       fld('Data del saldo', '<input type="date" id="af-date" max="' + TODAY + '" value="' + (a ? a.openDate : TODAY) + '">', 'af-date') + '</div>' +
       (a ? '<p class="hint" id="af-eff"></p>' : '<p class="hint">Il saldo all’inizio di quel giorno: potrai registrare movimenti da quella data in poi.</p>') + '</div>' +
+      '<button type="button" class="lnk" id="af-goaladd" data-act="agoal">+ Obiettivo di risparmio</button>' +
       '<div class="fld" id="af-goal"><span class="lab">Obiettivo di risparmio <span class="opt">facoltativo</span></span><div class="fgrid">' +
-      fld('Importo', '<input id="af-gc" inputmode="decimal" autocomplete="off" placeholder="Importo" value="' + (a && a.goal ? amtStr(a.goal.cents) : '') + '">', 'af-gc') +
+      fld('Importo', '<input id="af-gc" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + (a && a.goal ? amtStr(a.goal.cents) : '') + '">', 'af-gc') +
       fld('Entro il', '<input type="date" id="af-gd" min="' + TODAY + '" value="' + (a && a.goal ? a.goal.date || '' : '') + '">', 'af-gd') + '</div></div></div>' +
       '<div class="scrf"><p class="msg" id="af-msg" role="alert"></p>' + (a ? '<div class="btnrow"><button class="btn danger" data-act="delaccopen" data-id="' + a.id + '">Elimina…</button><button class="btn" data-act="saveacc">Salva</button></div>' : '<button class="btn" data-act="saveacc">Crea conto</button>') + '</div>';
     pushLayer('screen', 'acc', html, st, { refresh: syncAcc });
@@ -943,18 +944,18 @@ window.UF_BUILD = '2026-11-02 · c29bd0f2';
     var st = lay.st, el = lay.el, a = st.id ? acc(st.id) : null, al = allowedTypes(a);
     var nm = el.querySelector('#af-name').value.trim(), sb = sub(st.sub);
     el.querySelector('#af-prev').innerHTML = '<span class="ico" style="--c:' + st.col + '">' + st.icon + '</span><span class="mid"><span class="nm">' + esc(nm || 'Nome del conto') + '</span><span class="sb">' + TYPES[st.type] + (sb ? ' · ' + esc(sb.name) : '') + '</span></span><span class="chg">Icona ›</span>';
-    el.querySelector('#af-types').innerHTML = TYPE_ORDER.map(function (t) { return '<button type="button" class="chip ' + (st.type === t ? 'on' : '') + '" data-act="atype" data-t="' + t + '"' + (al.indexOf(t) < 0 ? ' disabled' : '') + '>' + TYPE_ICON[t] + ' ' + TYPES[t] + '</button>'; }).join('');
-    el.querySelector('#af-subs').innerHTML = '<button type="button" class="chip ' + (st.sub === '' ? 'on' : '') + '" data-act="asub" data-id="">Nessuna</button>' +
-      subsOf(st.type).map(function (s) { return '<button type="button" class="chip ' + (st.sub === s.id ? 'on' : '') + '" data-act="asub" data-id="' + s.id + '">' + esc(s.name) + '</button>'; }).join('') +
-      '<button type="button" class="chip add" data-act="newsubacc">+ Nuova</button>';
+    el.querySelector('#af-types').innerHTML = TYPE_ORDER.map(function (t) { return '<button type="button" role="radio" aria-checked="' + (st.type === t) + '" class="' + (st.type === t ? 'on' : '') + '" data-act="atype" data-t="' + t + '"' + (al.indexOf(t) < 0 ? ' disabled' : '') + '>' + TYPES[t] + '</button>'; }).join('');
+    el.querySelector('#af-sub').innerHTML = '<option value="">Nessuna</option>' + subsOf(st.type).map(function (s) { return '<option value="' + s.id + '"' + (st.sub === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '<option value="+">+ Nuova sottotipologia…</option>';
+    el.querySelector('#af-sub').value = st.sub;
     icoMark();
     var ol = el.querySelector('#af-ol'); if (ol) ol.textContent = st.type === 'debito' ? 'Importo del debito' : 'Saldo iniziale';
-    el.querySelector('#af-goal').hidden = !goalOk(st.type);
+    el.querySelector('#af-goal').hidden = !goalOk(st.type) || !st.goalOn;
+    el.querySelector('#af-goaladd').hidden = !goalOk(st.type) || st.goalOn;
     var ef = el.querySelector('#af-eff');
     if (ef && a) {
       var raw = el.querySelector('#af-open').value.trim(), c = raw === '' ? 0 : parseCents(raw);
       if (c === null || (st.type !== 'debito' && c < 0)) ef.textContent = 'Importo non valido.';
-      else { var no = st.type === 'debito' ? -Math.abs(c) : c; ef.textContent = 'Saldo attuale ' + money(balance(a.id)) + ' → ' + money(balance(a.id) - a.opening + no) + '. Cambia anche lo storico: per allinearti al saldo reale usa «Correggi saldo».'; }
+      else { var no = st.type === 'debito' ? -Math.abs(c) : c; ef.textContent = 'Saldo attuale ' + money(balance(a.id)) + ' → ' + money(balance(a.id) - a.opening + no) + ' (cambia lo storico; per allinearti usa «Correggi saldo»)'; }
     }
   }
   function saveAcc() {
@@ -1042,7 +1043,7 @@ window.UF_BUILD = '2026-11-02 · c29bd0f2';
     var c = o.id ? cat(o.id) : null, kind = c ? c.kind : o.kind;
     var st = { id: o.id || null, kind: kind, icon: c ? c.icon : ICONS[19], fromAdd: !!o.fromAdd, n: c ? S.tx.filter(function (t) { return t.catId === c.id; }).length + S.rules.filter(function (r) { return r.catId === c.id; }).length : 0 };
     var html = scrHead(c ? 'Modifica categoria' : (kind === 'spesa' ? 'Nuova categoria di spesa' : 'Nuova categoria di entrata'), !!o.back) +
-      '<div class="scrb pform"><button type="button" class="card prev pickico" id="cf-prev" data-act="cicopen" aria-label="Cambia icona"></button>' +
+      '<div class="scrb pform"><button type="button" class="card prev pickico" id="cf-prev" data-act="cicopen"></button>' +
       '<div class="fld"><label for="cf-name">Nome</label><input id="cf-name" maxlength="24" autocomplete="off" data-in="catname" placeholder="Es. Palestra" value="' + esc(c ? c.name : '') + '"></div>' +
       (kind === 'spesa' ? '<div class="fld"><label for="cf-bud">Budget mensile <span class="opt">facoltativo</span></label><input id="cf-bud" inputmode="decimal" autocomplete="off" placeholder="Nessun limite" value="' + (c && c.budget > 0 ? amtStr(c.budget) : '') + '"></div>' : '') +
       '</div>' +
@@ -1153,7 +1154,7 @@ window.UF_BUILD = '2026-11-02 · c29bd0f2';
   }
   function openDelAcc(id) {
     var a = acc(id); if (!a) return;
-    var html = scrHead('Elimina conto', true) + '<div class="scrb pform"><div class="card prev"><span class="ico" style="--c:' + a.color + '">' + a.icon + '</span><span class="mid"><span class="nm">' + esc(a.name) + '</span><span class="sb" id="dl-sub"></span></span></div>' +
+    var html = scrHead('Elimina conto', true) + '<div class="scrb"><div class="card prev"><span class="ico" style="--c:' + a.color + '">' + a.icon + '</span><span class="mid"><span class="nm">' + esc(a.name) + '</span><span class="sb" id="dl-sub"></span></span></div>' +
       '<div class="fld"><span class="lab">Movimenti</span><div class="optl" id="dl-opts"></div></div>' +
       '<div class="card" id="dl-imp"></div></div>' +
       '<div class="scrf"><p class="msg" id="dl-msg" role="alert"></p><button class="btn danger" id="dl-go" data-act="delaccgo"></button></div>';
@@ -1569,7 +1570,7 @@ window.UF_BUILD = '2026-11-02 · c29bd0f2';
   }
   function openDelPos(id) {
     var p = posById(id); if (!p) return;
-    pushLayer('screen', 'delpos', scrHead('Elimina investimento', true) + '<div class="scrb pform"><div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb" id="dp-sub"></span></span></div><div class="fld"><span class="lab">Addebiti sui conti</span><div class="optl" id="dp-opts"></div></div><div class="card" id="dp-imp"></div></div>' +
+    pushLayer('screen', 'delpos', scrHead('Elimina investimento', true) + '<div class="scrb"><div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb" id="dp-sub"></span></span></div><div class="fld"><span class="lab">Addebiti sui conti</span><div class="optl" id="dp-opts"></div></div><div class="card" id="dp-imp"></div></div>' +
       '<div class="scrf"><button class="btn danger" id="dp-go" data-act="delposgo"></button></div>', { id: id, mode: 'keep' }, { refresh: syncDelPos });
     syncDelPos();
   }
@@ -1653,7 +1654,7 @@ window.UF_BUILD = '2026-11-02 · c29bd0f2';
         fld('Addebito su', '<select id="r-acc">' + accOpts(r.accId) + '</select>', 'r-acc') +
         '<div class="fgrid">' + fld('Fino al (opz.)', '<input type="date" id="r-end" value="' + (r.end || '') + '">', 'r-end') +
         fld('Stato', '<select id="r-act"><option value="1"' + (r.active ? ' selected' : '') + '>Attivo</option><option value="0"' + (r.active ? '' : ' selected') + '>In pausa</option></select>', 'r-act') + '</div></div>' +
-        '<div class="scrf"><p class="msg" id="r-msg" role="alert"></p><div class="btnrow"><button class="btn" data-act="saverule">Salva</button><button class="btn danger" data-act="delrule">Elimina</button></div></div>';
+        '<div class="scrf"><p class="msg" id="r-msg" role="alert"></p><div class="btnrow"><button class="btn danger" data-act="delrule">Elimina</button><button class="btn" data-act="saverule">Salva</button></div></div>';
       pushLayer('screen', 'ruleform', html, { id: id }).el.classList.add('fixed');
       return;
     }
@@ -1665,7 +1666,7 @@ window.UF_BUILD = '2026-11-02 · c29bd0f2';
       '</div>' + fld('Nota', '<input id="r-note" maxlength="60" autocomplete="off" value="' + esc(r.note || '') + '">', 'r-note') +
       '<div class="fgrid">' + fld('Fino al (opz.)', '<input type="date" id="r-end" value="' + (r.end || '') + '">', 'r-end') +
       fld('Stato', '<select id="r-act"><option value="1"' + (r.active ? ' selected' : '') + '>Attiva</option><option value="0"' + (r.active ? '' : ' selected') + '>In pausa</option></select>', 'r-act') + '</div></div>' +
-      '<div class="scrf"><p class="msg" id="r-msg" role="alert"></p><div class="btnrow"><button class="btn" data-act="saverule">Salva</button><button class="btn danger" data-act="delrule">Elimina</button></div></div>';
+      '<div class="scrf"><p class="msg" id="r-msg" role="alert"></p><div class="btnrow"><button class="btn danger" data-act="delrule">Elimina</button><button class="btn" data-act="saverule">Salva</button></div></div>';
     pushLayer('screen', 'ruleform', html, { id: id });
   }
   function skipToFuture(r) { var g = 0; while (ruleNext(r) && ruleNext(r) < TODAY && g++ < 3000) r.k += 1; }
@@ -3050,6 +3051,7 @@ window.UF_BUILD = '2026-11-02 · c29bd0f2';
         if (!sub(st.sub) || sub(st.sub).type !== d.t) st.sub = (subsOf(d.t)[0] || {}).id || '';
         syncAcc(); break;
       case 'asub': if (st) { st.sub = d.id; syncAcc(); } break;
+      case 'agoal': al = layerOf('acc'); if (al) { al.st.goalOn = true; syncAcc(); var gi = al.el.querySelector('#af-gc'); if (gi) gi.focus(); } break;
       case 'newsubacc': if (st) newSubForm(st.type, true); break;
       case 'aicopen': openIcoSheet('acc'); break;
       case 'aicon': al = layerOf('acc'); if (al) { al.st.icon = ICONS[+d.i]; syncAcc(); } break;
@@ -3180,6 +3182,11 @@ window.UF_BUILD = '2026-11-02 · c29bd0f2';
     var el = e.target, k = el.dataset ? el.dataset.chg : null;
     if (el.dataset && el.dataset.vf && el.dataset.in !== 'vf') { voiceSet(el, true); return; }
     if (el.id === 'imp-file') { var ff = el.files && el.files[0]; el.value = ''; importFile(ff); return; }
+    if (el.id === 'af-sub') {
+      var la = layerOf('acc'); if (!la) return;
+      if (el.value === '+') { el.value = la.st.sub; newSubForm(la.st.type, true); } else { la.st.sub = el.value; syncAcc(); }
+      return;
+    }
     if (el.id === 'a-date') {
       var al = layerOf('add'); if (al) { al.st.date = el.value || TODAY; syncAdd(); }
       return;
@@ -3275,19 +3282,22 @@ window.UF_BUILD = '2026-11-02 · c29bd0f2';
   // non è su un'area che ha davvero contenuto da scorrere, il gesto viene bloccato del tutto.
   var tX = 0, tY = 0, tDec = null, tMoved = false;
   document.addEventListener('touchstart', function (e) { tDec = null; tMoved = e.touches.length > 1; if (e.touches.length === 1) { tX = e.touches[0].clientX; tY = e.touches[0].clientY; } }, { passive: true });
-  function inScroller(target) {
+  // Il dito è su un'area che scorre davvero nella direzione del movimento? (verticale vince se c'è una componente verticale)
+  function inScroller(target, dx, dy) {
+    var hor = Math.abs(dx) > Math.abs(dy), v = false, h = false;
     for (var n = target && target.nodeType === 1 ? target : target && target.parentElement; n && n !== document.body; n = n.parentElement) {
-      if (n.classList && n.classList.contains('layer')) return false;
+      if (n.classList && n.classList.contains('layer')) break;
       var s = getComputedStyle(n);
-      if ((/(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight + 1) || (/(auto|scroll)/.test(s.overflowX) && n.scrollWidth > n.clientWidth + 1)) return true;
+      if (!v && /(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight + 1) v = true;
+      if (!h && /(auto|scroll)/.test(s.overflowX) && n.scrollWidth > n.clientWidth + 1) h = true;
     }
-    return false;
+    return hor ? (h || (v && dy !== 0)) : v;
   }
   document.addEventListener('touchmove', function (e) {
     if (e.touches.length !== 1) { tMoved = true; return; }
     if (!tMoved && (Math.abs(e.touches[0].clientX - tX) > 10 || Math.abs(e.touches[0].clientY - tY) > 10)) tMoved = true;
     if (!L.length) return;
-    if (tDec === null) tDec = inScroller(e.target) ? 'ok' : 'no';
+    if (tDec === null) tDec = inScroller(e.target, e.touches[0].clientX - tX, e.touches[0].clientY - tY) ? 'ok' : 'no';
     if (tDec === 'no' && e.cancelable) e.preventDefault();
   }, { passive: false });
   // Le schermate che non stanno nello schermo (liste, telefoni piccoli, tastiera aperta) ricevono .scrolls.

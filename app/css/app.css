@@ -161,7 +161,7 @@ p { margin: 0; }
 .grid.cols button { background: var(--c); border-color: transparent; font-size: 16px; color: #fff; }
 .grid.cols button.on { border-color: var(--ink); }
 .wrapchips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; flex: none; }
+.chips { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior: none; padding-bottom: 2px; flex: none; }
 .chip { flex: none; min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
 .chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .chip:disabled { opacity: 0.4; }
@@ -377,5 +377,11 @@ body:has(#fabw .fab.mic) { padding-bottom: calc(200px + env(safe-area-inset-bott
 .pickico .chg { color: var(--accent); font-size: 14px; font-weight: 600; }
 .grid.icos { grid-template-columns: repeat(8, 1fr); gap: 6px; }
 .grid.icos button { font-size: 20px; border-radius: 10px; }
-@media (max-height: 720px) { .pform > .fld .hint { display: none; } .pform .wrapchips { gap: 6px; } .pform .wrapchips .chip { min-height: 32px; padding: 0 10px; font-size: 13px; } #af-goal .fgrid label, label[for="af-name"] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
+@media (max-height: 720px) { .pform > .fld .hint { display: none; } .pform .wrapchips { gap: 6px; } .pform .wrapchips .chip { min-height: 32px; padding: 0 10px; font-size: 13px; } }
 @media (max-height: 720px) { .pform { gap: 8px; } .pform input, .pform select { min-height: 42px; padding-top: 8px; padding-bottom: 8px; } .pform .fld { gap: 4px; } .pickico { padding: 6px 12px; } }
+.seg.s4 { grid-template-columns: repeat(4, 1fr); }
+.seg.s4 button { min-height: 40px; font-size: 14px; padding: 0 2px; }
+.seg button:disabled { opacity: 0.4; }
+#af-goaladd { align-self: flex-start; }
+.pform #af-eff { display: block; }
+@media (max-height: 800px) { .frow { min-height: 44px; } .amtd { min-height: 56px; padding-top: 2px; } .amtd .num { font-size: 46px; } }
