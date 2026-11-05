@@ -466,3 +466,7 @@ body:has(#fabw .fab.mic) { padding-bottom: calc(200px + env(safe-area-inset-bott
 input[type="search"]::placeholder { color: var(--tx2); }
 /* schermi bassi: il microfono si affianca al + invece di stare sopra (non copre la card «Questo mese») */
 @media (max-height: 700px) { .fab.mic { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); right: calc(max(16px, env(safe-area-inset-right, 0px)) + 68px); } body:has(#fabw .fab.mic) { padding-bottom: calc(170px + env(safe-area-inset-bottom, 0px)); } }
+/* righe di budget e obiettivi: il nome va a capo invece di sparire dietro gli importi */
+.cbar .top .nm { white-space: normal; overflow-wrap: anywhere; }
+.cbar .top .v { flex: none; }
+.budsum .kv span:last-child { white-space: nowrap; }

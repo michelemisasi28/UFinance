@@ -130,6 +130,13 @@ Regole tecniche fondamentali:
 - Rinnovo crediti: **2 dicembre**. Fino ad allora restano ~4–5 pubblicazioni.
 - Fonti: https://www.netlify.com/pricing/ · https://docs.netlify.com/manage/accounts-and-billing/billing/billing-for-credit-based-plans/how-credits-work/ · https://docs.netlify.com/build/configure-builds/ignore-builds/
 
+**7. Nuova grafica «Nativa» e Budget in Analisi (5 novembre, sessione 3)**
+- Brief preparato da me in chat (modello grafico chiaro/scuro su 22 schermate). Tutta l'app ridisegnata: colori iOS (blu `#0A5FD0`, scuro nero OLED), card e liste raggruppate, campi a riga, icone SVG, barra «‹ Indietro».
+- **Budget e obiettivi spostati in Analisi → Budget** (segmentato «Panoramica | Budget», scelta del mese, stato In linea / Attenzione / Oltre, puntino sulla scheda Analisi oltre l'80%). La Home mostra «Questo mese» con Entrate, Spese e Netto. Tolta la riga Budget dalle Impostazioni.
+- Tema **Automatico** (segue l'iPhone) senza cambiare il formato dei dati.
+- Tutti i moduli stanno in una schermata anche su iPhone SE (375×667) e Pro Max (430×932); contrasto ≥ 4,5:1 verificato automaticamente; revisione indipendente (2 problemi importanti + 3 minori, corretti).
+- **Non ancora pubblicata**: build `8dc02b9b` sul ramo `funzioni`. Panoramica di tutte le schermate, con i pulsanti «OK / Problema»: https://claude.ai/artifact/B9vWPAonyC6jY3W3SLhtwh
+
 ---
 
 ## 6. Come lavoriamo (procedura)
@@ -137,7 +144,7 @@ Regole tecniche fondamentali:
 **Per ogni modifica:**
 1. Sviluppo + test automatici dedicati (ogni problema segnalato diventa prima un test).
 2. **Revisione indipendente** con l'agente `ufinance-reviewer` (sola lettura), poi correzioni.
-3. Suite completa `tests/esegui.sh` (~470 controlli), compreso il test che **aggiorna dalla versione online senza perdere dati**.
+3. Suite completa `tests/esegui.sh` (~595 controlli), compreso il test che **aggiorna dalla versione online senza perdere dati**.
 4. Il lavoro intermedio va sul ramo **`funzioni`** (non costa crediti).
 
 **Per pubblicare (una volta per rilascio):**
@@ -163,6 +170,8 @@ Regole tecniche fondamentali:
 ---
 
 ## 8. Lavoro aperto
+
+- **Nuova grafica (build `8dc02b9b`, non pubblicata):** guardo la panoramica (https://claude.ai/artifact/B9vWPAonyC6jY3W3SLhtwh) e segnalo le schermate con problemi; provo su iPhone in chiaro e scuro con la tastiera aperta; poi do l'OK alla pubblicazione (una sola).
 
 - **Da provare sull'iPhone** la build `986c5a05`: voce con conti/categorie nuovi, prezzo medio, cripto ogni minuto, schermate ferme con tastiera aperta (la tastiera iOS è stata solo simulata nei test).
 - **Voce:** raccogliere le frasi capite male (così come le ho dette) → test → correzione → un unico rilascio.
