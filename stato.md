@@ -145,7 +145,7 @@ Regole tecniche fondamentali:
 **Per ogni modifica:**
 1. Sviluppo + test automatici dedicati (ogni problema segnalato diventa prima un test).
 2. **Revisione indipendente** con l'agente `ufinance-reviewer` (sola lettura), poi correzioni.
-3. Suite completa `tests/esegui.sh` (~595 controlli), compreso il test che **aggiorna dalla versione online senza perdere dati**.
+3. Suite completa `tests/esegui.sh` (~580 controlli), compreso il test che **aggiorna dalla versione online senza perdere dati**.
 4. Il lavoro intermedio va sul ramo **`funzioni`** (non costa crediti).
 
 **Per pubblicare (una volta per rilascio):**
