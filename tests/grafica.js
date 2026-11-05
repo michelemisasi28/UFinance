@@ -95,6 +95,21 @@ async function page(b, w, h, o) {
   await A(p, 'posopen', { id: 'p1' }); await tick(p);
   ok(await p.evaluate(() => { const h = __UF.L[0].el.querySelector('.scrh h2'), n = __UF.L[0].el.querySelector('.posh .pnm'); return !!n && n.textContent === __UF.posById('p1').name && h.scrollHeight <= h.clientHeight + 1; }), 'scheda investimento: nome completo nell’intestazione e titolo non tagliato (fino a 2 righe)');
   await A(p, 'close');
+  // ---------- prova d'uso: avviso, fogli lunghi, aggiorna valori, obiettivo ----------
+  await p.evaluate(() => window.dispatchEvent(new CustomEvent('uf-toast', { detail: 'Spesa salvata: 50,00 € · Alimentari: budget superato' }))); await tick(p, 100);
+  const ts = await p.evaluate(() => { const t = document.getElementById('toast'), r = t.getBoundingClientRect(); return { w: r.width, h: r.height, l: r.left, r: innerWidth - r.right }; });
+  ok(ts.w > 300 && ts.h < 70 && ts.l >= 15 && ts.r >= 15, 'avviso in basso largo quanto serve, su al massimo 2 righe, dentro i margini (' + JSON.stringify(ts) + ')');
+  await A(p, 'scope'); await tick(p);
+  await p.evaluate(() => { __UF.L[0].el.querySelector('.panel').scrollTop = 1e6; }); await tick(p, 100);
+  ok(await p.evaluate(() => { const h = __UF.L[0].el.querySelector('.shh').getBoundingClientRect(), pn = __UF.L[0].el.querySelector('.panel').getBoundingClientRect(); return h.top >= pn.top - 1 && h.bottom <= pn.top + 70; }), 'foglio lungo scorso in fondo: titolo e «chiudi» restano in alto');
+  await A(p, 'close'); await A(p, 'pxall'); await tick(p);
+  ok(await p.getAttribute('#w-in', 'placeholder') === '0,00', 'Aggiorna valori: segnaposto neutro (l’ultimo valore resta nella riga «Ultimo valore»)');
+  const i0 = await p.evaluate(() => __UF.L[0].st.i); await p.click('#w-next'); await tick(p, 150);
+  ok(await p.evaluate(i0 => __UF.L[0].st.i === i0 && /valore di oggi/.test(document.getElementById('w-msg').textContent), i0), 'Aggiorna valori: «Avanti» a campo vuoto chiede il valore invece di saltare in silenzio');
+  await A(p, 'close'); await A(p, 'goalnew'); await p.click('[data-act="goalacc"][data-id="a1"]'); await tick(p);
+  ok(await p.evaluate(() => /Obiettivo · Contanti/.test(__UF.L[0].el.querySelector('.scrh h2').textContent) && /obbligatorio/.test(document.getElementById('af-goal').textContent)), '«+ Nuovo» obiettivo: titolo «Obiettivo · Contanti» e importo «obbligatorio»');
+  await A(p, 'close');
+
   // ---------- 3. tema Automatico, barra di stato, formato dati ----------
   const meta = () => p.evaluate(() => document.querySelector('meta[name="theme-color"]').content);
   await A(p, 'theme', { k: 'scuro' }); await tick(p, 100);

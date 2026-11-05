@@ -132,10 +132,9 @@ const tick = (p, ms = 250) => p.waitForTimeout(ms);
   ok(await drag(200, 40, 300), 'foglio: trascinare lo sfondo scuro non muove lo schermo');
   ok((await layerBox()).top === 0, 'foglio: resta fermo');
   await kbd(450, 0); await tick(p, 100);
-  if (await p.evaluate(() => !!__UF.L[0].el.querySelector('#fx'))) {
-    await p.focus('#fx'); await tick(p, 500);
-    ok(await p.evaluate(() => document.getElementById('fx').getBoundingClientRect().bottom <= 450), 'foglio con la tastiera aperta: il campo resta sopra la tastiera');
-  } else ok(true, 'foglio senza campo di testo (saltato)');
+  await p.evaluate(() => { const b = document.createElement('button'); b.dataset.id = __UF.S.accounts[0].id; __UF.act('fixopen', b); }); await tick(p, 300);
+  await p.focus('#fx'); await tick(p, 500);
+  ok(await p.evaluate(() => { const L = __UF.L[__UF.L.length - 1]; return L.name === 'fix' && document.getElementById('fx').getBoundingClientRect().bottom <= 450 && L.el.querySelector('button[type="submit"]').getBoundingClientRect().bottom <= 450; }), 'Correggi saldo con la tastiera aperta: campo e «Applica correzione» sopra la tastiera');
   await kbd(null); await p.evaluate(() => document.activeElement && document.activeElement.blur()); await tick(p, 100);
   await p.evaluate(() => { while (__UF.L.length) __UF.act('close', document.createElement('button')); }); await tick(p, 300);
 

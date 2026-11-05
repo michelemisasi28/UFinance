@@ -230,7 +230,7 @@ select { -webkit-appearance: none; appearance: none; padding-right: 30px; backgr
 .pick.addnew { color: var(--accent); }
 .pick.addnew .ico { background: var(--tint); color: var(--accent); }
 .sec > .pick.addnew { background: var(--surface); border-radius: 14px; padding: 0 14px; }
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 200; background: var(--ink); color: var(--bg); border-radius: 14px; padding: 12px 16px; display: flex; gap: 14px; align-items: center; max-width: calc(100% - 32px); font-size: 15px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); }
+.toast { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); margin: 0 auto; width: max-content; justify-content: space-between; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 200; background: var(--ink); color: var(--bg); border-radius: 14px; padding: 12px 16px; display: flex; gap: 14px; align-items: center; max-width: calc(100% - 32px); font-size: 15px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); }
 .toast button { color: var(--bg); font-weight: 700; text-decoration: underline; min-height: 32px; }
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 15px; }
 .kv + .kv { border-top: 1px solid var(--line); }
@@ -470,3 +470,7 @@ input[type="search"]::placeholder { color: var(--tx2); }
 .cbar .top .nm { white-space: normal; overflow-wrap: anywhere; }
 .cbar .top .v { flex: none; }
 .budsum .kv span:last-child { white-space: nowrap; }
+/* fogli lunghi: titolo e «chiudi» restano in alto mentre il contenuto scorre */
+.panel > .shh:first-child { position: sticky; top: -16px; z-index: 1; background: var(--surface); margin-top: -16px; padding-top: 16px; }
+/* tendine a riga: un nome lungo finisce con «…» invece di essere tagliato a metà */
+.fld.r > select { text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }

@@ -135,7 +135,8 @@ Regole tecniche fondamentali:
 - **Budget e obiettivi spostati in Analisi → Budget** (segmentato «Panoramica | Budget», scelta del mese, stato In linea / Attenzione / Oltre, puntino sulla scheda Analisi oltre l'80%). La Home mostra «Questo mese» con Entrate, Spese e Netto. Tolta la riga Budget dalle Impostazioni.
 - Tema **Automatico** (segue l'iPhone) senza cambiare il formato dei dati.
 - Tutti i moduli stanno in una schermata anche su iPhone SE (375×667) e Pro Max (430×932); contrasto ≥ 4,5:1 verificato automaticamente; revisione indipendente (2 problemi importanti + 3 minori, corretti).
-- **Non ancora pubblicata**: build `8dc02b9b` sul ramo `funzioni`. Panoramica di tutte le schermate, con i pulsanti «OK / Problema»: https://claude.ai/artifact/B9vWPAonyC6jY3W3SLhtwh
+- Prova d'uso completa del revisore (dita simulate, trascinamenti in ogni direzione, tastiera aperta su ogni campo): **nessuna schermata si muove**; corretti «Correggi saldo» (ora foglio a parte, pulsante sopra la tastiera), l'avviso in basso troppo stretto e 5 dettagli minori.
+- **Non ancora pubblicata**: build `64d016d9` sul ramo `funzioni`. Panoramica di tutte le schermate, con i pulsanti «OK / Problema»: https://claude.ai/artifact/B9vWPAonyC6jY3W3SLhtwh
 
 ---
 
@@ -171,7 +172,7 @@ Regole tecniche fondamentali:
 
 ## 8. Lavoro aperto
 
-- **Nuova grafica (build `8dc02b9b`, non pubblicata):** guardo la panoramica (https://claude.ai/artifact/B9vWPAonyC6jY3W3SLhtwh) e segnalo le schermate con problemi; provo su iPhone in chiaro e scuro con la tastiera aperta; poi do l'OK alla pubblicazione (una sola).
+- **Nuova grafica (build `64d016d9`, non pubblicata):** guardo la panoramica (https://claude.ai/artifact/B9vWPAonyC6jY3W3SLhtwh) e segnalo le schermate con problemi; provo su iPhone in chiaro e scuro con la tastiera aperta; poi do l'OK alla pubblicazione (una sola).
 
 - **Da provare sull'iPhone** la build `986c5a05`: voce con conti/categorie nuovi, prezzo medio, cripto ogni minuto, schermate ferme con tastiera aperta (la tastiera iOS è stata solo simulata nei test).
 - **Voce:** raccogliere le frasi capite male (così come le ho dette) → test → correzione → un unico rilascio.

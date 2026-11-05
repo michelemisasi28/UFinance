@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-05 · 8dc02b9b';
+window.UF_BUILD = '2026-11-05 · 64d016d9';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -920,15 +920,19 @@ window.UF_BUILD = '2026-11-05 · 8dc02b9b';
       '<div class="btns"><button class="btn ghost" data-act="accview" data-id="' + id + '">Mostra in Home</button><button class="btn ghost" data-act="accedit" data-id="' + id + '">Modifica conto</button></div>' +
       '<div class="btns"><button class="btn ghost" data-act="fixopen" data-id="' + id + '">Correggi saldo</button><button class="btn danger" data-act="delaccopen" data-id="' + id + '">Elimina conto…</button></div>' +
       (a.goal && goalOk(a.type) ? (function () { var x = goalInfo(a); return '<div class="card"><div class="kv" style="border:0;padding-top:0"><span>🎯 Obiettivo</span><span>' + money(x.target) + (a.goal.date ? ' entro ' + shortD(a.goal.date) + ' ' + parseD(a.goal.date).getFullYear() : '') + '</span></div>' + pbar(x.ratio, x.left <= 0 ? 'done' : x.late ? 'warn' : 'goal') + '<p class="sb" style="margin-top:6px">' + goalText(x) + '</p></div>'; })() : '') +
-      '<div id="fixbox"></div><div class="sec"><div class="sech"><h2>Ultimi movimenti</h2>' + (rec.length ? '<button class="lnk" data-act="txlist" data-acc="' + id + '">Vedi tutti</button>' : '') + '</div>' + (rec.length ? '<div class="list">' + rec.map(function (t) { return txRow(t, new Set([id])); }).join('') + '</div>' : '<p class="empty">Nessun movimento.</p>') + '</div>');
+      '<div class="sec"><div class="sech"><h2>Ultimi movimenti</h2>' + (rec.length ? '<button class="lnk" data-act="txlist" data-acc="' + id + '">Vedi tutti</button>' : '') + '</div>' + (rec.length ? '<div class="list">' + rec.map(function (t) { return txRow(t, new Set([id])); }).join('') + '</div>' : '<p class="empty">Nessun movimento.</p>') + '</div>');
   }
+  // foglio a parte e corto: con la tastiera aperta campo e «Applica correzione» restano entrambi visibili
   function openFix(id) {
-    var lay = layerOf('accd'); if (!lay) return;
-    lay.el.querySelector('#fixbox').innerHTML = '<form data-form="fix" data-id="' + id + '" novalidate class="fld"><label for="fx">Saldo reale di oggi</label><input id="fx" inputmode="decimal" autocomplete="off" placeholder="0,00"><p class="hint">La differenza diventa una correzione, non una spesa.</p><p class="msg" id="fx-m" role="alert"></p><button class="btn" type="submit">Applica correzione</button></form>';
-    lay.el.querySelector('#fx').focus();
+    var a = acc(id); if (!a) return;
+    var lay = pushLayer('sheet', 'fix', shHead('Correggi saldo') + '<form data-form="fix" data-id="' + id + '" novalidate class="fcol" style="--g:10px">' +
+      '<div class="fld r"><label for="fx">Saldo reale di oggi</label><input id="fx" inputmode="decimal" autocomplete="off" placeholder="' + (S.hide ? '0,00' : amtStr(balance(id)).replace(/^/, balance(id) < 0 ? '-' : '')) + '"></div>' +
+      '<p class="hint">' + esc(a.name) + ': saldo nell’app ' + money(balance(id)) + '. La differenza diventa una correzione, non una spesa.</p><p class="msg" id="fx-m" role="alert"></p><button class="btn" type="submit">Applica correzione</button></form>', { id: id });
+    try { lay.el.querySelector('#fx').focus(); } catch (e) {}
   }
   function saveFix(id) {
-    var lay = layerOf('accd'), m = lay.el.querySelector('#fx-m'), c = parseCents(lay.el.querySelector('#fx').value);
+    var lay = layerOf('fix'); if (!lay) return;
+    var m = lay.el.querySelector('#fx-m'), c = parseCents(lay.el.querySelector('#fx').value);
     if (c === null) { m.textContent = 'Importo non valido.'; m.className = 'msg bad'; return; }
     var delta = c - balance(id);
     if (delta === 0) { m.textContent = 'Il saldo coincide già.'; m.className = 'msg ok'; return; }
@@ -959,7 +963,7 @@ window.UF_BUILD = '2026-11-05 · 8dc02b9b';
       fld('Data del saldo', '<input type="date" id="af-date" max="' + TODAY + '" value="' + (a ? a.openDate : TODAY) + '">', 'af-date') + '</div>' +
       (a ? '<p class="hint" id="af-eff"></p>' : '<p class="hint">Il saldo all’inizio di quel giorno: potrai registrare movimenti da quella data in poi.</p>') + '</div>' +
       '<button type="button" class="lnk" id="af-goaladd" data-act="agoal">+ Obiettivo di risparmio</button>' +
-      '<div class="fld" id="af-goal"><span class="lab">Obiettivo di risparmio <span class="opt">facoltativo</span></span><div class="fgrid">' +
+      '<div class="fld" id="af-goal"><span class="lab">Obiettivo di risparmio <span class="opt" id="af-gopt">facoltativo</span></span><div class="fgrid">' +
       fld('Importo', '<input id="af-gc" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + (a && a.goal ? amtStr(a.goal.cents) : '') + '">', 'af-gc') +
       fld('Entro il', '<input type="date" id="af-gd" min="' + TODAY + '" value="' + (a && a.goal ? a.goal.date || '' : '') + '">', 'af-gd') + '</div></div></div>' +
       '<div class="scrf"><p class="msg" id="af-msg" role="alert"></p>' + (a ? '<div class="btnrow"><button class="btn danger" data-act="delaccopen" data-id="' + a.id + '">Elimina…</button><button class="btn" data-act="saveacc">Salva</button></div>' : '<button class="btn" data-act="saveacc">Crea conto</button>') + '</div>';
@@ -1908,7 +1912,10 @@ window.UF_BUILD = '2026-11-05 · 8dc02b9b';
     openAccForm(id || null);
     var al = layerOf('acc'); if (!al) return;
     if (!id) { al.st.type = 'risparmio'; al.st.sub = (subsOf('risparmio')[0] || {}).id || ''; al.st.icon = TYPE_ICON.risparmio; }
-    al.st.goalOn = true; al.st.fromGoal = true; syncAcc();
+    al.st.goalOn = true; al.st.fromGoal = true;
+    var tt = al.el.querySelector('.scrh h2'); if (tt) tt.textContent = id ? 'Obiettivo · ' + acc(id).name : 'Nuovo obiettivo';
+    var go = al.el.querySelector('#af-gopt'); if (go) { go.textContent = 'obbligatorio'; go.className = 'req'; }
+    syncAcc();
     var gi = al.el.querySelector('#af-gc'); if (gi) gi.focus();
   }
 
@@ -1919,7 +1926,7 @@ window.UF_BUILD = '2026-11-05 · 8dc02b9b';
     o = o || {};
     var st = { q: '', kind: o.kind || 'all', acc: o.acc || '', cat: o.cat || '', per: o.per || 'all', from: o.from || monthRange(TODAY).from, to: o.to || TODAY, min: '', max: '', more: !!(o.acc || o.cat), limit: 150, accs: o.accs && o.accs.length ? o.accs.slice() : null };
     var html = scrHead('Movimenti', true) + '<div class="scrb" id="tl-body">' +
-      '<input type="search" id="tl-q" data-in="txl" autocomplete="off" enterkeyhint="search" placeholder="Cerca nota, categoria, conto, importo…" aria-label="Cerca nei movimenti">' +
+      '<input type="search" id="tl-q" data-in="txl" autocomplete="off" enterkeyhint="search" placeholder="Cerca nota, conto, importo…" aria-label="Cerca nei movimenti">' +
       '<div id="tl-ctl" class="fcol" style="gap:10px"></div><p class="cap" id="tl-sum" aria-live="polite"></p><div id="tl-res"></div></div>' +
       '<div class="scrf"><button class="btn ghost" data-act="tlcsv">Esporta questi movimenti (CSV)</button></div>';
     pushLayer('screen', 'txlist', html, st, { refresh: function () { txlDraw(true); } });
@@ -2040,7 +2047,7 @@ window.UF_BUILD = '2026-11-05 · 8dc02b9b';
       '<div class="card prev"><span class="ico ' + posT(p) + '">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + qtyStr(q, p) + ' ' + esc(unitL(p)) + ' · ' + esc(posTag(p)) + '</span></span></div>' +
       (l ? '<div class="kv"><span>Ultimo valore</span><span>' + money(lv) + ' · ' + agoL(l.d) + '</span></div>' : '') +
       '<div class="fld"><label for="w-in" class="wq">' + (val ? 'Quanto vale oggi la posizione?' : 'Prezzo di oggi per 1 ' + unitOf(p)) + '</label>' +
-      '<input id="w-in" class="bigin" data-in="pxw" inputmode="decimal" autocomplete="off" placeholder="' + (l && !S.hide ? esc(val ? amtStr(lv) : pxInput(l.px)) : '0,00') + '">' +
+      '<input id="w-in" class="bigin" data-in="pxw" inputmode="decimal" autocomplete="off" placeholder="0,00">' +
       '<p class="hint" id="w-hint">' + (val ? 'Il numero che vedi nell’app della banca o del broker.' : '') + '</p></div>' +
       '<button class="lnk" data-act="pxwmode" style="align-self:flex-start">' + (val ? 'Conosco il prezzo per ' + unitOf(p) : 'Conosco il valore totale') + '</button>';
     lay.el.querySelector('#w-next').textContent = st.i === st.ids.length - 1 ? 'Salva e chiudi' : 'Avanti';
@@ -2069,7 +2076,7 @@ window.UF_BUILD = '2026-11-05 · 8dc02b9b';
     var st = lay.st, p = posById(st.ids[st.i]);
     if (!skip && p) {
       var raw = lay.el.querySelector('#w-in').value.trim(), px = pxwPx(st, p, raw);
-      if (px === -1) { var m = lay.el.querySelector('#w-msg'); m.textContent = 'Importo non valido: correggilo o tocca «Salta».'; m.className = 'msg bad'; return; }
+      if (px === -1 || px === null) { var m = lay.el.querySelector('#w-msg'); m.textContent = px === null ? 'Scrivi il valore di oggi, oppure tocca «Salta».' : 'Importo non valido: correggilo o tocca «Salta».'; m.className = 'msg bad'; return; }
       if (px) { setPrice(p, TODAY, px, false); st.done += 1; touch(); }
     }
     pxwStep();
