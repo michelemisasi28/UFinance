@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>UFinance Track</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#F2F2F4">
+<meta name="theme-color" content="#F2F2F7">
+<style>html{background:#F2F2F7}@media (prefers-color-scheme:dark){html{background:#000}}html[data-uf="scuro"]{background:#000}html[data-uf="chiaro"]{background:#F2F2F7}</style>
 <meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -25,7 +26,7 @@
   }
   document.documentElement.setAttribute('data-uf', t);
   // colore della barra di stato subito giusto (niente lampo chiaro col tema scuro all'avvio)
-  var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t === 'scuro' ? '#0F161C' : '#F2F2F4');
+  var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t === 'scuro' ? '#000000' : '#F2F2F7');
 })();
 </script>
 </head>

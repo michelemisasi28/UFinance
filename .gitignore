@@ -2,3 +2,4 @@ dist/
 node_modules/
 tests/out/
 tests/.work/
+tests/screenshots/

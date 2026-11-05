@@ -30,7 +30,14 @@ const tick = (p, ms = 200) => p.waitForTimeout(ms);
   await p.evaluate(async () => { __UF.S.demo = false; __UF.render(); await __UF.flushNow(); });
 
   // ---------- budget ----------
-  await p.click('[data-tab="settings"]'); await p.click('.navrow[data-act="budgets"]'); await tick(p);
+  // i budget stanno in Analisi → Budget (non più in Home né in Impostazioni)
+  await p.click('[data-tab="settings"]'); await tick(p, 200);
+  ok(!(await p.$('.navrow[data-act="budgets"]')), 'Impostazioni: nessuna riga «Budget» (un solo percorso)');
+  await p.click('[data-tab="analisi"]'); await tick(p, 200);
+  ok(await p.evaluate(() => document.querySelector('[data-act="anview"][data-v="ov"]').classList.contains('on')), 'Analisi si apre su Panoramica');
+  await p.click('[data-act="anview"][data-v="bud"]'); await tick(p, 200);
+  ok((await p.textContent('#view')).includes('Nessun budget impostato'), 'Analisi → Budget: stato vuoto senza budget');
+  await p.click('#view [data-act="budgets"]'); await tick(p);
   ok((await p.textContent('.layer')).includes('Media ultimi 3 mesi'), 'budget: media degli ultimi 3 mesi come suggerimento');
   await p.fill('#b-c1', '150'); await p.fill('#b-c4', '80'); await p.fill('#b-c5', 'abc');
   await p.click('[data-act="savebud"]'); await tick(p);
@@ -40,8 +47,9 @@ const tick = (p, ms = 200) => p.waitForTimeout(ms);
   const manual = await p.evaluate(() => { let s = 0; __UF.S.tx.forEach(t => { if (t.kind === 'spesa' && t.catId === 'c1' && t.date >= '2026-11-01' && t.date <= __UF.TODAY) s += t.cents; }); return s; });
   const alim = bs.rows.find(r => r[0] === 'Alimentari');
   ok(bs.n === 2 && alim && alim[1] === manual && alim[2] === 15000, 'budget: speso del mese corretto ' + JSON.stringify(bs.rows));
+  ok((await p.textContent('#view')).includes('Speso questo mese') && (await p.textContent('#view')).includes('Giorno'), 'Analisi → Budget: riepilogo del mese con il ritmo');
   await p.click('[data-tab="home"]'); await tick(p, 500);
-  ok((await p.textContent('#view')).includes('Budget · novembre'), 'Home: sezione budget presente');
+  ok(await p.evaluate(() => !document.querySelector('#view .budrow, #view .pbar, #view [data-act="budgets"]') && !/Budget ·|Speso/.test(document.querySelector('#view').textContent)) && (await p.textContent('#view')).includes('Netto'), 'Home: nessun budget, card «Questo mese» con Netto');
   // spesa che supera il budget Ristoranti (80 €)
   await p.click('.fab.add'); for (const k of '90') await p.click(`[data-act="key"][data-k="${k}"]`);
   await p.click('[data-act="pickcat"]'); await p.click('[data-act="setcat"][data-id="c4"]'); await tick(p, 300);
@@ -49,6 +57,10 @@ const tick = (p, ms = 200) => p.waitForTimeout(ms);
   const tmsg = await p.textContent('#toast');
   ok(/Ristoranti: budget superato/.test(tmsg), 'avviso budget nel toast: "' + tmsg + '"');
   await tick(p, 400);
+  ok(await p.evaluate(() => !document.querySelector('#view .budrow, #view .pbar')), 'Home: nessun riquadro dei budget');
+  ok(await p.isVisible('[data-tab="analisi"] .bdot'), 'puntino sulla scheda Analisi con un budget oltre l’80%');
+  await p.click('[data-tab="analisi"]'); await p.click('[data-act="anview"][data-v="bud"]'); await tick(p, 300);
+  ok((await p.textContent('[data-act="budtx"][data-id="c4"]')).includes('Oltre'), 'Analisi → Budget: categoria oltre il limite segnata «Oltre»');
   await p.click('.budrow[data-act="budtx"][data-id="c4"]'); await tick(p);
   const tl1 = await p.evaluate(() => ({ n: __UF.L[__UF.L.length - 1].data.length, all: __UF.L[__UF.L.length - 1].data.every(t => t.catId === 'c4' && t.kind === 'spesa' && t.date >= '2026-11-01') }));
   ok(tl1.n > 0 && tl1.all, 'tocco sul budget: elenco filtrato per categoria e mese (' + tl1.n + ')');
@@ -73,8 +85,9 @@ const tick = (p, ms = 200) => p.waitForTimeout(ms);
   await p.click('[data-act="atype"][data-t="credito"]').catch(() => {}); await tick(p, 100);
   const hidden = await p.evaluate(() => document.querySelector('#af-goal').hidden);
   await p.click('.layer [data-act="close"]'); await tick(p, 400);
-  await p.click('[data-tab="home"]'); await tick(p, 500);
-  ok((await p.textContent('#view')).includes('Obiettivi'), 'Home: sezione obiettivi presente');
+  await p.click('[data-tab="analisi"]'); await p.click('[data-act="anview"][data-v="bud"]'); await tick(p, 400);
+  ok((await p.textContent('#view')).includes('Obiettivi di risparmio') && (await p.textContent('#view')).includes('Risparmio'), 'Analisi → Budget: sezione obiettivi presente');
+  await p.click('[data-act="anview"][data-v="ov"]'); await p.click('[data-tab="home"]'); await tick(p, 300);
 
   // ---------- ricerca e filtri ----------
   await p.click('[data-act="txlist"]'); await tick(p);

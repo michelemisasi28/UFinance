@@ -9,7 +9,7 @@
   // colore della barra di stato coerente col tema scelto nell'app
   function themeColor() {
     var m = document.querySelector('meta[name="theme-color"]'); if (!m) return;
-    m.setAttribute('content', document.documentElement.getAttribute('data-uf') === 'scuro' ? '#0F161C' : '#F2F2F4');
+    m.setAttribute('content', document.documentElement.getAttribute('data-uf') === 'scuro' ? '#000000' : '#F2F2F7');
   }
   themeColor();
   try { new MutationObserver(themeColor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-uf'] }); } catch (e) {}

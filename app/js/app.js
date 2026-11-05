@@ -47,7 +47,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     if (!NF[cur]) NF[cur] = new Intl.NumberFormat('it-IT', { style: 'currency', currency: cur, currencyDisplay: 'narrowSymbol', useGrouping: 'always' });
     return NF[cur];
   }
-  function money(c) { return S.hide ? '•••• ' + SYM[S.cur] : nfFor(S.cur).format(c / 100); }
+  function money(c) { return S.hide ? '•••• ' + SYM[S.cur] : nfFor(S.cur).format(c / 100).replace('-', '−'); } // segno meno tipografico (−), come in moneyS
   function moneyS(c) { var s = c > 0 ? '+' : c < 0 ? '−' : ''; return s + (S.hide ? '•••• ' + SYM[S.cur] : nfFor(S.cur).format(Math.abs(c) / 100)); }
 
   function isinOk(s) {
@@ -86,8 +86,16 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
       if (j.cur === 'EUR' || j.cur === 'USD') S.cur = j.cur;
       if (typeof j.hide === 'boolean') S.hide = j.hide;
     } catch (e) {}
-    S.theme = document.documentElement.getAttribute('data-uf') === 'scuro' ? 'scuro' : 'chiaro';
+    var t = ''; try { t = (JSON.parse(localStorage.getItem('uf-proto') || '{}') || {}).theme; } catch (e) {}
+    S.theme = t === 'auto' ? 'auto' : document.documentElement.getAttribute('data-uf') === 'scuro' ? 'scuro' : 'chiaro';
   }
+  // Tema effettivo: «auto» segue il sistema (anche se cambia con l'app aperta). Solo l'attributo della pagina cambia.
+  var DARKQ = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  function applyTheme() {
+    var t = S.theme === 'auto' ? (DARKQ && DARKQ.matches ? 'scuro' : 'chiaro') : S.theme === 'scuro' ? 'scuro' : 'chiaro';
+    if (document.documentElement.getAttribute('data-uf') !== t) document.documentElement.setAttribute('data-uf', t);
+  }
+  if (DARKQ) { var onScheme = function () { if (S.theme === 'auto') applyTheme(); }; if (DARKQ.addEventListener) DARKQ.addEventListener('change', onScheme); else if (DARKQ.addListener) DARKQ.addListener(onScheme); }
   function savePrefs() { try { localStorage.setItem('uf-proto', JSON.stringify({ theme: S.theme, cur: S.cur, hide: S.hide })); } catch (e) {} }
 
   function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -280,7 +288,8 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
 
   /* ================= investimenti: quantità in 1e-8, prezzi in 1e-6, importi in centesimi ================= */
   function isCry(p) { return !!p && p.kind === 'crypto'; }
-  function posIcon(p) { return isCry(p) ? '🪙' : '📈'; }
+  function posIcon(p) { return svg(isCry(p) ? 'coin' : 'trend'); }
+  function posT(p) { return isCry(p) ? 't4' : 't1'; }
   function unitL(p) { return isCry(p) ? (p.sym || 'unità') : 'quote'; }
   function posTag(p) { return isCry(p) ? (p.sym || 'Cripto') : (p.isin || 'Titolo / ETF'); }
   function posById(id) { for (var i = 0; i < S.pos.length; i++) if (S.pos[i].id === id) return S.pos[i]; return null; }
@@ -424,7 +433,19 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     check: '<path d="M5 12l5 5 9-10"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>',
     cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
     mic: '<rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5"/>',
-    back: '<path d="M15 6l-6 6 6 6"/>', del: '<path d="M21 5H9l-6 7 6 7h12z"/><path d="M13 9.5l4 5M17 9.5l-4 5"/>'
+    back: '<path d="M15 5l-7 7 7 7"/>',
+    coin: '<circle cx="12" cy="12" r="8.5"/><path d="M14.8 9.2a3.2 3.2 0 1 0 0 5.6M8.5 11h5M8.5 13h5"/>',
+    trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    repeat: '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
+    tag: '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+    minus: '<path d="M5 12h14"/>',
+    archive: '<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/>',
+    alert: '<path d="M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+    bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    edit: '<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3z"/>',
+    target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    logo: '<path d="M4 19V9M10 19V5M16 19v-7M3 21h18"/><path d="M14 7l3-3 3 3"/>',
+    del: '<path d="M21 5H9l-6 7 6 7h12z"/><path d="M13 9.5l4 5M17 9.5l-4 5"/>'
   };
   function svg(n, c) { return '<svg class="ic ' + (c || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[n] + '</svg>'; }
 
@@ -460,16 +481,17 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
   /* ================= schermate ================= */
   function txRow(t, set) {
     var ico, title, sub2, c = cat(t.catId), a1 = { name: accName(t.accId) }, a2 = t.toId ? { name: accName(t.toId) } : null;
-    if (t.kind === 'giro') { ico = '⇄'; title = t.note || 'Giroconto'; sub2 = (a1 ? a1.name : '') + ' → ' + (a2 ? a2.name : ''); }
-    else if (t.kind === 'rett') { ico = '≈'; title = 'Correzione saldo'; sub2 = a1 ? a1.name : ''; }
-    else if (t.kind === 'inv') { var ip = posById(t.posId); ico = posIcon(ip); title = ip ? (t.dir === 'sell' ? 'Vendita ' : t.rule ? 'PAC ' : 'Acquisto ') + ip.name : (t.note || (t.dir === 'sell' ? 'Vendita investimento' : 'Acquisto investimento')); sub2 = a1.name; }
+    var it = '';
+    if (t.kind === 'giro') { ico = svg('swap'); it = ' t1'; title = t.note || 'Giroconto'; sub2 = (a1 ? a1.name : '') + ' → ' + (a2 ? a2.name : ''); }
+    else if (t.kind === 'rett') { ico = svg('edit'); it = ' t0'; title = 'Correzione saldo'; sub2 = a1 ? a1.name : ''; }
+    else if (t.kind === 'inv') { var ip = posById(t.posId); ico = posIcon(ip); it = ' ' + posT(ip); title = ip ? (t.dir === 'sell' ? 'Vendita ' : t.rule ? 'PAC ' : 'Acquisto ') + ip.name : (t.note || (t.dir === 'sell' ? 'Vendita investimento' : 'Acquisto investimento')); sub2 = a1.name; }
     else {
       ico = c ? c.icon : '🧾'; title = t.note || (c ? c.name : 'Senza categoria');
       sub2 = (c && t.note && t.note !== c.name ? c.name + ' · ' : '') + (a1 ? a1.name : '');
     }
     var eff = set ? setEffect(t, set) : (t.kind === 'giro' ? 0 : effect(t, t.accId));
     var amt = eff === 0 ? money(t.cents) : moneyS(eff), cls = eff === 0 ? 'neutral' : eff > 0 ? 'pos' : '';
-    return '<button class="row" data-act="tx" data-id="' + t.id + '"><span class="ico">' + ico + '</span><span class="mid"><span class="nm">' + esc(title) + '</span><span class="sb">' + esc(sub2) + ' · ' + dayLabel(t.date) + (t.rule ? ' · ↻' : '') + '</span></span><span class="v ' + cls + '">' + amt + '</span></button>';
+    return '<button class="row" data-act="tx" data-id="' + t.id + '"><span class="ico' + it + '">' + ico + '</span><span class="mid"><span class="nm">' + esc(title) + '</span><span class="sb">' + esc(sub2) + ' · ' + dayLabel(t.date) + (t.rule ? ' · ↻' : '') + '</span></span><span class="v ' + cls + '">' + amt + '</span></button>';
   }
 
   function viewHome() {
@@ -481,14 +503,13 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var st = stats(TODAY.slice(0, 8) + '01', TODAY, set);
     var rec = sortTx(S.tx.filter(function (t) { return inSet(t, set); })).slice(0, 5);
     var mnow = MESI_L[parseD(TODAY).getMonth()];
-    if (!S.accounts.length) return '<section class="hero"><div class="herotop"><span class="lbl">Patrimonio totale</span></div><div class="amt" style="font-size:34px;font-weight:700">' + money(0) + '</div></section>' +
-      '<section class="sec"><div class="card" style="display:flex;flex-direction:column;gap:12px"><h2 style="margin:0">Crea il primo conto</h2><p class="hint" style="margin:0">Aggiungi dove tieni i soldi (contanti, banca, risparmi) con il saldo di oggi. Poi registra spese ed entrate col tasto +.</p><button class="btn" data-act="newacc">Crea un conto</button><button class="lnk" data-act="guide" style="align-self:flex-start">Come funziona l’app</button></div></section>';
+    if (!S.accounts.length) return '<section class="hero"><div class="totalbtn"><span class="lbl">Patrimonio totale</span><span class="amt">' + money(0) + '</span></div></section>' +
+      '<section class="sec"><div class="card" style="display:flex;flex-direction:column;gap:12px"><h2 style="padding:0">Crea il primo conto</h2><p class="hint" style="margin:0">Aggiungi dove tieni i soldi (contanti, banca, risparmi) con il saldo di oggi. Poi registra spese ed entrate col tasto +.</p><button class="btn" data-act="newacc">Crea un conto</button><button class="lnk" data-act="guide" style="align-self:flex-start">Come funziona l’app</button></div></section>';
     return remBanner() + (S.demo ? '<button class="banner" data-act="resetopen" style="text-align:left;width:100%">Dati di esempio. Tocca per eliminarli e iniziare da zero.</button>' : '') +
       '<section class="hero"><div class="herotop"><button class="totalbtn" data-act="scope" aria-label="Cambia il totale mostrato"><span class="lbl">' + esc(scopeLabel(v)) + svg('chev') + '</span><span class="amt">' + money(cur) + '</span></button>' +
       '<button class="iconbtn" data-act="hide" aria-label="' + (S.hide ? 'Mostra importi' : 'Nascondi importi') + '">' + svg(S.hide ? 'eyeoff' : 'eye') + '</button></div>' +
       '<div class="delta"><b class="' + (d >= 0 ? 'pos' : 'neg') + '">' + moneyS(d) + '</b> negli ultimi 30 giorni</div><button class="sparkbtn" data-act="nwopen" aria-label="Apri l’andamento nel tempo">' + sparkSVG(series) + '<span class="sparkcap">Andamento nel tempo ' + svg('right') + '</span></button></section>' +
-      guideCard() + '<section class="sec"><h2>Questo mese · ' + mnow + '</h2><div class="card three"><div><span class="k">Entrate</span><span class="n pos">' + money(st.inc) + '</span></div><div><span class="k">Spese</span><span class="n neg">' + money(st.exp) + '</span></div><div><span class="k">Risparmiato</span><span class="n ' + (st.inc - st.exp >= 0 ? 'pos' : 'neg') + '">' + moneyS(st.inc - st.exp) + '</span></div></div></section>' +
-      budgetSection() + goalsSection() +
+      guideCard() + '<section class="sec"><div class="sech"><h2>Questo mese</h2><span class="note" style="text-transform:capitalize">' + mnow + '</span></div><div class="card three"><div><span class="k">Entrate</span><span class="n pos">' + moneyS(st.inc) + '</span></div><div><span class="k">Spese</span><span class="n neg">' + moneyS(-st.exp) + '</span></div><div><span class="k">Netto</span><span class="n ' + (st.inc - st.exp >= 0 ? 'pos' : 'neg') + '">' + moneyS(st.inc - st.exp) + '</span></div></div></section>' +
       '<section class="sec"><div class="sech"><h2>Ultimi movimenti</h2>' + (rec.length ? '<button class="lnk" data-act="txlist">Vedi tutti e cerca</button>' : '') + '</div>' + (rec.length ? '<div class="list">' + rec.map(function (t) { return txRow(t, set); }).join('') + '</div>' : '<p class="empty">Nessun movimento. Tocca +.</p>') + '</section>';
   }
 
@@ -541,10 +562,12 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var txs = S.tx.filter(function (t) { return (t.kind === 'spesa' || t.kind === 'entrata') && t.date >= r.from && t.date <= r.to && (!set || set.has(t.accId)); });
     var inc = 0, exp = 0; txs.forEach(function (t) { if (t.kind === 'entrata') inc += t.cents; else exp += t.cents; });
     var P = [['day', 'Giorno'], ['week', 'Settimana'], ['month', 'Mese'], ['year', 'Anno'], ['custom', 'Personalizzato']];
-    var h = '<header class="ph"><h1>Analisi</h1><div class="acts"><button class="tbtn" data-act="anpers">' + svg('sliders') + 'Vista</button></div></header>';
+    var h = '<header class="ph"><h1>Analisi</h1>' + (AV === 'bud' ? '' : '<div class="acts"><button class="tbtn" data-act="anpers">' + svg('sliders') + 'Vista</button></div>') + '</header>';
+    h += '<div class="seg s2 anseg" role="tablist" aria-label="Sezione di Analisi">' + [['ov', 'Panoramica'], ['bud', 'Budget']].map(function (x) { return '<button data-act="anview" data-v="' + x[0] + '" role="tab" aria-selected="' + (AV === x[0]) + '" class="' + (AV === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    if (AV === 'bud') return h + viewBudget();
     h += '<div class="chips" role="tablist">' + P.map(function (p) { return '<button class="chip ' + (a.period === p[0] ? 'on' : '') + '" data-act="per" data-p="' + p[0] + '" role="tab" aria-selected="' + (a.period === p[0]) + '">' + p[1] + '</button>'; }).join('') + '</div>';
     if (a.period === 'custom') {
-      h += '<div class="dates"><div class="fld"><label for="an-from">Dal</label><input type="date" id="an-from" data-chg="range" max="' + TODAY + '" value="' + a.from + '"></div><div class="fld"><label for="an-to">Al</label><input type="date" id="an-to" data-chg="range" max="' + TODAY + '" value="' + a.to + '"></div></div>';
+      h += '<div class="dates"><div class="fld r"><label for="an-from">Dal</label><input type="date" id="an-from" data-chg="range" max="' + TODAY + '" value="' + a.from + '"></div><div class="fld r"><label for="an-to">Al</label><input type="date" id="an-to" data-chg="range" max="' + TODAY + '" value="' + a.to + '"></div></div>';
     } else {
       h += '<div class="nav"><button class="iconbtn" data-act="prev" aria-label="Periodo precedente">' + svg('left') + '</button><span class="lb">' + esc(r.label) + '</span><button class="iconbtn" data-act="next" aria-label="Periodo successivo"' + (a.offset >= 0 ? ' disabled' : '') + '>' + svg('right') + '</button></div>';
     }
@@ -587,7 +610,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
       }).join('') + (function () {
         if (a.accIds) return '';
         var i4 = 0, e4 = 0; txs.forEach(function (t) { if (isGone(t.accId)) { if (t.kind === 'entrata') i4 += t.cents; else e4 += t.cents; } });
-        return (!i4 && !e4) ? '' : '<div class="row"><span class="ico">🗂️</span><span class="mid"><span class="nm">Conti eliminati</span><span class="sb">Entrate ' + money(i4) + ' · Spese ' + money(e4) + '</span></span><span class="v ' + (i4 - e4 >= 0 ? 'pos' : 'neg') + '">' + moneyS(i4 - e4) + '</span></div>';
+        return (!i4 && !e4) ? '' : '<div class="row"><span class="ico t0">' + svg('archive') + '</span><span class="mid"><span class="nm">Conti eliminati</span><span class="sb">Entrate ' + money(i4) + ' · Spese ' + money(e4) + '</span></span><span class="v ' + (i4 - e4 >= 0 ? 'pos' : 'neg') + '">' + moneyS(i4 - e4) + '</span></div>';
       })() + '</div></section>';
     }
     if (a.blocks.list || a.period === 'day') {
@@ -612,29 +635,33 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     return '<svg class="pie" viewBox="0 0 120 120" role="img" aria-label="Composizione del patrimonio">' + g + '</svg>';
   }
   function viewPortfolio() {
-    var al = alloc(), segs = [['Liquidità', al.liq, 'var(--c1)'], ['Risparmi', al.sav, 'var(--c2)'], ['Crediti', al.cred, 'var(--c3)'], ['Investimenti', al.inv, 'var(--c4)'], ['Cripto', al.cry, 'var(--c5)']].filter(function (x) { return x[1] > 0; });
+    var al = alloc(), CC = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)'];
+    var parts = [['Liquidità', al.liq], ['Risparmi', al.sav], ['Crediti', al.cred], ['Investimenti', al.inv], ['Cripto', al.cry]].filter(function (x) { return x[1] > 0; }).sort(function (x, y) { return y[1] - x[1]; });
+    var segs = parts.length > 4 ? parts.slice(0, 3).concat([['Altro', parts.slice(3).reduce(function (s2, x) { return s2 + x[1]; }, 0)]]) : parts.slice();
+    segs = segs.map(function (x, i) { return [x[0], x[1], CC[i]]; });
+    var legRows = segs.map(function (x) { return x[0] === 'Altro' ? [x].concat(parts.slice(3).map(function (y) { return [y[0], y[1], '', true]; })) : [x]; }).reduce(function (a2, b2) { return a2.concat(b2); }, []);
     var h = '<header class="ph"><h1>Portfolio</h1></header>';
     h += '<div class="card"><div class="sb">Patrimonio netto</div><div class="big" style="margin-bottom:12px">' + money(al.tot + al.debt) + '</div>';
-    h += al.tot > 0 ? '<div class="piew">' + pieSVG(segs, al.tot) + '</div><div class="leg" style="margin-top:12px">' + segs.map(function (x) { return '<div><i style="background:' + x[2] + '"></i><span class="t">' + x[0] + '</span><span class="m">' + money(x[1]) + '</span><span class="p">' + pct(x[1] / al.tot) + '</span></div>'; }).join('') + '</div>' : '<p class="empty">Nessun dato.</p>';
+    h += al.tot > 0 ? '<div class="piew">' + pieSVG(segs, al.tot) + '</div><div class="leg" style="margin-top:12px">' + legRows.map(function (x) { return '<div' + (x[3] ? ' style="padding-left:16px"' : '') + '>' + (x[3] ? '' : '<i style="background:' + x[2] + '"></i>') + '<span class="t">' + (x[3] ? '· ' : '') + x[0] + '</span><span class="m">' + money(x[1]) + '</span><span class="p">' + pct(x[1] / al.tot) + '</span></div>'; }).join('') + '</div>' : '<p class="empty">Nessun dato.</p>';
     h += '<p class="note" style="margin-top:10px">Percentuali sulle attività. Debiti: ' + money(al.debt) + '.</p></div>';
     // investimenti
     var tv = 0, ti = 0, tg = 0, stats = S.pos.map(function (p) { var z = posStat(p); tv += z.value; ti += z.k.invested; tg += z.gain; return z; });
     var stale = S.pos.filter(pxStale).length;
-    h += '<section class="sec"><div class="sech"><h2>Investimenti</h2>' + (S.pos.length ? '<button class="tbtn" data-act="pxall">🏷️ Aggiorna valori</button>' : '') + '</div>';
+    h += '<section class="sec"><div class="sech"><h2>Investimenti</h2>' + (S.pos.length ? '<button class="tbtn" data-act="pxall">' + svg('tag') + 'Aggiorna valori</button>' : '') + '</div>';
     if (stale) h += '<button class="banner" data-act="pxall" style="text-align:left;width:100%">' + (stale === 1 ? '1 investimento non aggiornato' : stale + ' investimenti non aggiornati') + ' di recente: il guadagno potrebbe non essere attuale. Tocca per aggiornarli (meno di un minuto).</button>';
     if (S.pos.length) {
       h += '<button class="card invsum" data-act="posinv"><div class="three"><div><span class="k">Valore attuale</span><span class="n">' + money(tv) + '</span></div><div><span class="k">Versato</span><span class="n">' + money(ti) + '</span></div><div><span class="k">Guadagno</span><span class="n ' + (tg >= 0 ? 'pos' : 'neg') + '">' + moneyS(tg) + '<br><span class="sb">' + pctS(ti > 0 ? tg / ti : null) + '</span></span></div></div><span class="sparkcap">Andamento ' + svg('right') + '</span></button>';
       h += '<button class="lnk" data-act="invhelp" style="align-self:flex-start">Come leggere valore, versato e guadagno</button>';
       h += '<div class="list">' + S.pos.map(function (p, i) {
         var z = stats[i];
-        return '<button class="row" data-act="posopen" data-id="' + p.id + '"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + (isCry(p) ? '' : esc(p.isin || 'Titolo / ETF') + ' · ') + qtyStr(z.k.qty, p) + ' ' + esc(unitL(p)) + (isAuto(p) && !pxStale(p) ? ' · ⚡ auto' : pxStale(p) ? ' · <span class="stale">valore di ' + agoL(z.pxDate) + '</span>' : '') + '</span></span><span class="v">' + money(z.value) + '<br><span class="sb ' + (z.gain >= 0 ? 'pos' : 'neg') + '">' + moneyS(z.gain) + ' · ' + pctS(z.pct) + '</span></span></button>';
+        return '<button class="row" data-act="posopen" data-id="' + p.id + '"><span class="ico ' + posT(p) + '">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + (isCry(p) ? '' : esc(p.isin || 'Titolo / ETF') + ' · ') + qtyStr(z.k.qty, p) + ' ' + esc(unitL(p)) + (isAuto(p) && !pxStale(p) ? ' · ⚡ auto' : pxStale(p) ? ' · <span class="stale">valore di ' + agoL(z.pxDate) + '</span>' : '') + '</span></span><span class="v">' + money(z.value) + '<br><span class="sb ' + (z.gain >= 0 ? 'pos' : 'neg') + '">' + moneyS(z.gain) + ' · ' + pctS(z.pct) + '</span></span></button>';
       }).join('') + '</div>';
     } else h += '<p class="empty">Nessun investimento. Aggiungi titoli, ETF o cripto.</p>';
     h += '<button class="pick addnew" data-act="newpos"><span class="ico">' + svg('plus') + '</span><span class="mid"><span class="nm">Aggiungi investimento</span></span></button></section>';
     var pacs = S.rules.filter(function (r) { return r.type === 'pac'; });
     h += '<section class="sec"><h2>PAC</h2>' + (pacs.length ? '<div class="list">' + pacs.map(function (r) {
       var p = posById(r.posId), nx = ruleNext(r);
-      return '<button class="row" data-act="pacopen" data-id="' + r.id + '"><span class="ico">🔁</span><span class="mid"><span class="nm">' + esc(p ? p.name : 'PAC') + '</span><span class="sb">' + freqL(r) + ' · ' + (!r.active ? 'in pausa' : nx ? 'prossimo ' + dayLabel(nx) : 'terminato') + '</span></span><span class="v">' + money(r.cents) + '</span></button>';
+      return '<button class="row" data-act="pacopen" data-id="' + r.id + '"><span class="ico t3">' + svg('repeat') + '</span><span class="mid"><span class="nm">' + esc(p ? p.name : 'PAC') + '</span><span class="sb">' + freqL(r) + ' · ' + (!r.active ? 'in pausa' : nx ? 'prossimo ' + dayLabel(nx) : 'terminato') + '</span></span><span class="v">' + money(r.cents) + '</span></button>';
     }).join('') + '</div>' : '<p class="empty">Nessun PAC.</p>') + '<button class="pick addnew" data-act="pacnew" data-id=""><span class="ico">' + svg('plus') + '</span><span class="mid"><span class="nm">Aggiungi PAC</span></span></button></section>';
     h += '<p class="note">' + (S.autoCry && S.pos.some(isCry) ? 'Titoli ed ETF: valori inseriti da te («Aggiorna valori»). Cripto: prezzi automatici da CoinGecko, disattivabili nelle Impostazioni.' : 'Valori inseriti da te: «Aggiorna valori» li aggiorna tutti in pochi tocchi.') + '</p>';
     return h;
@@ -642,24 +669,23 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
 
   function viewSettings() {
     var nS = S.cats.filter(function (c) { return c.kind === 'spesa'; }).length, nE = S.cats.filter(function (c) { return c.kind === 'entrata'; }).length;
-    var TH = [['chiaro', 'Chiaro'], ['scuro', 'Scuro']];
+    var TH = [['chiaro', 'Chiaro'], ['scuro', 'Scuro'], ['auto', 'Automatico']];
     return '<header class="ph"><h1>Impostazioni</h1></header>' +
-      '<section class="sec"><h2>Aspetto</h2><div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="seg s2" role="radiogroup" aria-label="Tema">' +
+      '<section class="sec grpd"><h2>Aspetto</h2><div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="seg" role="radiogroup" aria-label="Tema">' +
       TH.map(function (t) { return '<button data-act="theme" data-k="' + t[0] + '" role="radio" aria-checked="' + (S.theme === t[0]) + '" class="' + (S.theme === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>' +
-      '</div></section>' +
-      '<section class="sec"><h2>Valuta</h2><div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="seg s2" role="radiogroup" aria-label="Valuta">' +
+      (S.theme === 'auto' ? '<p class="note">Segue l’impostazione chiaro/scuro dell’iPhone.</p>' : '') + '</div></section>' +
+      '<section class="sec grpd"><h2>Valuta</h2><div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="seg s2" role="radiogroup" aria-label="Valuta">' +
       ['EUR', 'USD'].map(function (c) { return '<button data-act="cur" data-k="' + c + '" role="radio" aria-checked="' + (S.cur === c) + '" class="' + (S.cur === c ? 'on' : '') + '">' + CURN[c] + ' (' + SYM[c] + ')</button>'; }).join('') + '</div>' +
       '<p class="note">Cambia solo simbolo e formato: gli importi non vengono convertiti.</p></div></section>' +
-      '<section class="sec"><h2>Personalizza</h2><div class="card" style="padding:0 16px">' +
-      '<button class="navrow" data-act="budgets"><span>Budget mensili<br><span class="sb">Limite di spesa per categoria</span></span><span class="r">' + S.cats.filter(function (c) { return c.budget > 0; }).length + svg('right') + '</span></button>' +
+      '<section class="sec grpd"><h2>Personalizza</h2><div class="card" style="padding:0 16px">' +
       '<button class="navrow" data-act="rules"><span>Ricorrenze e PAC</span><span class="r">' + S.rules.length + svg('right') + '</span></button>' +
       '<button class="navrow" data-act="managecats" data-k="spesa"><span>Categorie di spesa</span><span class="r">' + nS + svg('right') + '</span></button>' +
       '<button class="navrow" data-act="managecats" data-k="entrata"><span>Categorie di entrata</span><span class="r">' + nE + svg('right') + '</span></button>' +
       '<button class="navrow" data-act="managesubs" style="border-bottom:0"><span>Sottotipologie di conto</span><span class="r">' + S.subs.length + svg('right') + '</span></button></div></section>' +
-      '<section class="sec"><h2>Investimenti</h2><div class="card" style="padding:0 16px"><label class="sw" style="border-bottom:0"><span>Prezzi cripto automatici</span><input type="checkbox" data-chg="autocry"' + (S.autoCry ? ' checked' : '') + ' aria-label="Prezzi cripto automatici"></label></div></section>' +
-      '<section class="sec"><h2>Aiuto</h2><div class="card" style="padding:0 16px"><button class="navrow" data-act="tour"><span>Rivedi il tutorial</span><span class="r">' + svg('right') + '</span></button><button class="navrow" data-act="guide" style="border-bottom:0"><span>Come funziona l’app</span><span class="r">' + svg('right') + '</span></button></div></section>' +
-      '<section class="sec"><h2>Privacy</h2><div class="card" style="padding:0 16px"><label class="sw" style="border-bottom:0"><span>Nascondi gli importi<br><span class="sb">Utile in pubblico</span></span><input type="checkbox" data-chg="hide"' + (S.hide ? ' checked' : '') + ' aria-label="Nascondi gli importi"></label></div></section>' +
-      '<section class="sec"><h2>Dati</h2><div class="card" style="padding:0 16px">' +
+      '<section class="sec grpd"><h2>Investimenti</h2><div class="card" style="padding:0 16px"><label class="sw" style="border-bottom:0"><span>Prezzi cripto automatici</span><input type="checkbox" data-chg="autocry"' + (S.autoCry ? ' checked' : '') + ' aria-label="Prezzi cripto automatici"></label></div></section>' +
+      '<section class="sec grpd"><h2>Aiuto</h2><div class="card" style="padding:0 16px"><button class="navrow" data-act="tour"><span>Rivedi il tutorial</span><span class="r">' + svg('right') + '</span></button><button class="navrow" data-act="guide" style="border-bottom:0"><span>Come funziona l’app</span><span class="r">' + svg('right') + '</span></button></div></section>' +
+      '<section class="sec grpd"><h2>Privacy</h2><div class="card" style="padding:0 16px"><label class="sw" style="border-bottom:0"><span>Nascondi gli importi<br><span class="sb">Utile in pubblico</span></span><input type="checkbox" data-chg="hide"' + (S.hide ? ' checked' : '') + ' aria-label="Nascondi gli importi"></label></div></section>' +
+      '<section class="sec grpd"><h2>Dati</h2><div class="card" style="padding:0 16px">' +
       '<div class="navrow"><span>Stato<br><span class="sb" id="sync-sub">' + esc(syncText()) + '</span></span></div>' +
       '<button class="navrow" data-act="export"><span>Esporta backup<br><span class="sb">' + esc(lastBackupText()) + '</span></span><span class="r">' + svg('right') + '</span></button>' +
       '<button class="navrow" data-act="csvall"><span>Esporta movimenti (CSV)<br><span class="sb">Da aprire con Excel o Numbers</span></span><span class="r">' + svg('right') + '</span></button>' +
@@ -672,10 +698,11 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
   function render(noSave) {
     var v = { home: viewHome, conti: viewConti, analisi: viewAnalisi, portfolio: viewPortfolio, settings: viewSettings }[S.tab]();
     $('#view').innerHTML = v;
-    var T = [['conti', 'Conti', 'wallet'], ['analisi', 'Analisi', 'bars'], ['home', 'Home', 'home'], ['portfolio', 'Portfolio', 'pie'], ['settings', 'Impostazioni', 'sliders']];
+    var alert = budAlert(), T = [['conti', 'Conti', 'wallet'], ['analisi', 'Analisi', 'bars'], ['home', 'Home', 'home'], ['portfolio', 'Portfolio', 'pie'], ['settings', 'Impostazioni', 'sliders']];
     $('#tabs').innerHTML = T.map(function (t) {
       var home = t[0] === 'home';
-      return '<button class="tab ' + (home ? 'home ' : '') + (S.tab === t[0] ? 'on' : '') + '" data-act="tab" data-tab="' + t[0] + '" aria-label="' + t[1] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + (home ? '<span class="hb">' + svg('home') + '</span>' : svg(t[2])) + '<span>' + t[1] + '</span></button>';
+      var dot = t[0] === 'analisi' && alert;
+      return '<button class="tab ' + (home ? 'home ' : '') + (S.tab === t[0] ? 'on' : '') + '" data-act="tab" data-tab="' + t[0] + '" aria-label="' + t[1] + (dot ? ', un budget è oltre l’80%' : '') + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + (home ? '<span class="hb">' + svg('home') + '</span>' : svg(t[2])) + (dot ? '<i class="bdot"></i>' : '') + '<span>' + t[1] + '</span></button>';
     }).join('');
     $('#fabw').innerHTML = S.tab === 'home' ? '<button class="fab mic" data-act="voice" aria-label="Inserisci movimenti a voce">' + svg('mic') + '</button>' + '<button class="fab add" data-act="add" aria-label="Aggiungi spesa o entrata">' + svg('plus') + '</button>' : '';
     if (!noSave) touch(); // il cambio di scheda non modifica i dati: niente salvataggio
@@ -724,7 +751,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
   }
   function closeAll() { voiceStop(); lastPopT = Date.now(); while (L.length) L.pop().el.remove(); armed = null; lockPage(false); render(); }
   function scrHead(title, back, id) {
-    return '<div class="scrh"><button class="x" data-act="close" aria-label="' + (back ? 'Indietro' : 'Chiudi') + '">' + svg(back ? 'back' : 'x') + '</button><h2' + (id ? ' id="' + id + '"' : '') + '>' + esc(title) + '</h2><span class="sp"></span></div>';
+    return '<div class="scrh"><button class="x' + (back ? '' : ' cl') + '" data-act="close" aria-label="' + (back ? 'Indietro' : 'Chiudi') + '">' + (back ? svg('back') + 'Indietro' : 'Chiudi') + '</button><h2' + (id ? ' id="' + id + '"' : '') + '>' + esc(title) + '</h2><span class="sp"></span></div>';
   }
   function shHead(t) { return '<div class="shh"><h2>' + esc(t) + '</h2><button class="x" data-act="close" aria-label="Chiudi">' + svg('x') + '</button></div>'; }
   var toastT = null, undoFn = null, txlT = null;
@@ -924,9 +951,9 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var st = { id: id || null, type: a ? a.type : 'liquidita', sub: a ? (a.sub || '') : ((subsOf('liquidita')[0] || {}).id || ''), icon: a ? a.icon : ICONS[3], col: a ? a.color : COLORS[0], n: a ? accTxCount(id) : 0, goalOn: !!(a && a.goal) };
     var html = scrHead(a ? 'Modifica conto' : 'Nuovo conto', false) +
       '<div class="scrb pform"><button type="button" class="card prev pickico" id="af-prev" data-act="aicopen"></button>' +
-      '<div class="fld"><label for="af-name">Nome</label><input id="af-name" maxlength="30" autocomplete="off" data-in="accname" placeholder="Es. Conto Revolut" value="' + esc(a ? a.name : '') + '"></div>' +
+      '<div class="fld r"><label for="af-name">Nome</label><input id="af-name" maxlength="30" autocomplete="off" data-in="accname" placeholder="Es. Conto Revolut" value="' + esc(a ? a.name : '') + '"></div>' +
       '<div class="fld"><span class="lab">Tipo</span><div class="seg s4" role="radiogroup" aria-label="Tipo" id="af-types"></div></div>' +
-      '<div class="fld"><label for="af-sub">Sottotipologia</label><select id="af-sub" data-chg="asub"></select></div>' +
+      '<div class="fld r"><label for="af-sub">Sottotipologia</label><select id="af-sub" data-chg="asub"></select></div>' +
       '<div class="fld"><div class="fgrid">' +
       fld('<span id="af-ol">Saldo iniziale</span>', '<input id="af-open" inputmode="decimal" autocomplete="off" data-in="accopen" placeholder="0,00" value="' + (a && a.opening !== 0 ? amtStr(Math.abs(a.opening)) : '') + '">', 'af-open') +
       fld('Data del saldo', '<input type="date" id="af-date" max="' + TODAY + '" value="' + (a ? a.openDate : TODAY) + '">', 'af-date') + '</div>' +
@@ -996,7 +1023,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
   }
   /* ================= form generico a un solo nome (sottotipologie) ================= */
   function openNameForm(o) {
-    var html = scrHead(o.title, true) + '<div class="scrb"><div class="fld"><label for="nf-name">' + esc(o.label) + '</label><input id="nf-name" maxlength="28" autocomplete="off" value="' + esc(o.value || '') + '"></div></div>' +
+    var html = scrHead(o.title, true) + '<div class="scrb"><div class="fld r"><label for="nf-name">' + esc(o.label) + '</label><input id="nf-name" maxlength="28" autocomplete="off" value="' + esc(o.value || '') + '"></div></div>' +
       '<div class="scrf"><p class="msg" id="nf-msg" role="alert"></p><button class="btn" data-act="savename">Salva</button>' + (o.del ? '<button class="btn danger" data-act="delname">' + esc(o.del.label) + '</button>' : '') + '</div>';
     pushLayer('screen', 'name', html, { o: o });
   }
@@ -1044,8 +1071,8 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var st = { id: o.id || null, kind: kind, icon: c ? c.icon : ICONS[19], fromAdd: !!o.fromAdd, n: c ? S.tx.filter(function (t) { return t.catId === c.id; }).length + S.rules.filter(function (r) { return r.catId === c.id; }).length : 0 };
     var html = scrHead(c ? 'Modifica categoria' : (kind === 'spesa' ? 'Nuova categoria di spesa' : 'Nuova categoria di entrata'), !!o.back) +
       '<div class="scrb pform"><button type="button" class="card prev pickico" id="cf-prev" data-act="cicopen"></button>' +
-      '<div class="fld"><label for="cf-name">Nome</label><input id="cf-name" maxlength="24" autocomplete="off" data-in="catname" placeholder="Es. Palestra" value="' + esc(c ? c.name : '') + '"></div>' +
-      (kind === 'spesa' ? '<div class="fld"><label for="cf-bud">Budget mensile <span class="opt">facoltativo</span></label><input id="cf-bud" inputmode="decimal" autocomplete="off" placeholder="Nessun limite" value="' + (c && c.budget > 0 ? amtStr(c.budget) : '') + '"></div>' : '') +
+      '<div class="fld r"><label for="cf-name">Nome</label><input id="cf-name" maxlength="24" autocomplete="off" data-in="catname" placeholder="Es. Palestra" value="' + esc(c ? c.name : '') + '"></div>' +
+      (kind === 'spesa' ? '<div class="fld r"><label for="cf-bud">Budget mensile <span class="opt">facoltativo</span></label><input id="cf-bud" inputmode="decimal" autocomplete="off" placeholder="Nessun limite" value="' + (c && c.budget > 0 ? amtStr(c.budget) : '') + '"></div>' : '') +
       '</div>' +
       '<div class="scrf"><p class="msg" id="cf-msg" role="alert"></p><button class="btn" data-act="savecat">Salva</button>' +
       (c ? '<button class="btn danger" data-act="delcat">Elimina categoria</button>' : '') + '</div>';
@@ -1303,7 +1330,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
       h += '<div class="card nwcard ' + (up ? 'up' : 'dn') + (st.preset === 'custom' ? ' cu' : '') + '"><svg id="nw-svg" class="nwsvg" viewBox="0 0 ' + G.W + ' ' + G.H + '" role="img" aria-label="Andamento nel periodo">' + g + '</svg></div>';
     }
     h += '<div class="chips fit" role="tablist">' + NW_P.map(function (p) { return '<button class="chip ' + (st.preset === p[0] ? 'on' : '') + '" data-act="nwper" data-p="' + p[0] + '" role="tab" aria-selected="' + (st.preset === p[0]) + '">' + p[1] + '</button>'; }).join('') + '</div>';
-    if (st.preset === 'custom') h += '<div class="dates"><div class="fld"><label for="nw-from">Dal</label><input type="date" id="nw-from" data-chg="nwrange" max="' + TODAY + '" value="' + st.from + '"></div><div class="fld"><label for="nw-to">Al</label><input type="date" id="nw-to" data-chg="nwrange" max="' + TODAY + '" value="' + st.to + '"></div></div>';
+    if (st.preset === 'custom') h += '<div class="dates"><div class="fld r"><label for="nw-from">Dal</label><input type="date" id="nw-from" data-chg="nwrange" max="' + TODAY + '" value="' + st.from + '"></div><div class="fld r"><label for="nw-to">Al</label><input type="date" id="nw-to" data-chg="nwrange" max="' + TODAY + '" value="' + st.to + '"></div></div>';
     if (full.length >= 2) h += '<div class="cells">' + nwCells(st, D) + '</div>';
     var foot = '';
     if (r.clamped && r.from <= r.to) foot = 'Dati dal ' + fullD(r.first) + '.';
@@ -1379,7 +1406,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     Array.prototype.forEach.call(sh.el.querySelectorAll('#is-col button'), function (b) { b.classList.toggle('on', COLORS[+b.dataset.i] === base.st.col); });
   }
   function accOpts(sel, none) { return (none ? '<option value="">' + none + '</option>' : '') + S.accounts.map(function (a) { return '<option value="' + a.id + '"' + (a.id === sel ? ' selected' : '') + '>' + esc(a.icon + ' ' + a.name) + '</option>'; }).join(''); }
-  function fld(label, inner, id) { return '<div class="fld"><label' + (id ? ' for="' + id + '"' : '') + '>' + label + '</label>' + inner + '</div>'; }
+  function fld(label, inner, id) { return '<div class="fld' + (/^<(select|input(?! type="checkbox"))/.test(inner) ? ' r' : '') + '"><label' + (id ? ' for="' + id + '"' : '') + '>' + label + '</label>' + inner + '</div>'; }
   function msgOf(lay, sel) { var m = lay.el.querySelector(sel || '.msg'); return function (t) { m.textContent = t; m.className = 'msg bad'; }; }
   function dateOk(d, a) { if (!d) return 'Scegli una data.'; if (d > TODAY) return 'Data futura non valida.'; if (a && d < a.openDate) return 'Prima dell’apertura del conto (' + dayLabel(a.openDate) + ').'; return ''; }
 
@@ -1489,7 +1516,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var lot = lotId ? p.lots.filter(function (l) { return l.id === lotId; })[0] : null; if (lotId && !lot) return;
     var d = lot ? (lot.qty < 0 ? 'sell' : 'buy') : dir, sell = d === 'sell';
     var tx = lot && lot.txId ? txById(lot.txId) : null;
-    var html = scrHead((lot ? 'Modifica ' : 'Nuova ') + (sell ? 'vendita' : 'acquisto'), !!lot) + '<div class="scrb"><div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + esc(posTag(p)) + '</span></span></div>' +
+    var html = scrHead((lot ? 'Modifica ' : 'Nuova ') + (sell ? 'vendita' : 'acquisto'), !!lot) + '<div class="scrb"><div class="card prev"><span class="ico ' + posT(p) + '">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + esc(posTag(p)) + '</span></span></div>' +
       fld('Data', '<input type="date" id="l-date" max="' + TODAY + '" value="' + (lot ? lot.d : TODAY) + '">', 'l-date') +
       fld('Quantità', '<input id="l-qty" inputmode="decimal" autocomplete="off" placeholder="0" value="' + (lot ? qtyInput(Math.abs(lot.qty)) : '') + '">' + (lot && lot.est ? '<p class="hint">Quantità stimata: correggila con quella del broker.</p>' : ''), 'l-qty') +
       fld(sell ? 'Importo incassato' : 'Importo pagato (con commissioni)', '<input id="l-tot" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + (lot ? amtStr(lot.tot) : '') + '">', 'l-tot') +
@@ -1555,10 +1582,10 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var lots = lotsSorted(p.lots).reverse(), prices = p.prices.slice().reverse(), pacs = S.rules.filter(function (r) { return r.type === 'pac' && r.posId === id; });
     var h = scrHead(p.name, true) + '<div class="scrb"><section class="sec"><h2>Operazioni</h2>' + (lots.length ? '<div class="list">' + lots.map(function (l) {
       var sell = l.qty < 0;
-      return '<button class="row" data-act="lotedit" data-id="' + esc(l.id) + '" data-pos="' + esc(id) + '"><span class="ico">' + (sell ? '➖' : '➕') + '</span><span class="mid"><span class="nm">' + (sell ? 'Vendita' : l.rule ? 'PAC' : 'Acquisto') + ' · ' + qtyStr(Math.abs(l.qty), p) + ' ' + esc(unitL(p)) + '</span><span class="sb">' + dayLabel(l.d) + ' · ' + pxStr(l.px) + (l.est ? ' · stima' : '') + '</span></span><span class="v">' + money(l.tot) + '</span></button>';
+      return '<button class="row" data-act="lotedit" data-id="' + esc(l.id) + '" data-pos="' + esc(id) + '"><span class="ico ' + (sell ? 't5' : 't2') + '">' + svg(sell ? 'minus' : 'plus') + '</span><span class="mid"><span class="nm">' + (sell ? 'Vendita' : l.rule ? 'PAC' : 'Acquisto') + ' · ' + qtyStr(Math.abs(l.qty), p) + ' ' + esc(unitL(p)) + '</span><span class="sb">' + dayLabel(l.d) + ' · ' + pxStr(l.px) + (l.est ? ' · stima' : '') + '</span></span><span class="v">' + money(l.tot) + '</span></button>';
     }).join('') + '</div>' : '<p class="empty">Nessuna operazione.</p>') + '</section>' +
       '<section class="sec"><h2>Prezzi</h2><div class="list">' + prices.map(function (x) {
-        return '<button class="row" data-act="priceedit" data-id="' + id + '" data-d="' + x.d + '"><span class="ico">🏷️</span><span class="mid"><span class="nm">' + pxStr(x.px) + '</span><span class="sb">' + dayLabel(x.d) + '</span></span><span class="v">' + svg('right') + '</span></button>';
+        return '<button class="row" data-act="priceedit" data-id="' + id + '" data-d="' + x.d + '"><span class="ico t1">' + svg('tag') + '</span><span class="mid"><span class="nm">' + pxStr(x.px) + '</span><span class="sb">' + dayLabel(x.d) + '</span></span><span class="v">' + svg('right') + '</span></button>';
       }).join('') + '</div></section>' +
       (pacs.length ? '<section class="sec"><h2>PAC</h2><div class="list">' + pacs.map(ruleRow).join('') + '</div></section>' : '') + '</div>' +
       '<div class="scrf"><button class="btn danger" data-act="delposopen" data-id="' + id + '">Elimina investimento…</button></div>';
@@ -1580,7 +1607,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
   }
   function openDelPos(id) {
     var p = posById(id); if (!p) return;
-    pushLayer('screen', 'delpos', scrHead('Elimina investimento', true) + '<div class="scrb"><div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb" id="dp-sub"></span></span></div><div class="fld"><span class="lab">Addebiti sui conti</span><div class="optl" id="dp-opts"></div></div><div class="card" id="dp-imp"></div></div>' +
+    pushLayer('screen', 'delpos', scrHead('Elimina investimento', true) + '<div class="scrb"><div class="card prev"><span class="ico ' + posT(p) + '">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb" id="dp-sub"></span></span></div><div class="fld"><span class="lab">Addebiti sui conti</span><div class="optl" id="dp-opts"></div></div><div class="card" id="dp-imp"></div></div>' +
       '<div class="scrf"><button class="btn danger" id="dp-go" data-act="delposgo"></button></div>', { id: id, mode: 'keep' }, { refresh: syncDelPos });
     syncDelPos();
   }
@@ -1615,7 +1642,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var c = cat(r.catId); return r.note || (r.kind === 'giro' ? 'Giroconto' : c ? c.name : r.kind === 'spesa' ? 'Spesa' : 'Entrata');
   }
   function ruleRow(r) {
-    var nx = ruleNext(r), ic = r.type === 'pac' ? '🔁' : r.kind === 'giro' ? '⇄' : (cat(r.catId) || { icon: '↻' }).icon;
+    var nx = ruleNext(r), ic = r.type === 'pac' ? svg('repeat') : r.kind === 'giro' ? svg('swap') : (cat(r.catId) || { icon: '↻' }).icon;
     return '<button class="row" data-act="ruleopen" data-id="' + r.id + '"><span class="ico">' + ic + '</span><span class="mid"><span class="nm">' + esc(ruleTitle(r)) + '</span><span class="sb">' + freqL(r) + ' · ' + (!r.active ? 'in pausa' : nx ? 'prossima ' + dayLabel(nx) : 'terminata') + '</span></span><span class="v ' + (r.kind === 'entrata' ? 'pos' : '') + '">' + money(r.cents) + '</span></button>';
   }
   function rulesHtml() {
@@ -1655,7 +1682,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var r = S.rules.filter(function (x) { return x.id === id; })[0]; if (!r) return;
     var pac = r.type === 'pac', giro = r.kind === 'giro';
     var cats = S.cats.filter(function (c) { return c.kind === r.kind; });
-    var prev = '<div class="card prev"><span class="ico">' + (pac ? '🔁' : giro ? '⇄' : (cat(r.catId) || { icon: '↻' }).icon) + '</span><span class="mid"><span class="nm">' + esc(ruleTitle(r)) + '</span><span class="sb">' + freqCap(r) + ' dal ' + dayLabel(r.anchor) + '</span></span></div>';
+    var prev = '<div class="card prev"><span class="ico' + (pac ? ' t3' : giro ? ' t1' : '') + '">' + (pac ? svg('repeat') : giro ? svg('swap') : (cat(r.catId) || { icon: '↻' }).icon) + '</span><span class="mid"><span class="nm">' + esc(ruleTitle(r)) + '</span><span class="sb">' + freqCap(r) + ' dal ' + dayLabel(r.anchor) + '</span></span></div>';
     var html;
     if (pac) {
       // PAC: schermata ferma (nessuno scorrimento), campi in griglia
@@ -1768,28 +1795,41 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
   }
 
   /* ---------- budget mensili per categoria (campo budget della categoria, in centesimi) ---------- */
-  function budgetState() {
-    var r = monthRange(TODAY), by = {}, dim = parseD(r.to).getDate(), day = parseD(TODAY).getDate();
-    S.tx.forEach(function (t) { if (t.kind === 'spesa' && t.date >= r.from && t.date <= TODAY) by[t.catId] = (by[t.catId] || 0) + t.cents; });
+  // Vista di Analisi (Panoramica o Budget) e mese mostrato nei budget: valgono solo finché l'app resta aperta (non sono dati).
+  var AV = 'ov', BOFF = 0;
+  // d = un giorno del mese da mostrare (predefinito: oggi). Il ritmo atteso esiste solo per il mese in corso.
+  function budgetState(d) {
+    var r = monthRange(d || TODAY), cur = r.from === monthRange(TODAY).from, end = cur ? TODAY : r.to, by = {}, dim = parseD(r.to).getDate(), day = cur ? parseD(TODAY).getDate() : dim;
+    S.tx.forEach(function (t) { if (t.kind === 'spesa' && t.date >= r.from && t.date <= end) by[t.catId] = (by[t.catId] || 0) + t.cents; });
     var rows = S.cats.filter(function (c) { return c.kind === 'spesa' && c.budget > 0; }).map(function (c) {
       var sp = by[c.id] || 0; return { c: c, spent: sp, budget: c.budget, ratio: sp / c.budget };
     }).sort(function (a, b) { return b.ratio - a.ratio; });
     var tb = 0, ts = 0; rows.forEach(function (x) { tb += x.budget; ts += x.spent; });
-    return { rows: rows, budget: tb, spent: ts, pace: day / dim, day: day, dim: dim };
+    return { rows: rows, budget: tb, spent: ts, pace: cur ? day / dim : null, day: day, dim: dim, cur: cur, from: r.from, to: r.to };
   }
   function budCls(ratio) { return ratio >= 1 ? 'over' : ratio >= 0.8 ? 'warn' : ''; }
-  function budgetSection() {
-    var b = budgetState(); if (!b.rows.length) return '';
-    var h = '<section class="sec"><div class="sech"><h2>Budget · ' + MESI_L[parseD(TODAY).getMonth()] + '</h2><button class="lnk" data-act="budgets">Modifica</button></div><div class="card">';
-    h += '<div class="kv" style="border:0;padding-top:0"><span>Speso ' + money(b.spent) + ' di ' + money(b.budget) + '</span><span class="' + (b.spent > b.budget ? 'neg' : '') + '">' + (b.spent > b.budget ? 'oltre di ' + money(b.spent - b.budget) : 'restano ' + money(b.budget - b.spent)) + '</span></div>';
-    h += pbar(b.spent / b.budget, budCls(b.spent / b.budget), b.pace);
-    h += '<p class="note" style="margin:6px 0 4px">Giorno ' + b.day + ' di ' + b.dim + ': la tacca indica il ritmo per restare nel budget.</p>';
-    h += b.rows.map(function (x) {
-      var left = x.budget - x.spent, ahead = x.ratio < 1 && x.ratio > b.pace + 0.1;
-      return '<button class="cbar budrow" data-act="budtx" data-id="' + x.c.id + '"><div class="top"><span class="nm">' + x.c.icon + ' ' + esc(x.c.name) + '</span><span class="v">' + money(x.spent) + ' / ' + money(x.budget) + '</span></div>' + pbar(x.ratio, budCls(x.ratio), b.pace) +
-        '<span class="sb ' + (left < 0 ? 'neg' : '') + '">' + (left < 0 ? 'Superato di ' + money(-left) : 'Restano ' + money(left) + (ahead ? ' · sopra il ritmo' : '')) + '</span></button>';
-    }).join('');
-    return h + '</div></section>';
+  // stato a parole (il colore non è mai l'unico segnale): oltre il 100%, dall'80% o sopra il ritmo del mese, altrimenti in linea
+  function budStat(ratio, pace) { return ratio >= 1 ? ['Oltre', 'b'] : ratio >= 0.8 || (pace !== null && ratio > pace + 0.1) ? ['Attenzione', 'w'] : ['In linea', 'g']; }
+  function badge(x) { return '<span class="badge ' + x[1] + '">' + x[0] + '</span>'; }
+  function budAlert() { return budgetState().rows.some(function (x) { return x.ratio >= 0.8; }); }
+  function viewBudget() {
+    var m = parseD(addMonths(TODAY, BOFF)), b = budgetState(ymd(m)), mese = MESI_L[m.getMonth()];
+    var h = '<div class="nav"><button class="iconbtn" data-act="budprev" aria-label="Mese precedente">' + svg('left') + '</button><span class="lb">' + mese + ' ' + m.getFullYear() + '</span><button class="iconbtn" data-act="budnext" aria-label="Mese successivo"' + (BOFF >= 0 ? ' disabled' : '') + '>' + svg('right') + '</button></div>';
+    if (!b.rows.length) {
+      h += '<div class="card" style="display:flex;flex-direction:column;gap:10px"><h2 style="padding:0">Nessun budget impostato</h2><p class="hint">Un limite di spesa al mese per categoria. L’app ti avvisa quando arrivi all’80% e al 100%, anche mentre registri una spesa.</p><button class="btn" data-act="budgets">Imposta budget</button></div>';
+    } else {
+      var q = b.spent / b.budget, left = b.budget - b.spent;
+      h += '<div class="card budsum"><div class="bh"><div class="mid"><span class="sb">Speso ' + (b.cur ? 'questo mese' : 'a ' + mese) + '</span><span class="big">' + money(b.spent) + '</span><span class="sb">di ' + money(b.budget) + '</span></div>' + badge(budStat(q, b.pace)) + '</div>' +
+        pbar(q, budCls(q), b.cur ? b.pace : undefined) +
+        '<div class="kv" style="padding:0"><span>' + (b.cur ? 'Giorno ' + b.day + ' di ' + b.dim + ' · ritmo atteso ' + Math.round(b.pace * 100) + '%' : 'Mese concluso') + '</span><span class="' + (left < 0 ? 'neg' : '') + '">' + (left < 0 ? moneyS(left) + ' oltre' : 'restano ' + money(left)) + '</span></div>' +
+        (b.cur ? '<p class="note" style="margin-top:6px">La tacca sulla barra indica il ritmo per restare nel budget.</p>' : '<p class="note" style="margin-top:6px">Confronto con i limiti di oggi: l’app non conserva i limiti dei mesi passati.</p>') + '</div>';
+      h += '<section class="sec"><div class="sech"><h2>Categorie</h2><button class="lnk" data-act="budgets">Modifica</button></div><div class="card">' + b.rows.map(function (x) {
+        var l2 = x.budget - x.spent;
+        return '<button class="cbar budrow" data-act="budtx" data-id="' + x.c.id + '"' + (b.cur ? '' : ' data-from="' + b.from + '" data-to="' + b.to + '"') + '><div class="top"><span class="nm">' + x.c.icon + ' ' + esc(x.c.name) + '</span><span class="v">' + money(x.spent) + ' / ' + money(x.budget) + '</span></div>' + pbar(x.ratio, budCls(x.ratio), b.cur ? b.pace : undefined) +
+          '<div class="top"><span class="sb ' + (l2 < 0 ? 'neg' : '') + '">' + (l2 < 0 ? 'Oltre di ' + moneyS(l2) : 'Restano ' + money(l2)) + '</span>' + badge(budStat(x.ratio, b.pace)) + '</div></button>';
+      }).join('') + '</div></section>';
+    }
+    return h + goalsSection() + '<p class="note">Il budget conta solo le spese, per categoria e in tutti i conti.</p>';
   }
   // avviso nel toast quando una spesa porta una categoria vicino o oltre il budget del mese
   function budNote(t) {
@@ -1844,12 +1884,29 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     return 'Mancano ' + money(x.left);
   }
   function goalsSection() {
-    var gs = S.accounts.filter(function (a) { return a.goal && goalOk(a.type); }); if (!gs.length) return '';
-    return '<section class="sec"><h2>Obiettivi</h2><div class="card">' + gs.map(function (a) {
+    var gs = S.accounts.filter(function (a) { return a.goal && goalOk(a.type); });
+    var h = '<section class="sec"><div class="sech"><h2>Obiettivi di risparmio</h2><button class="lnk" data-act="goalnew">+ Nuovo</button></div>';
+    if (!gs.length) return h + '<p class="empty">Nessun obiettivo. Scegli un conto di risparmio o di liquidità e indica quanto vuoi mettere da parte ed entro quando.</p></section>';
+    return h + '<div class="card">' + gs.map(function (a) {
       var x = goalInfo(a);
       return '<button class="cbar budrow" data-act="acc" data-id="' + a.id + '"><div class="top"><span class="nm">' + a.icon + ' ' + esc(a.name) + '</span><span class="v">' + money(x.bal) + ' / ' + money(x.target) + '</span></div>' +
         pbar(x.ratio, x.left <= 0 ? 'done' : x.late ? 'warn' : 'goal') + '<span class="sb ' + (x.left <= 0 ? 'pos' : '') + '">' + goalText(x) + '</span></button>';
     }).join('') + '</div></section>';
+  }
+
+  function sheetGoal() {
+    var list = S.accounts.filter(function (a) { return goalOk(a.type) && !a.goal; });
+    pushLayer('sheet', 'goalpick', shHead('Nuovo obiettivo') + '<p class="hint">Su quale conto vuoi mettere da parte i soldi?</p><div>' + list.map(function (a) {
+      var sb = sub(a.sub);
+      return '<button class="pick" data-act="goalacc" data-id="' + a.id + '"><span class="ico" style="--c:' + a.color + '">' + a.icon + '</span><span class="mid"><span class="nm">' + esc(a.name) + '</span><span class="sb">' + esc(sb ? sb.name : TYPES[a.type]) + '</span></span><span class="v">' + money(balance(a.id)) + '</span></button>';
+    }).join('') + '<button class="pick addnew" data-act="goalacc" data-id=""><span class="ico">' + svg('plus') + '</span><span class="mid"><span class="nm">Nuovo conto di risparmio</span></span></button></div>');
+  }
+  function goalOpen(id) {
+    while (L.length) L.pop().el.remove();
+    openAccForm(id || null);
+    var al = layerOf('acc'); if (!al) return;
+    if (!id) { al.st.type = 'risparmio'; al.st.sub = (subsOf('risparmio')[0] || {}).id || ''; al.st.icon = TYPE_ICON.risparmio; }
+    al.st.goalOn = true; syncAcc();
   }
 
   /* ---------- elenco completo dei movimenti: ricerca e filtri ---------- */
@@ -1869,7 +1926,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var nf = (st.acc ? 1 : 0) + (st.cat ? 1 : 0) + (st.min ? 1 : 0) + (st.max ? 1 : 0) + (st.accs ? 1 : 0);
     var h = '<div class="chips" role="tablist" aria-label="Tipo">' + TL_KIND.map(function (k) { return '<button class="chip ' + (st.kind === k[0] ? 'on' : '') + '" data-act="tlkind" data-k="' + k[0] + '" role="tab" aria-selected="' + (st.kind === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="chips" role="tablist" aria-label="Periodo">' + TL_PER.map(function (k) { return '<button class="chip ' + (st.per === k[0] ? 'on' : '') + '" data-act="tlper" data-k="' + k[0] + '" role="tab" aria-selected="' + (st.per === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>';
-    if (st.per === 'custom') h += '<div class="dates"><div class="fld"><label for="tl-from">Dal</label><input type="date" id="tl-from" data-chg="txl" max="' + TODAY + '" value="' + st.from + '"></div><div class="fld"><label for="tl-to">Al</label><input type="date" id="tl-to" data-chg="txl" max="' + TODAY + '" value="' + st.to + '"></div></div>';
+    if (st.per === 'custom') h += '<div class="dates"><div class="fld r"><label for="tl-from">Dal</label><input type="date" id="tl-from" data-chg="txl" max="' + TODAY + '" value="' + st.from + '"></div><div class="fld r"><label for="tl-to">Al</label><input type="date" id="tl-to" data-chg="txl" max="' + TODAY + '" value="' + st.to + '"></div></div>';
     if (st.accs) h += '<button class="chip on tog" data-act="tlaccsx">' + st.accs.length + (st.accs.length === 1 ? ' conto' : ' conti') + ' dall’Analisi ✕</button>';
     h += '<div class="sech"><button class="tbtn" data-act="tlmore" aria-expanded="' + st.more + '">' + svg('sliders') + 'Filtri' + (nf ? ' (' + nf + ')' : '') + '</button>' + (nf || st.q || st.kind !== 'all' || st.per !== 'all' ? '<button class="lnk" data-act="tlreset">Azzera</button>' : '') + '</div>';
     if (st.more) {
@@ -1977,7 +2034,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var st = lay.st, p = posById(st.ids[st.i]); if (!p) { pxwStep(); return; }
     var q = posQtyAt(p, TODAY), l = lastPx(p), lv = l ? valCents(q, l.px) : 0, val = st.mode === 'val';
     lay.el.querySelector('#w-body').innerHTML = '<p class="cap" style="text-align:center">' + (st.i + 1) + ' di ' + st.ids.length + '</p>' +
-      '<div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + qtyStr(q, p) + ' ' + esc(unitL(p)) + ' · ' + esc(posTag(p)) + '</span></span></div>' +
+      '<div class="card prev"><span class="ico ' + posT(p) + '">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + qtyStr(q, p) + ' ' + esc(unitL(p)) + ' · ' + esc(posTag(p)) + '</span></span></div>' +
       (l ? '<div class="kv"><span>Ultimo valore</span><span>' + money(lv) + ' · ' + agoL(l.d) + '</span></div>' : '') +
       '<div class="fld"><label for="w-in" class="wq">' + (val ? 'Quanto vale oggi la posizione?' : 'Prezzo di oggi per 1 ' + unitOf(p)) + '</label>' +
       '<input id="w-in" class="bigin" data-in="pxw" inputmode="decimal" autocomplete="off" placeholder="' + (l && !S.hide ? esc(val ? amtStr(lv) : pxInput(l.px)) : '0,00') + '">' +
@@ -2026,7 +2083,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
   function openPriceForm(posId, date) {
     var p = posById(posId); if (!p) return;
     var pt = date ? p.prices.filter(function (x) { return x.d === date; })[0] : null;
-    var html = scrHead(pt ? 'Modifica prezzo' : 'Aggiorna valore', !!pt) + '<div class="scrb"><div class="card prev"><span class="ico" style="--c:var(--' + (isCry(p) ? 'c5' : 'c4') + ')">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + esc(posTag(p)) + '</span></span></div>' +
+    var html = scrHead(pt ? 'Modifica prezzo' : 'Aggiorna valore', !!pt) + '<div class="scrb"><div class="card prev"><span class="ico ' + posT(p) + '">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + esc(posTag(p)) + '</span></span></div>' +
       fld('Data', '<input type="date" id="x-date" max="' + TODAY + '" value="' + (pt ? pt.d : TODAY) + '">', 'x-date') + '<div id="x-form" class="fcol"></div>' +
       '</div><div class="scrf"><p class="msg" id="x-msg" role="alert"></p><button class="btn" data-act="saveprice">Salva</button>' + (pt && p.prices.length > 1 ? '<button class="btn danger" data-act="delprice">Elimina</button>' : '') + '</div>';
     var lay = pushLayer('screen', 'price', html, { posId: posId, d0: pt ? pt.d : '', mode: pt ? 'px' : 'val', px0: pt ? pt.px : 0 });
@@ -2081,18 +2138,18 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
       '<p class="sb">Hai versato ' + money(k.invested) + (k.proceeds ? ' e incassato ' + money(k.proceeds) + ' dalle vendite' : '') + '. Oggi vale ' + money(z.value) + '.</p></div>';
     // freschezza del valore
     if (q > 0) {
-      h += '<div class="card fresh' + (stale ? ' old' : '') + '"><div class="fr1"><span>' + (auto ? (stale ? '⚠️ Prezzo automatico di ' : '⚡ Prezzo automatico · ') + (l ? agoL(l.d) : '—') : stale ? '⚠️ Valore di ' + (l ? agoL(l.d) : '—') : '🏷️ Valore aggiornato ' + (l ? agoL(l.d) : '—')) + '</span>' +
+      h += '<div class="card fresh' + (stale ? ' old' : '') + '"><div class="fr1"><span>' + (auto ? (stale ? svg('alert') + 'Prezzo automatico di ' : svg('bolt') + 'Prezzo automatico · ') + (l ? agoL(l.d) : '—') : stale ? svg('alert') + 'Valore di ' + (l ? agoL(l.d) : '—') : svg('tag') + 'Valore aggiornato ' + (l ? agoL(l.d) : '—')) + '</span>' +
         (auto ? '<button class="tbtn" data-act="cgnow">Aggiorna ora</button>' : '<button class="tbtn pri" data-act="pricenew" data-id="' + id + '">Aggiorna valore</button>') + '</div>' +
         '<p class="sb">' + (auto ? 'Da CoinGecko (' + esc(p.cgName || p.cgId) + ')' + (CG.upd ? ' · prezzo delle ' + hhmm(CG.upd) : '') + (CG.err ? ' · ultimo tentativo non riuscito' : '') : stale ? 'Il guadagno mostrato usa il prezzo del ' + shortD(l.d) + ': aggiornalo per vederlo attuale.' : 'Prezzo per ' + unitOf(p) + ': ' + (l ? pxStr(l.px) : '—')) + '</p></div>';
       if (isCry(p) && S.autoCry && !p.cgId) h += '<button class="banner" data-act="cglink" style="text-align:left;width:100%">Non collegata a CoinGecko: tocca per cercarla.</button>';
     }
     h += '<div class="cells">' + cell('Prezzo medio di carico', q > 0 ? pxStr(avg) : '—', 'per ' + unitOf(p)) + cell('Prezzo attuale', l ? pxStr(l.px) : '—', l ? shortD(l.d) : '') +
       cell('Rendimento annuo', xirrStr(z.xirr), z.xirr === null ? 'dopo 90 giorni' : 'tiene conto delle date') + cell(k.proceeds ? 'Guadagno realizzato' : 'Versato', k.proceeds ? moneyS(k.realized) : money(k.invested), k.proceeds ? 'con le vendite' : 'commissioni comprese') + '</div>';
-    h += '<button class="navrow card" data-act="posopen" data-chart="1" data-id="' + id + '" style="padding:0 16px"><span>📉 Andamento nel tempo</span><span class="r">' + svg('right') + '</span></button>';
-    h += '<div class="btns four"><button class="btn ghost" data-act="lotnew" data-id="' + id + '" data-dir="buy">+ Acquisto</button><button class="btn ghost" data-act="lotnew" data-id="' + id + '" data-dir="sell">− Vendita</button><button class="btn ghost" data-act="pacnew" data-id="' + id + '">🔁 PAC</button></div>';
+    h += '<button class="navrow card" data-act="posopen" data-chart="1" data-id="' + id + '" style="padding:0 16px"><span>' + svg('trend', 'lead') + 'Andamento nel tempo</span><span class="r">' + svg('right') + '</span></button>';
+    h += '<div class="btns four"><button class="btn ghost" data-act="lotnew" data-id="' + id + '" data-dir="buy">+ Acquisto</button><button class="btn ghost" data-act="lotnew" data-id="' + id + '" data-dir="sell">− Vendita</button><button class="btn ghost" data-act="pacnew" data-id="' + id + '">' + svg('repeat') + 'PAC</button></div>';
     h += '<section class="sec"><div class="sech"><h2>Operazioni</h2><button class="lnk" data-act="poslist" data-id="' + id + '">Tutte e storico prezzi</button></div>' + (lots.length ? '<div class="list">' + lots.slice(0, 8).map(function (x) {
       var sell = x.qty < 0;
-      return '<button class="row" data-act="lotedit" data-id="' + esc(x.id) + '" data-pos="' + esc(id) + '"><span class="ico">' + (sell ? '➖' : '➕') + '</span><span class="mid"><span class="nm">' + (sell ? 'Vendita' : x.rule ? 'PAC' : 'Acquisto') + ' · ' + qtyStr(Math.abs(x.qty), p) + ' ' + esc(unitL(p)) + '</span><span class="sb">' + dayLabel(x.d) + ' · ' + pxStr(x.px) + (x.est ? ' · quantità stimata' : '') + '</span></span><span class="v">' + money(x.tot) + '</span></button>';
+      return '<button class="row" data-act="lotedit" data-id="' + esc(x.id) + '" data-pos="' + esc(id) + '"><span class="ico ' + (sell ? 't5' : 't2') + '">' + svg(sell ? 'minus' : 'plus') + '</span><span class="mid"><span class="nm">' + (sell ? 'Vendita' : x.rule ? 'PAC' : 'Acquisto') + ' · ' + qtyStr(Math.abs(x.qty), p) + ' ' + esc(unitL(p)) + '</span><span class="sb">' + dayLabel(x.d) + ' · ' + pxStr(x.px) + (x.est ? ' · quantità stimata' : '') + '</span></span><span class="v">' + money(x.tot) + '</span></button>';
     }).join('') + '</div>' : '<p class="empty">Nessuna operazione.</p>') + '</section>';
     if (pacs.length) h += '<section class="sec"><h2>PAC</h2><div class="list">' + pacs.map(ruleRow).join('') + '</div></section>';
     h += '<button class="lnk" data-act="invhelp" style="align-self:flex-start">Come leggere questi numeri</button>';
@@ -2184,7 +2241,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     return [
       { k: 'acc', t: 'Crea il primo conto', s: 'Dove tieni i soldi, con il saldo di oggi', done: S.accounts.length > 0, act: 'newacc' },
       { k: 'tx', t: 'Registra una spesa o un’entrata', s: 'Tasto + in basso a destra', done: S.tx.some(function (t) { return t.kind === 'spesa' || t.kind === 'entrata'; }), act: 'add' },
-      { k: 'bud', t: 'Imposta un budget', s: 'Facoltativo: un limite al mese per categoria', done: S.cats.some(function (c) { return c.budget > 0; }), act: 'budgets' },
+      { k: 'bud', t: 'Imposta un budget', s: 'Facoltativo, in Analisi → Budget: un limite al mese per categoria', done: S.cats.some(function (c) { return c.budget > 0; }), act: 'gobud' },
       { k: 'bk', t: 'Esporta un backup', s: 'I dati sono solo su questo telefono', done: !!S.lastBackup, act: 'export' }
     ];
   }
@@ -2203,7 +2260,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
       '<h3>➕ Movimenti</h3><p><b>Spesa</b> ed <b>entrata</b> cambiano il tuo patrimonio. Il <b>giroconto</b> sposta soldi tra due tuoi conti (es. dalla banca ai risparmi): non è né una spesa né un’entrata.</p>' +
       '<p>Se il saldo nell’app non coincide con quello reale, usa <b>Conti → conto → Correggi saldo</b>: la differenza diventa una correzione, non una spesa.</p>' +
       '<h3>🔁 Ricorrenze</h3><p>Affitto, stipendio, abbonamenti: nel nuovo movimento scegli «Ripeti». L’app li registra da sola alla scadenza, anche se l’hai tenuta chiusa.</p>' +
-      '<h3>🎯 Budget e obiettivi</h3><p>Il <b>budget</b> è un limite di spesa al mese per categoria (Impostazioni → Budget mensili). L’<b>obiettivo</b> si imposta su un conto di risparmio: importo e data, e l’app calcola quanto mettere da parte ogni mese.</p>' +
+      '<h3>🎯 Budget e obiettivi</h3><p>Il <b>budget</b> è un limite di spesa al mese per categoria: lo trovi in <b>Analisi → Budget</b>, insieme agli obiettivi. L’<b>obiettivo</b> si imposta su un conto di risparmio: importo e data, e l’app calcola quanto mettere da parte ogni mese.</p>' +
       '<h3>📈 Investimenti</h3><p>Titoli, ETF e cripto con acquisti, vendite e PAC. Titoli ed ETF li aggiorni tu inserendo quanto valgono (Portfolio → Aggiorna valori); le cripto si aggiornano da sole da CoinGecko, se l’opzione è attiva nelle Impostazioni.</p>' +
       '<h3>🔒 I tuoi dati</h3><p>Restano solo su questo dispositivo, anche senza rete: niente account, niente server. L’unica connessione è per i prezzi delle cripto (CoinGecko riceve solo i nomi delle cripto, mai le quantità) e si può disattivare. Per questo è importante <b>esportare un backup</b> ogni tanto e salvarlo su File o iCloud.</p>' +
       '</div>', {});
@@ -2294,7 +2351,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     if (it.catId === '__newcat__' && it.k === it.newCatKind) mk.push('la categoria «' + it.newCatName + '»');
     if (mk.length) h += '<p class="hint vnew">➕ Alla conferma ' + (mk.length > 1 ? 'verranno creati ' : 'verrà creat' + (mk[0].indexOf('il conto') === 0 ? 'o ' : 'a ')) + esc(mk.join(' e ')) + '. Puoi sceglierne un altro dal menu.</p>';
     var w = []; if (amtBad) w.push('Importo da inserire'); if (it.accWarn) w.push(it.accWarn); if (it.nWarn && it.k === 'prestito' && it.toId === '__new__') w.push(it.nWarn); // solo se c'è il campo del nome
-    return h + (w.length ? '<p class="vwarn">⚠️ ' + esc(w.join(' · ')) + '</p>' : '') + '</div>';
+    return h + (w.length ? '<p class="vwarn">' + esc(w.join(' · ')) + '</p>' : '') + '</div>';
   }
   function voiceDraw() {
     var lay = layerOf('voice'); if (!lay) return;
@@ -2400,7 +2457,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     { tab: 'conti', sel: '[data-tab="conti"]', title: 'Conti', text: 'Banca, contanti, risparmi, carte e prestiti. Ogni conto parte dal saldo di un giorno a tua scelta.' },
     { tab: 'analisi', sel: '[data-tab="analisi"]', title: 'Analisi', text: 'Dove vanno i soldi: per giorno, mese o anno, per categoria e per conto.' },
     { tab: 'portfolio', sel: '[data-tab="portfolio"]', title: 'Investimenti', text: 'ETF, azioni e cripto. Aggiorni il valore come lo vedi nell’app del broker; le cripto si aggiornano da sole.' },
-    { tab: 'settings', sel: '.navrow[data-act="budgets"]', title: 'Budget', text: 'Un limite di spesa al mese per categoria, con un avviso quando ti avvicini.' },
+    { tab: 'analisi', sel: '[data-act="anview"][data-v="bud"]', title: 'Budget', text: 'In Analisi → Budget: un limite di spesa al mese per categoria, con un avviso quando ti avvicini, e gli obiettivi di risparmio.' },
     { tab: 'settings', sel: '.navrow[data-act="export"]', title: 'I tuoi dati', text: 'Restano solo su questo telefono. Ogni tanto esporta un backup e salvalo su File o iCloud.' },
     { tab: 'home', title: 'Tutto pronto', text: '', last: true }
   ];
@@ -2499,7 +2556,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var pr = sn.prefs || {};
     S.subs = sn.subs; S.cats = sn.cats; S.accounts = sn.accounts; S.gone = sn.gone; S.tx = sn.tx; S.pos = sn.pos; S.rules = sn.rules;
     if (pr.cur === 'EUR' || pr.cur === 'USD') S.cur = pr.cur;
-    if (pr.theme === 'chiaro' || pr.theme === 'scuro') { S.theme = pr.theme; document.documentElement.setAttribute('data-uf', S.theme); }
+    if (pr.theme === 'chiaro' || pr.theme === 'scuro' || pr.theme === 'auto') { S.theme = pr.theme; applyTheme(); }
     S.hide = !!pr.hide; S.demo = !!pr.demo; S.lastBackup = pr.lastBackup || ''; S.guideDone = !!pr.guideDone; S.autoCry = pr.autoCry !== false; S.tourDone = !!pr.tourDone;
     S.lastAcc = acc(pr.lastAcc) ? pr.lastAcc : null;
     S.homeView = pr.homeView || 'all';
@@ -2661,7 +2718,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     while (L.length) L.pop().el.remove();
     pushLayer('screen', 'conf', html, {});
   }
-  function splash(h) { document.body.classList.add('boot'); $('#view').innerHTML = '<div class="splash"><div class="logo">UFinance Track</div>' + h + '</div>'; $('#tabs').innerHTML = ''; $('#fabw').innerHTML = ''; }
+  function splash(h) { document.body.classList.add('boot'); $('#view').innerHTML = '<div class="splash"><div class="logo">' + svg('logo') + '</div><h1>UFinance Track</h1>' + h + '</div>'; $('#tabs').innerHTML = ''; $('#fabw').innerHTML = ''; }
   function welcome() {
     splash('<p>Conti, spese, budget e investimenti in un unico posto. ' + welcomeNote() + ' Puoi esportarne una copia su file quando vuoi.</p>' +
       '<div class="splashb"><button class="btn" data-act="start0">Inizia da zero</button><button class="btn ghost" data-act="startdemo">Prova con dati di esempio</button>' +
@@ -3170,7 +3227,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
       case 'setrep': al = layerOf('add'); if (al) al.st.rep = d.v; popLayer(); break;
       case 'nwinv': if (st) { st.inv = !st.inv; nwDraw(); } break;
       case 'theme':
-        S.theme = d.k; document.documentElement.setAttribute('data-uf', d.k); savePrefs(); render(); break;
+        S.theme = d.k === 'scuro' || d.k === 'auto' ? d.k : 'chiaro'; applyTheme(); savePrefs(); render(); break;
       case 'cur':
         if (S.cur === d.k) break;
         var prev = S.cur; S.cur = d.k; savePrefs(); render();
@@ -3195,7 +3252,13 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
       case 'csvall': exportCsv(sortTx(S.tx).reverse(), 'ufinance-movimenti-' + TODAY + '.csv'); break;
       case 'budgets': openBudgets(); break;
       case 'savebud': saveBudgets(); break;
-      case 'budtx': openTxList({ cat: d.id, per: 'month', kind: 'spesa' }); break;
+      case 'budtx': openTxList(d.from ? { cat: d.id, per: 'custom', from: d.from, to: d.to > TODAY ? TODAY : d.to, kind: 'spesa' } : { cat: d.id, per: 'month', kind: 'spesa' }); break;
+      case 'anview': AV = d.v === 'bud' ? 'bud' : 'ov'; render(true); window.scrollTo(0, 0); break;
+      case 'budprev': BOFF -= 1; render(true); break;
+      case 'budnext': if (BOFF < 0) { BOFF += 1; render(true); } break;
+      case 'gobud': S.tab = 'analisi'; AV = 'bud'; BOFF = 0; render(true); window.scrollTo(0, 0); break;
+      case 'goalnew': sheetGoal(); break;
+      case 'goalacc': goalOpen(d.id); break;
       case 'pxall': openPxAll(); break;
       case 'pxwnext': pxwNext(false); break;
       case 'pxwskip': pxwNext(true); break;
@@ -3406,7 +3469,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     else if (e.key === 'Enter') saveTx();
   });
 
-  window.__UF = Object.assign(testHooks(), { P: PER, snapState: snapState, applySnap: applySnap, validateSnap: validateSnap, readBackup: readBackup, hash53: hash53, stable: stable, boot: boot, summ: summ, exportBackup: exportBackup, emptyState: emptyState, S: S, L: L, balance: balance, netWorth: netWorth, parseCents: parseCents, isinOk: isinOk, posValue: posValue, alloc: alloc, buckets: buckets, range: range, stats: stats, scopeValue: scopeValue, scopeSet: scopeSet, act: act, render: render, nwSeries: nwSeries, firstDate: firstDate, delPlan: delPlan, accName: accName, nwRange: nwRange, pctS: pctS, chgPct: chgPct, nwPointer: nwPointer, portfolioValue: portfolioValue, posCalc: posCalc, posStat: posStat, xirr: xirr, runRules: runRules, nthDate: nthDate, lotsOk: lotsOk, pxAt: pxAt, snapAll: snapAll, restoreAll: restoreAll, parsePx: parsePx, delPosPlan: delPosPlan,  TODAY: TODAY, money: money, addDays: addDays, dn: dn, ymd: ymd, parseD: parseD, posById: posById, encryptBackup: encryptBackup, decryptBackup: decryptBackup, snapCapture: snapCapture, remBanner: remBanner, gz: gz, gunz: gunz, openTxList: openTxList, txlFilter: txlFilter, csvOf: csvOf, budgetState: budgetState, goalInfo: goalInfo, budNote: budNote, cgFetch: cgFetch, cgLink: cgLink, CG: CG, openPosDetail: openPosDetail, startTour: startTour, tourEnd: tourEnd, openVoice: openVoice, voiceParse: voiceParse });
+  window.__UF = Object.assign(testHooks(), { P: PER, snapState: snapState, applySnap: applySnap, validateSnap: validateSnap, readBackup: readBackup, hash53: hash53, stable: stable, boot: boot, summ: summ, exportBackup: exportBackup, emptyState: emptyState, S: S, L: L, balance: balance, netWorth: netWorth, parseCents: parseCents, isinOk: isinOk, posValue: posValue, alloc: alloc, buckets: buckets, range: range, stats: stats, scopeValue: scopeValue, scopeSet: scopeSet, act: act, render: render, nwSeries: nwSeries, firstDate: firstDate, delPlan: delPlan, accName: accName, nwRange: nwRange, pctS: pctS, chgPct: chgPct, nwPointer: nwPointer, portfolioValue: portfolioValue, posCalc: posCalc, posStat: posStat, xirr: xirr, runRules: runRules, nthDate: nthDate, lotsOk: lotsOk, pxAt: pxAt, snapAll: snapAll, restoreAll: restoreAll, parsePx: parsePx, delPosPlan: delPosPlan,  TODAY: TODAY, money: money, addDays: addDays, dn: dn, ymd: ymd, parseD: parseD, posById: posById, encryptBackup: encryptBackup, decryptBackup: decryptBackup, snapCapture: snapCapture, remBanner: remBanner, gz: gz, gunz: gunz, openTxList: openTxList, txlFilter: txlFilter, csvOf: csvOf, budgetState: budgetState, goalInfo: goalInfo, budNote: budNote, cgFetch: cgFetch, cgLink: cgLink, CG: CG, openPosDetail: openPosDetail, startTour: startTour, tourEnd: tourEnd, openVoice: openVoice, voiceParse: voiceParse, openConflict: openConflict, openImport: openImport, closeAll: closeAll });
     window.addEventListener('uf-toast', function (e) { toast(String(e.detail || '')); });
 boot();
 })();
