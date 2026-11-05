@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-05 · 64d016d9';
+window.UF_BUILD = '2026-11-05 · 98e2a617';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -1794,10 +1794,11 @@ window.UF_BUILD = '2026-11-05 · 64d016d9';
   /* ================= funzioni aggiuntive: ricerca, CSV, budget, obiettivi, prezzi, guida ================= */
   function monthRange(d) { var m = parseD(d); return { from: ymd(new Date(m.getFullYear(), m.getMonth(), 1)), to: ymd(new Date(m.getFullYear(), m.getMonth() + 1, 0)) }; }
   function fold(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
-  function pbar(ratio, cls, pace) {
+  function pbar(ratio, cls) {
     var w = Math.max(0, Math.min(1, ratio)) * 100;
-    return '<div class="pbar ' + (cls || '') + '"><b style="width:' + w.toFixed(1) + '%"></b>' + (pace !== undefined ? '<i class="pace" style="left:' + (Math.min(1, pace) * 100).toFixed(1) + '%"></i>' : '') + '</div>';
+    return '<div class="pbar ' + (cls || '') + '"><b style="width:' + w.toFixed(1) + '%"></b></div>';
   }
+
 
   /* ---------- budget mensili per categoria (campo budget della categoria, in centesimi) ---------- */
   // Vista di Analisi (Panoramica o Budget) e mese mostrato nei budget: valgono solo finché l'app resta aperta (non sono dati).
@@ -1826,12 +1827,12 @@ window.UF_BUILD = '2026-11-05 · 64d016d9';
       var q = b.spent / b.budget, left = b.budget - b.spent, nOver = b.rows.filter(function (x) { return x.ratio >= 1; }).length;
       var sum = budStat(q, b.pace), worst = nOver ? ['Oltre', 'b'] : b.rows.some(function (x) { return budStat(x.ratio, b.pace)[1] === 'w'; }) && sum[1] === 'g' ? ['Attenzione', 'w'] : sum;
       h += '<div class="card budsum"><div class="bh"><div class="mid"><span class="sb">Speso ' + (b.cur ? 'questo mese' : 'a ' + mese) + '</span><span class="big">' + money(b.spent) + '</span><span class="sb">di ' + money(b.budget) + '</span></div>' + badge(worst) + '</div>' +
-        pbar(q, budCls(q), b.cur ? b.pace : undefined) +
+        pbar(q, budCls(q)) +
         '<div class="kv" style="padding:0"><span>' + (b.cur ? 'Giorno ' + b.day + ' di ' + b.dim + ' · ritmo atteso ' + Math.round(b.pace * 100) + '%' : 'Mese concluso') + '</span><span class="' + (left < 0 ? 'neg' : '') + '">' + (left < 0 ? 'oltre il limite: ' + moneyS(left) : 'restano ' + money(left)) + '</span></div>' +
-        (nOver ? '<p class="note" style="margin-top:6px"><span class="neg">' + (nOver === 1 ? '1 categoria oltre il limite' : nOver + ' categorie oltre il limite') + '</span></p>' : '') + (b.cur ? '<p class="note" style="margin-top:6px">La tacca sulla barra indica il ritmo per restare nel budget.</p>' : '<p class="note" style="margin-top:6px">Confronto con i limiti di oggi: l’app non conserva i limiti dei mesi passati.</p>') + '</div>';
+        (nOver ? '<p class="note" style="margin-top:6px"><span class="neg">' + (nOver === 1 ? '1 categoria oltre il limite' : nOver + ' categorie oltre il limite') + '</span></p>' : '') + (b.cur ? '' : '<p class="note" style="margin-top:6px">Confronto con i limiti di oggi: l’app non conserva i limiti dei mesi passati.</p>') + '</div>';
       h += '<section class="sec"><div class="sech"><h2>Categorie</h2><button class="lnk" data-act="budgets">Modifica</button></div><div class="card">' + b.rows.map(function (x) {
         var l2 = x.budget - x.spent;
-        return '<button class="cbar budrow" data-act="budtx" data-id="' + x.c.id + '"' + (b.cur ? '' : ' data-from="' + b.from + '" data-to="' + b.to + '"') + '><div class="top"><span class="nm">' + x.c.icon + ' ' + esc(x.c.name) + '</span><span class="v">' + money(x.spent) + ' / ' + money(x.budget) + '</span></div>' + pbar(x.ratio, budCls(x.ratio), b.cur ? b.pace : undefined) +
+        return '<button class="cbar budrow" data-act="budtx" data-id="' + x.c.id + '"' + (b.cur ? '' : ' data-from="' + b.from + '" data-to="' + b.to + '"') + '><div class="top"><span class="nm">' + x.c.icon + ' ' + esc(x.c.name) + '</span><span class="v">' + money(x.spent) + ' / ' + money(x.budget) + '</span></div>' + pbar(x.ratio, budCls(x.ratio)) +
           '<div class="top"><span class="sb ' + (l2 < 0 ? 'neg' : '') + '">' + (l2 < 0 ? 'Oltre il limite: ' + moneyS(l2) : 'Restano ' + money(l2)) + '</span>' + badge(budStat(x.ratio, b.pace)) + '</div></button>';
       }).join('') + '</div></section>';
     }

@@ -56,7 +56,7 @@ async function page(b, w, h, o) {
   ok(/Oltre il limite: −/.test(over.txt) && /Oltre/.test(over.txt), 'categoria oltre il 100%: stato «Oltre» e importo con segno − (' + over.txt.replace(/\s+/g, ' ').slice(0, 80) + ')');
   ok(over.inside, 'barra oltre il 100%: piena ma dentro il contenitore');
   ok(await p.evaluate(() => /Oltre/.test(document.querySelector('.budsum .badge').textContent) && /1 categoria oltre il limite/.test(document.querySelector('.budsum').textContent)), 'riepilogo: «Oltre» se una categoria supera il limite, anche se il totale è sotto');
-  ok(over.pace && /Giorno 20 di 30 · ritmo atteso 67%/.test(await p.textContent('#view')), 'mese in corso: ritmo atteso «Giorno 20 di 30 · 67%» e tacca sulla barra');
+  ok(!over.pace && !(await p.$('#view .pace')) && /Giorno 20 di 30 · ritmo atteso 67%/.test(await p.textContent('#view')), 'mese in corso: ritmo atteso «Giorno 20 di 30 · 67%» solo come testo, nessuna tacca sulle barre');
   ok(await p.evaluate(() => getComputedStyle(document.querySelector('[data-act="budtx"][data-id="c1"] .sb')).color !== getComputedStyle(document.querySelector('[data-act="budtx"][data-id="c1"] .nm')).color), 'importo oltre il budget in un colore diverso (rosso)');
   ok(await p.isVisible('[data-tab="analisi"] .bdot'), 'puntino sulla scheda Analisi con una categoria oltre l’80%');
   // mese precedente: nessun ritmo

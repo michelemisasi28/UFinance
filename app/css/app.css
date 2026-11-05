@@ -367,7 +367,6 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
 .pbar.over > b { background: var(--out); }
 .pbar.goal > b { background: var(--accent); }
 .pbar.done > b { background: var(--inc); }
-.pbar .pace { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ink); opacity: 0.55; border-radius: 1px; }
 .budrow { display: flex; flex-direction: column; gap: 6px; width: 100%; text-align: left; }
 .brow { grid-template-columns: 36px minmax(0, 1fr) 112px; }
 .brow input { min-height: 40px; padding: 6px 10px; text-align: right; font-variant-numeric: tabular-nums; background: var(--bg); border: 0; }
