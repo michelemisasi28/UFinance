@@ -124,7 +124,7 @@ p { margin: 0; }
 .scr { height: 100%; width: 100%; max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 /* barra di navigazione: «‹ Indietro» o «Chiudi» a sinistra, titolo al centro */
 .scrh { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding-top: max(8px, env(safe-area-inset-top, 0px)); min-height: 52px; flex: none; }
-.scrh h2 { flex: 1; min-width: 0; text-align: center; font-size: 17px; font-weight: 600; padding: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scrh h2 { flex: 1; min-width: 0; text-align: center; font-size: 17px; font-weight: 600; line-height: 1.2; padding: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
 .scrh .sp { width: 96px; flex: none; }
 .scrh .x { width: 96px; height: 44px; white-space: nowrap; border-radius: 0; justify-content: flex-start; gap: 0; color: var(--accent); font-size: 17px; font-weight: 400; margin-left: -6px; }
 .scrh .x .ic { width: 24px; height: 24px; stroke-width: 2.2; }
@@ -382,7 +382,7 @@ button, [data-act], .tab, .key, .row, .navrow { -webkit-user-select: none; user-
 .steps .step .dot { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--ln2); display: grid; place-items: center; flex: none; font-size: 13px; font-weight: 600; color: var(--muted); }
 .steps .step .dot .ic { width: 16px; height: 16px; stroke-width: 3; }
 .steps .step.done { opacity: 1; cursor: default; }
-.steps .step.done .dot { background: var(--inc); border-color: var(--inc); color: #fff; }
+.steps .step.done .dot { background: var(--inc); border-color: var(--inc); color: var(--surface); }
 .steps .step.done .nm { color: var(--muted); text-decoration: line-through; }
 .tlm { margin: 14px 0 4px; }
 #tl-body > input[type="search"] { flex: none; }
@@ -394,6 +394,7 @@ input[type="search"] { -webkit-appearance: none; appearance: none; background: v
 
 /* ===== Investimenti: scheda, aggiornamento guidato ===== */
 .posh { display: flex; flex-direction: column; gap: 2px; padding: 0 4px; }
+.posh .pnm { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
 .posh .big { font-size: 40px; letter-spacing: -0.8px; }
 .fresh { display: flex; flex-direction: column; gap: 6px; }
 .fresh .fr1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 600; }

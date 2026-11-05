@@ -20,7 +20,7 @@ const PAIRS = [
   ['onac', 'ac', 'pulsante principale'], ['ok', 'card', 'importi positivi'], ['ok', 'bg', 'importi positivi sullo sfondo'], ['bad', 'card', 'importi negativi / elimina'],
   ['bad', 'bg', 'importi negativi sullo sfondo'], ['bg', 'tx', 'avviso in basso (toast)'],
   ['f1', 'b1', 'icona blu'], ['f2', 'b2', 'icona verde / stato «In linea»'], ['f3', 'b3', 'icona viola'], ['f4', 'b4', 'avviso ambra / «Attenzione»'], ['f5', 'b5', 'icona rossa / «Oltre»'],
-  ['f4', 'card', 'testo ambra nelle card'], ['ac', 'b1', 'badge blu'],
+  ['f4', 'card', 'testo ambra nelle card'], ['card', 'ok', 'spunta dei Primi passi completati'], ['ac', 'b1', 'badge blu'],
 ];
 for (const [name, sel] of [['chiaro', ':root'], ['scuro', ':root[data-uf="scuro"]']]) {
   const t = block(sel);

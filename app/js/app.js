@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-03 · 986c5a05';
+window.UF_BUILD = '2026-11-05 · 75f10065';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -994,6 +994,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var od = el.querySelector('#af-date').value || TODAY;
     if (!dRange(od) || od > TODAY) return err('Data del saldo non valida.');
     var goal = null, gRaw = el.querySelector('#af-gc').value.trim(), gDate = el.querySelector('#af-gd').value || '';
+    if (st.fromGoal && goalOk(st.type) && !gRaw) return err('Inserisci l’importo dell’obiettivo.');
     if (goalOk(st.type) && gRaw) {
       var gc = parseCents(gRaw); if (gc === null || gc <= 0) return err('Importo dell’obiettivo non valido.');
       if (gDate && !dRange(gDate)) return err('Data dell’obiettivo non valida.');
@@ -1818,15 +1819,16 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     if (!b.rows.length) {
       h += '<div class="card" style="display:flex;flex-direction:column;gap:10px"><h2 style="padding:0">Nessun budget impostato</h2><p class="hint">Un limite di spesa al mese per categoria. L’app ti avvisa quando arrivi all’80% e al 100%, anche mentre registri una spesa.</p><button class="btn" data-act="budgets">Imposta budget</button></div>';
     } else {
-      var q = b.spent / b.budget, left = b.budget - b.spent;
-      h += '<div class="card budsum"><div class="bh"><div class="mid"><span class="sb">Speso ' + (b.cur ? 'questo mese' : 'a ' + mese) + '</span><span class="big">' + money(b.spent) + '</span><span class="sb">di ' + money(b.budget) + '</span></div>' + badge(budStat(q, b.pace)) + '</div>' +
+      var q = b.spent / b.budget, left = b.budget - b.spent, nOver = b.rows.filter(function (x) { return x.ratio >= 1; }).length;
+      var sum = budStat(q, b.pace), worst = nOver ? ['Oltre', 'b'] : b.rows.some(function (x) { return budStat(x.ratio, b.pace)[1] === 'w'; }) && sum[1] === 'g' ? ['Attenzione', 'w'] : sum;
+      h += '<div class="card budsum"><div class="bh"><div class="mid"><span class="sb">Speso ' + (b.cur ? 'questo mese' : 'a ' + mese) + '</span><span class="big">' + money(b.spent) + '</span><span class="sb">di ' + money(b.budget) + '</span></div>' + badge(worst) + '</div>' +
         pbar(q, budCls(q), b.cur ? b.pace : undefined) +
-        '<div class="kv" style="padding:0"><span>' + (b.cur ? 'Giorno ' + b.day + ' di ' + b.dim + ' · ritmo atteso ' + Math.round(b.pace * 100) + '%' : 'Mese concluso') + '</span><span class="' + (left < 0 ? 'neg' : '') + '">' + (left < 0 ? moneyS(left) + ' oltre' : 'restano ' + money(left)) + '</span></div>' +
-        (b.cur ? '<p class="note" style="margin-top:6px">La tacca sulla barra indica il ritmo per restare nel budget.</p>' : '<p class="note" style="margin-top:6px">Confronto con i limiti di oggi: l’app non conserva i limiti dei mesi passati.</p>') + '</div>';
+        '<div class="kv" style="padding:0"><span>' + (b.cur ? 'Giorno ' + b.day + ' di ' + b.dim + ' · ritmo atteso ' + Math.round(b.pace * 100) + '%' : 'Mese concluso') + '</span><span class="' + (left < 0 ? 'neg' : '') + '">' + (left < 0 ? 'oltre il limite: ' + moneyS(left) : 'restano ' + money(left)) + '</span></div>' +
+        (nOver ? '<p class="note" style="margin-top:6px"><span class="neg">' + (nOver === 1 ? '1 categoria oltre il limite' : nOver + ' categorie oltre il limite') + '</span></p>' : '') + (b.cur ? '<p class="note" style="margin-top:6px">La tacca sulla barra indica il ritmo per restare nel budget.</p>' : '<p class="note" style="margin-top:6px">Confronto con i limiti di oggi: l’app non conserva i limiti dei mesi passati.</p>') + '</div>';
       h += '<section class="sec"><div class="sech"><h2>Categorie</h2><button class="lnk" data-act="budgets">Modifica</button></div><div class="card">' + b.rows.map(function (x) {
         var l2 = x.budget - x.spent;
         return '<button class="cbar budrow" data-act="budtx" data-id="' + x.c.id + '"' + (b.cur ? '' : ' data-from="' + b.from + '" data-to="' + b.to + '"') + '><div class="top"><span class="nm">' + x.c.icon + ' ' + esc(x.c.name) + '</span><span class="v">' + money(x.spent) + ' / ' + money(x.budget) + '</span></div>' + pbar(x.ratio, budCls(x.ratio), b.cur ? b.pace : undefined) +
-          '<div class="top"><span class="sb ' + (l2 < 0 ? 'neg' : '') + '">' + (l2 < 0 ? 'Oltre di ' + moneyS(l2) : 'Restano ' + money(l2)) + '</span>' + badge(budStat(x.ratio, b.pace)) + '</div></button>';
+          '<div class="top"><span class="sb ' + (l2 < 0 ? 'neg' : '') + '">' + (l2 < 0 ? 'Oltre il limite: ' + moneyS(l2) : 'Restano ' + money(l2)) + '</span>' + badge(budStat(x.ratio, b.pace)) + '</div></button>';
       }).join('') + '</div></section>';
     }
     return h + goalsSection() + '<p class="note">Il budget conta solo le spese, per categoria e in tutti i conti.</p>';
@@ -1906,7 +1908,8 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     openAccForm(id || null);
     var al = layerOf('acc'); if (!al) return;
     if (!id) { al.st.type = 'risparmio'; al.st.sub = (subsOf('risparmio')[0] || {}).id || ''; al.st.icon = TYPE_ICON.risparmio; }
-    al.st.goalOn = true; syncAcc();
+    al.st.goalOn = true; al.st.fromGoal = true; syncAcc();
+    var gi = al.el.querySelector('#af-gc'); if (gi) gi.focus();
   }
 
   /* ---------- elenco completo dei movimenti: ricerca e filtri ---------- */
@@ -2133,7 +2136,7 @@ window.UF_BUILD = '2026-11-03 · 986c5a05';
     var p = posById(id), z = posStat(p), k = z.k, q = k.qty, l = lastPx(p), auto = isAuto(p), stale = pxStale(p);
     var avg = q > 0 ? lotPx(k.cost, q) : 0, lots = lotsSorted(p.lots).reverse(), pacs = S.rules.filter(function (r) { return r.type === 'pac' && r.posId === id; });
     var h = scrHead(p.name, true) + '<div class="scrb">';
-    h += '<div class="posh"><span class="sb">' + esc(posTag(p)) + ' · ' + qtyStr(q, p) + ' ' + esc(unitL(p)) + '</span><div class="big">' + money(z.value) + '</div>' +
+    h += '<div class="posh"><span class="pnm">' + esc(p.name) + '</span><span class="sb">' + esc(posTag(p)) + ' · ' + qtyStr(q, p) + ' ' + esc(unitL(p)) + '</span><div class="big">' + money(z.value) + '</div>' +
       '<div class="nwchg"><b class="' + (z.gain > 0 ? 'pos' : z.gain < 0 ? 'neg' : '') + '">' + moneyS(z.gain) + ' · ' + pctS(z.pct) + '</b></div>' +
       '<p class="sb">Hai versato ' + money(k.invested) + (k.proceeds ? ' e incassato ' + money(k.proceeds) + ' dalle vendite' : '') + '. Oggi vale ' + money(z.value) + '.</p></div>';
     // freschezza del valore

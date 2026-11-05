@@ -53,8 +53,9 @@ async function page(b, w, h, o) {
     const row = document.querySelector('[data-act="budtx"][data-id="c1"]'), bar = row.querySelector('.pbar'), fill = bar.querySelector('b');
     return { txt: row.textContent, inside: fill.getBoundingClientRect().width <= bar.getBoundingClientRect().width + 0.5, pace: !!row.querySelector('.pace') };
   });
-  ok(/Oltre di −/.test(over.txt) && /Oltre/.test(over.txt), 'categoria oltre il 100%: stato «Oltre» e importo con segno − (' + over.txt.replace(/\s+/g, ' ').slice(0, 80) + ')');
+  ok(/Oltre il limite: −/.test(over.txt) && /Oltre/.test(over.txt), 'categoria oltre il 100%: stato «Oltre» e importo con segno − (' + over.txt.replace(/\s+/g, ' ').slice(0, 80) + ')');
   ok(over.inside, 'barra oltre il 100%: piena ma dentro il contenitore');
+  ok(await p.evaluate(() => /Oltre/.test(document.querySelector('.budsum .badge').textContent) && /1 categoria oltre il limite/.test(document.querySelector('.budsum').textContent)), 'riepilogo: «Oltre» se una categoria supera il limite, anche se il totale è sotto');
   ok(over.pace && /Giorno 20 di 30 · ritmo atteso 67%/.test(await p.textContent('#view')), 'mese in corso: ritmo atteso «Giorno 20 di 30 · 67%» e tacca sulla barra');
   ok(await p.evaluate(() => getComputedStyle(document.querySelector('[data-act="budtx"][data-id="c1"] .sb')).color !== getComputedStyle(document.querySelector('[data-act="budtx"][data-id="c1"] .nm')).color), 'importo oltre il budget in un colore diverso (rosso)');
   ok(await p.isVisible('[data-tab="analisi"] .bdot'), 'puntino sulla scheda Analisi con una categoria oltre l’80%');
@@ -80,6 +81,8 @@ async function page(b, w, h, o) {
   ok(await p.evaluate(() => __UF.L.length === 1 && __UF.L[0].name === 'goalpick' && !__UF.L[0].el.querySelector('[data-id="a4"]') && !!__UF.L[0].el.querySelector('[data-id="a1"]')), '«+ Nuovo» obiettivo: elenco dei conti di risparmio/liquidità (niente crediti)');
   await p.click('.pick.addnew[data-act="goalacc"]'); await tick(p);
   ok(await p.evaluate(() => __UF.L.length === 1 && __UF.L[0].name === 'acc' && __UF.L[0].st.type === 'risparmio' && !document.querySelector('#af-goal').hidden), '«Nuovo conto di risparmio»: modulo del conto con l’obiettivo aperto');
+  await A(p, 'close'); await A(p, 'goalnew'); await p.click('[data-act="goalacc"][data-id="a1"]'); await tick(p); await A(p, 'saveacc'); await tick(p);
+  ok(await p.evaluate(() => __UF.L.length === 1 && /importo dell’obiettivo/.test(document.querySelector('.layer .msg.bad').textContent) && !__UF.S.accounts.find(a => a.id === 'a1').goal), '«+ Nuovo» obiettivo senza importo: avviso, nessun salvataggio');
   await A(p, 'close');
   // guida e tutorial
   await A(p, 'tab', { tab: 'home' }); await p.evaluate(() => { __UF.S.guideDone = false; __UF.S.demo = false; __UF.S.cats.forEach(c => delete c.budget); __UF.render(); }); await tick(p);
@@ -89,6 +92,9 @@ async function page(b, w, h, o) {
   await A(p, 'tab', { tab: 'settings' });
   ok(await p.evaluate(() => !document.querySelector('[data-act="budgets"]')), 'Impostazioni: nessuna riga dei budget');
 
+  await A(p, 'posopen', { id: 'p1' }); await tick(p);
+  ok(await p.evaluate(() => { const h = __UF.L[0].el.querySelector('.scrh h2'), n = __UF.L[0].el.querySelector('.posh .pnm'); return !!n && n.textContent === __UF.posById('p1').name && h.scrollHeight <= h.clientHeight + 1; }), 'scheda investimento: nome completo nell’intestazione e titolo non tagliato (fino a 2 righe)');
+  await A(p, 'close');
   // ---------- 3. tema Automatico, barra di stato, formato dati ----------
   const meta = () => p.evaluate(() => document.querySelector('meta[name="theme-color"]').content);
   await A(p, 'theme', { k: 'scuro' }); await tick(p, 100);

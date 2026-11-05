@@ -27,6 +27,8 @@ const STATES = [
   ['analisi-budget', `A('tab', { tab: 'analisi' }); A('anview', { v: 'bud' })`],
   ['analisi-budget-fondo', `A('tab', { tab: 'analisi' }); A('anview', { v: 'bud' }); window.scrollTo(0, 1e6)`],
   ['analisi-budget-mese-prima', `A('tab', { tab: 'analisi' }); A('anview', { v: 'bud' }); A('budprev', {})`, { after: `A('budnext', {}); A('anview', { v: 'ov' })` }],
+  ['analisi-budget-dati', `U.S.cats.forEach((c, i) => { if (c.kind === 'spesa' && i < 6) c.budget = [30000, 6000, 45000, 8000, 5000, 4000][i]; }); U.S.accounts.find(a => a.type === 'risparmio').goal = { cents: 1000000, date: '2027-06-30' }; A('tab', { tab: 'analisi' }); A('anview', { v: 'bud' })`, { after: `U.S.cats.forEach(c => delete c.budget); U.S.accounts.forEach(a => delete a.goal); A('anview', { v: 'ov' })` }],
+  ['analisi-budget-dati-fondo', `U.S.cats.forEach((c, i) => { if (c.kind === 'spesa' && i < 6) c.budget = [30000, 6000, 45000, 8000, 5000, 4000][i]; }); U.S.accounts.find(a => a.type === 'risparmio').goal = { cents: 1000000, date: '2027-06-30' }; A('tab', { tab: 'analisi' }); A('anview', { v: 'bud' }); window.scrollTo(0, 1e6)`, { after: `U.S.cats.forEach(c => delete c.budget); U.S.accounts.forEach(a => delete a.goal); A('anview', { v: 'ov' })` }],
   ['portfolio', `A('tab', { tab: 'portfolio' })`],
   ['portfolio-fondo', `A('tab', { tab: 'portfolio' }); window.scrollTo(0, 1e6)`],
   ['impostazioni', `A('tab', { tab: 'settings' })`],
