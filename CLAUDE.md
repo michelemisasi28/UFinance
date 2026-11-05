@@ -1,7 +1,7 @@
 # UFinance Track — memoria del progetto per Claude
 
 > Questo file viene letto automaticamente all'inizio di ogni sessione. Contiene tutto il contesto
-> della chat precedente (2 novembre 2026): architettura, regole, decisioni, cronologia e lavoro aperto.
+> delle chat precedenti (2–5 novembre 2026): architettura, regole, decisioni, cronologia e lavoro aperto.
 > **Aggiornalo** alla fine di ogni sessione con le novità (sezioni «Cronologia» e «Lavoro aperto»).
 
 ## Utente e modo di lavorare
@@ -29,6 +29,7 @@ tools/stamp.js          nuovo numero di build (sw.js + window.UF_BUILD) — DA E
 tests/                  verifiche automatiche (vedi «Test»)
 .claude/agents/ufinance-reviewer.md   agente revisore esterno (sola lettura) usato a cicli
 LEGGIMI.txt, README.md
+stato.md               memoria discorsiva per il Progetto Claude dell'utente (claude.ai): aggiornarla insieme a CLAUDE.md dopo modifiche importanti
 ```
 
 ## Regole tecniche (non violarle)
@@ -58,7 +59,7 @@ LEGGIMI.txt, README.md
 
 ## Test (`tests/`)
 - `tests/esegui.sh` (≈10 min) avvia i server di prova (app su `127.0.0.1:8765`, aggiornamento su `8768`), ricava le versioni vecchie con `git archive` in `tests/.work/` e lancia tutto. `tests/esegui.sh rapido` = solo frasi.
-- Suite: `voice_unit.js` (94 frasi), `funzioni.js` (33), `regressioni.js` (26), `investimenti.js` (32), `voce_tutorial.js` (28), `revisione3.js` (15), `revisione4.js` (8), `schermate_ferme.js` (63: dito simulato via CDP, tastiera simulata ridefinendo `visualViewport.height/offsetTop`), `novita3.js` (33: voce che crea conti/categorie, prezzo medio, CoinGecko), `aggiornamento.js` (34, tre percorsi), `sito_pubblicato.js` (rete vera). Totale locale ≈ 470; `voice_unit.js` ora ≈ 200 frasi. `SUITE="a b" tests/esegui.sh` esegue solo alcune suite.
+- Suite: `voice_unit.js` (≈200 frasi), `funzioni.js` (33), `regressioni.js` (26), `investimenti.js` (32), `voce_tutorial.js` (28), `revisione3.js` (15), `revisione4.js` (8), `schermate_ferme.js` (63: dito simulato via CDP, tastiera simulata ridefinendo `visualViewport.height/offsetTop`), `novita3.js` (33: voce che crea conti/categorie, prezzo medio, CoinGecko), `aggiornamento.js` (34, tre percorsi), `sito_pubblicato.js` (rete vera). Totale locale ≈ 470; `voice_unit.js` ora ≈ 200 frasi. `SUITE="a b" tests/esegui.sh` esegue solo alcune suite.
 - Trucchi necessari nei test Playwright: `ctx.addInitScript(() => { window.UF_TEST_NOTOUR = true; })` (altrimenti il tutorial copre l'interfaccia); simulare CoinGecko con `ctx.route('https://api.coingecko.com/**', …)` (è attivo di default); per la voce sostituire **sia** `window.SpeechRecognition` **sia** `window.webkitSpeechRecognition` (Chromium ne ha uno nativo che in headless non funziona); `page.clock.install({ time })` per le date; gli importi formattati usano lo spazio non separabile (` `).
 - Ogni frase vocale interpretata male segnalata dall'utente → aggiungerla a `tests/voice_unit.js` prima di correggere.
 
@@ -82,6 +83,8 @@ Conti (4 tipi, sottotipologie, data del saldo, obiettivi di risparmio) · movime
 5. Sessione 2 (2/11/2026): `esegui.sh` chiude i server (`fb4a37c`); schermate ferme su iPhone per conti/investimenti e tutti i livelli (`e09add8`), revisione (2 importanti corretti, `ba0065a`), build `5a837052` pubblicata e verificata. Su iPhone la tastiera muoveva ancora la schermata → blocco dello scorrimento automatico di Safari (react-aria), revisione (1 importante + 2 minori corretti), build `277e0094`. L'utente (PWA dalla Home) segnala ancora schermate che si muovono al tocco (conti, acquisto/vendita) mentre «Aggiungi investimento» è fermo → `touch-action: none` su tutti i livelli + moduli ridisegnati per stare in una schermata; revisione (2 importanti + 4 minori corretti), build `63aa3287`.
 
 6. Sessione 2, 3/11/2026: pubblicata `63aa3287` (schermate ferme). Richieste dell'utente: voce che crea conti/categorie mancanti, prezzo medio per investimenti già posseduti, CoinGecko impreciso (verificato: CoinGecko 68.887,85 € vs Kraken/Coinbase/Bitstamp ±20 €; il ritardo era dell'app, 15 min → ora 1 min). Sei giri di revisione (soprattutto sulla voce: trasferimenti, falsi positivi «carta igienica»/«carta ieri», banche corte N26/ING, «in contanti», «conto corrente»), tutti corretti; confronto con la versione online su ~1.160 casi frase×contesto. Build `986c5a05`.
+
+7. 4–5/11/2026: crediti Netlify al 75% → regola `ignore` (verificata «Canceled») e una pubblicazione per rilascio; creato `stato.md` per il Progetto Claude. Chiusa la sessione 2 per contesto pieno: l'utente allegherà il nuovo lavoro nella sessione successiva.
 
 ## Lavoro aperto
 - **Crediti Netlify al 75%** il 3/11/2026: restano ≈ 4-5 pubblicazioni fino al **rinnovo del 2 dicembre**. Regola `ignore` verificata dall'utente: il commit `a662888` (solo netlify.toml/CLAUDE.md) risulta «Canceled», quindi i commit senza modifiche ad `app/` non costano crediti.
