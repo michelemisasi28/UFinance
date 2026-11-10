@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-05 · 98e2a617';
+window.UF_BUILD = '2026-11-10 · c49fd666';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -290,6 +290,7 @@ window.UF_BUILD = '2026-11-05 · 98e2a617';
   function isCry(p) { return !!p && p.kind === 'crypto'; }
   function posIcon(p) { return svg(isCry(p) ? 'coin' : 'trend'); }
   function posT(p) { return isCry(p) ? 't4' : 't1'; }
+  function nConti(n) { return n === 1 ? '1 conto' : n + ' conti'; }
   function unitL(p) { return isCry(p) ? (p.sym || 'unità') : 'quote'; }
   function posTag(p) { return isCry(p) ? (p.sym || 'Cripto') : (p.isin || 'Titolo / ETF'); }
   function posById(id) { for (var i = 0; i < S.pos.length; i++) if (S.pos[i].id === id) return S.pos[i]; return null; }
@@ -571,7 +572,7 @@ window.UF_BUILD = '2026-11-05 · 98e2a617';
     } else {
       h += '<div class="nav"><button class="iconbtn" data-act="prev" aria-label="Periodo precedente">' + svg('left') + '</button><span class="lb">' + esc(r.label) + '</span><button class="iconbtn" data-act="next" aria-label="Periodo successivo"' + (a.offset >= 0 ? ' disabled' : '') + '>' + svg('right') + '</button></div>';
     }
-    h += '<button class="tbtn" data-act="anacc" style="align-self:flex-start">' + (a.accIds ? a.accIds.length + ' conti selezionati' : 'Tutti i conti') + svg('chev') + '</button>';
+    h += '<button class="tbtn" data-act="anacc" style="align-self:flex-start">' + (a.accIds ? (a.accIds.length === 1 ? '1 conto selezionato' : a.accIds.length + ' conti selezionati') : 'Tutti i conti') + svg('chev') + '</button>';
     h += '<div class="card three"><div><span class="k">Entrate</span><span class="n pos">' + money(inc) + '</span></div><div><span class="k">Spese</span><span class="n neg">' + money(exp) + '</span></div><div><span class="k">Saldo</span><span class="n ' + (inc - exp >= 0 ? 'pos' : 'neg') + '">' + moneyS(inc - exp) + '</span></div></div>';
 
     if (a.blocks.time && a.period !== 'day') {
@@ -892,7 +893,7 @@ window.UF_BUILD = '2026-11-05 · 98e2a617';
     }
     var h = shHead('Che totale vuoi vedere?') + '<div>' + row('all', '∑', 'Patrimonio totale', 'Conti e investimenti', netWorth()) + '</div>';
     var tl = TYPE_ORDER.filter(function (t) { return S.accounts.some(function (a) { return a.type === t; }); });
-    h += '<h2>Per tipo</h2><div>' + tl.map(function (t) { return row('type:' + t, TYPE_ICON[t], TYPES[t], S.accounts.filter(function (a) { return a.type === t; }).length + ' conti', scopeValue('type:' + t)); }).join('') + '</div>';
+    h += '<h2>Per tipo</h2><div>' + tl.map(function (t) { return row('type:' + t, TYPE_ICON[t], TYPES[t], nConti(S.accounts.filter(function (a) { return a.type === t; }).length), scopeValue('type:' + t)); }).join('') + '</div>';
     var sl = S.subs.filter(function (s) { return S.accounts.some(function (a) { return a.sub === s.id; }); });
     if (sl.length) h += '<h2>Per sottotipologia</h2><div>' + sl.map(function (s) { return row('sub:' + s.id, TYPE_ICON[s.type], s.name, TYPES[s.type], scopeValue('sub:' + s.id)); }).join('') + '</div>';
     h += '<h2>Per conto</h2><div>' + S.accounts.map(function (a) { return row('acc:' + a.id, a.icon, a.name, (sub(a.sub) || { name: TYPES[a.type] }).name, balance(a.id)); }).join('') + '</div>';
@@ -1127,7 +1128,7 @@ window.UF_BUILD = '2026-11-05 · 98e2a617';
     return scrHead('Sottotipologie di conto', true) + '<div class="scrb">' + TYPE_ORDER.map(function (t) {
       return '<section class="grp"><h2>' + TYPES[t] + '</h2><div class="list">' + subsOf(t).map(function (s) {
         var n = S.accounts.filter(function (a) { return a.sub === s.id; }).length;
-        return '<button class="row" data-act="editsub" data-id="' + s.id + '"><span class="ico">' + TYPE_ICON[t] + '</span><span class="mid"><span class="nm">' + esc(s.name) + '</span><span class="sb">' + n + ' conti</span></span><span class="v">' + svg('right') + '</span></button>';
+        return '<button class="row" data-act="editsub" data-id="' + s.id + '"><span class="ico">' + TYPE_ICON[t] + '</span><span class="mid"><span class="nm">' + esc(s.name) + '</span><span class="sb">' + nConti(n) + '</span></span><span class="v">' + svg('right') + '</span></button>';
       }).join('') + '<button class="pick addnew" data-act="newsubm" data-t="' + t + '"><span class="ico">' + svg('plus') + '</span><span class="mid"><span class="nm">Aggiungi a ' + TYPES[t] + '</span></span></button></div></section>';
     }).join('') + '</div>';
   }
@@ -1521,7 +1522,7 @@ window.UF_BUILD = '2026-11-05 · 98e2a617';
     var lot = lotId ? p.lots.filter(function (l) { return l.id === lotId; })[0] : null; if (lotId && !lot) return;
     var d = lot ? (lot.qty < 0 ? 'sell' : 'buy') : dir, sell = d === 'sell';
     var tx = lot && lot.txId ? txById(lot.txId) : null;
-    var html = scrHead((lot ? 'Modifica ' : 'Nuova ') + (sell ? 'vendita' : 'acquisto'), !!lot) + '<div class="scrb"><div class="card prev"><span class="ico ' + posT(p) + '">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + esc(posTag(p)) + '</span></span></div>' +
+    var html = scrHead(sell ? (lot ? 'Modifica vendita' : 'Nuova vendita') : (lot ? 'Modifica acquisto' : 'Nuovo acquisto'), !!lot) + '<div class="scrb"><div class="card prev"><span class="ico ' + posT(p) + '">' + posIcon(p) + '</span><span class="mid"><span class="nm">' + esc(p.name) + '</span><span class="sb">' + esc(posTag(p)) + '</span></span></div>' +
       fld('Data', '<input type="date" id="l-date" max="' + TODAY + '" value="' + (lot ? lot.d : TODAY) + '">', 'l-date') +
       fld('Quantità', '<input id="l-qty" inputmode="decimal" autocomplete="off" placeholder="0" value="' + (lot ? qtyInput(Math.abs(lot.qty)) : '') + '">' + (lot && lot.est ? '<p class="hint">Quantità stimata: correggila con quella del broker.</p>' : ''), 'l-qty') +
       fld(sell ? 'Importo incassato' : 'Importo pagato (con commissioni)', '<input id="l-tot" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + (lot ? amtStr(lot.tot) : '') + '">', 'l-tot') +
@@ -1648,7 +1649,7 @@ window.UF_BUILD = '2026-11-05 · 98e2a617';
   }
   function ruleRow(r) {
     var nx = ruleNext(r), ic = r.type === 'pac' ? svg('repeat') : r.kind === 'giro' ? svg('swap') : (cat(r.catId) || { icon: '↻' }).icon;
-    return '<button class="row" data-act="ruleopen" data-id="' + r.id + '"><span class="ico">' + ic + '</span><span class="mid"><span class="nm">' + esc(ruleTitle(r)) + '</span><span class="sb">' + freqL(r) + ' · ' + (!r.active ? 'in pausa' : nx ? 'prossima ' + dayLabel(nx) : 'terminata') + '</span></span><span class="v ' + (r.kind === 'entrata' ? 'pos' : '') + '">' + money(r.cents) + '</span></button>';
+    return '<button class="row" data-act="ruleopen" data-id="' + r.id + '"><span class="ico' + (r.type === 'pac' ? ' t3' : r.kind === 'giro' ? ' t1' : '') + '">' + ic + '</span><span class="mid"><span class="nm">' + esc(ruleTitle(r)) + '</span><span class="sb">' + freqL(r) + ' · ' + (!r.active ? 'in pausa' : nx ? 'prossima ' + dayLabel(nx) : 'terminata') + '</span></span><span class="v ' + (r.kind === 'entrata' ? 'pos' : '') + '">' + money(r.cents) + '</span></button>';
   }
   function rulesHtml() {
     return scrHead('Ricorrenze e PAC', true) + '<div class="scrb">' + (S.rules.length ? '<div class="list">' + S.rules.map(ruleRow).join('') + '</div>' : '<p class="empty">Nessuna ricorrenza. Usa «Ripeti» in un nuovo movimento.</p>') + '</div>';
@@ -2144,7 +2145,7 @@ window.UF_BUILD = '2026-11-05 · 98e2a617';
     var p = posById(id), z = posStat(p), k = z.k, q = k.qty, l = lastPx(p), auto = isAuto(p), stale = pxStale(p);
     var avg = q > 0 ? lotPx(k.cost, q) : 0, lots = lotsSorted(p.lots).reverse(), pacs = S.rules.filter(function (r) { return r.type === 'pac' && r.posId === id; });
     var h = scrHead(p.name, true) + '<div class="scrb">';
-    h += '<div class="posh"><span class="pnm">' + esc(p.name) + '</span><span class="sb">' + esc(posTag(p)) + ' · ' + qtyStr(q, p) + ' ' + esc(unitL(p)) + '</span><div class="big">' + money(z.value) + '</div>' +
+    h += '<div class="posh"><span class="sb">' + esc(posTag(p)) + ' · ' + qtyStr(q, p) + ' ' + esc(unitL(p)) + '</span><div class="big">' + money(z.value) + '</div>' +
       '<div class="nwchg"><b class="' + (z.gain > 0 ? 'pos' : z.gain < 0 ? 'neg' : '') + '">' + moneyS(z.gain) + ' · ' + pctS(z.pct) + '</b></div>' +
       '<p class="sb">Hai versato ' + money(k.invested) + (k.proceeds ? ' e incassato ' + money(k.proceeds) + ' dalle vendite' : '') + '. Oggi vale ' + money(z.value) + '.</p></div>';
     // freschezza del valore
@@ -2984,7 +2985,7 @@ window.UF_BUILD = '2026-11-05 · 98e2a617';
   function conflictNote() { return 'Un’altra copia dell’app ha salvato modifiche mentre lavoravi qui.'; }
   function savedLabel() { return 'Salvati sul dispositivo'; }
   function resetScope() { return 'da questo dispositivo'; }
-  function versionRow() { return '<p class="note" style="margin-top:6px">Versione ' + esc(window.UF_BUILD || 'sviluppo') + (window.UFPwa ? ' · <button class="lnk" data-act="chkupd">Controlla aggiornamenti</button>' : '') + '</p>'; }
+  function versionRow() { return '<p class="note" style="margin-top:6px">Versione ' + esc(window.UF_BUILD || 'sviluppo') + '</p>' + (window.UFPwa ? '<button class="lnk" data-act="chkupd" style="align-self:flex-start">Controlla aggiornamenti</button>' : ''); }
   function checkUpdate() { if (window.UFPwa) window.UFPwa.check(); }
 
   /* ---- conflitto tra due copie dell'app ---- */

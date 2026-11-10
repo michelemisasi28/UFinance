@@ -3,7 +3,7 @@
  * - Nessuna richiesta a siti esterni, nessun font o libreria da CDN.
  * - Una nuova versione si installa in attesa e si attiva solo quando l'utente conferma (messaggio SKIP_WAITING).
  * - Cancella soltanto le vecchie cache dell'interfaccia (Cache Storage). IndexedDB, dove stanno i dati, non viene mai toccato. */
-const BUILD = '98e2a617';
+const BUILD = 'c49fd666';
 const CACHE = 'ufinance-shell-' + BUILD;
 // "./" non serve: le navigazioni ricevono comunque index.html dalla cache (vedi fetch).
 const SHELL = ["index.html", "css/app.css", "js/repo.js", "js/voice.js", "js/app.js", "js/pwa.js", "manifest.webmanifest", "icons/apple-touch-icon.png", "icons/favicon-32.png", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"];

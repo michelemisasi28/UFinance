@@ -93,7 +93,7 @@ async function page(b, w, h, o) {
   ok(await p.evaluate(() => !document.querySelector('[data-act="budgets"]')), 'Impostazioni: nessuna riga dei budget');
 
   await A(p, 'posopen', { id: 'p1' }); await tick(p);
-  ok(await p.evaluate(() => { const h = __UF.L[0].el.querySelector('.scrh h2'), n = __UF.L[0].el.querySelector('.posh .pnm'); return !!n && n.textContent === __UF.posById('p1').name && h.scrollHeight <= h.clientHeight + 1; }), 'scheda investimento: nome completo nell’intestazione e titolo non tagliato (fino a 2 righe)');
+  ok(await p.evaluate(() => { const h = __UF.L[0].el.querySelector('.scrh h2'), n = __UF.L[0].el.querySelector('.posh .pnm'); return !n && h.textContent === __UF.posById('p1').name && h.scrollHeight <= h.clientHeight + 1 && h.scrollWidth <= h.clientWidth + 1; }), 'scheda investimento: nome completo nel titolo, non tagliato e non ripetuto');
   await A(p, 'close');
   // ---------- prova d'uso: avviso, fogli lunghi, aggiorna valori, obiettivo ----------
   await p.evaluate(() => window.dispatchEvent(new CustomEvent('uf-toast', { detail: 'Spesa salvata: 50,00 € · Alimentari: budget superato' }))); await tick(p, 100);
@@ -109,6 +109,20 @@ async function page(b, w, h, o) {
   await A(p, 'close'); await A(p, 'goalnew'); await p.click('[data-act="goalacc"][data-id="a1"]'); await tick(p);
   ok(await p.evaluate(() => /Obiettivo · Contanti/.test(__UF.L[0].el.querySelector('.scrh h2').textContent) && /obbligatorio/.test(document.getElementById('af-goal').textContent)), '«+ Nuovo» obiettivo: titolo «Obiettivo · Contanti» e importo «obbligatorio»');
   await A(p, 'close');
+
+  // ---------- ricontrollo: titoli, etichette, nomi ----------
+  await A(p, 'newpos'); await tick(p);
+  ok(await p.evaluate(() => { const h = __UF.L[0].el.querySelector('.scrh h2'), r = h.getBoundingClientRect(); return r.height < 26 && Math.abs((r.left + r.right) / 2 - innerWidth / 2) < 3; }), '«Nuovo investimento»: titolo su una riga e centrato');
+  await A(p, 'close'); await A(p, 'lotnew', { id: 'p1', dir: 'buy' }); await tick(p);
+  ok(await p.evaluate(() => __UF.L[0].el.querySelector('.scrh h2').textContent === 'Nuovo acquisto'), 'titolo «Nuovo acquisto» (non «Nuova acquisto»)');
+  await A(p, 'close'); await A(p, 'pxall'); await tick(p);
+  ok(await p.evaluate(() => parseFloat(getComputedStyle(document.querySelector('label.wq')).fontSize) === 17), 'Aggiorna valori: la domanda è in evidenza (17 px)');
+  await A(p, 'close'); await A(p, 'add'); await A(p, 'mode', { mode: 'entrata' }); await tick(p);
+  ok(await p.evaluate(() => document.getElementById('a-lacc').getBoundingClientRect().height < 26), 'Nuova entrata: «Accreditato su» su una riga');
+  await A(p, 'close'); await A(p, 'managesubs'); await tick(p);
+  ok(await p.evaluate(() => !/\b1 conti\b/.test(__UF.L[0].el.textContent) && /1 conto/.test(__UF.L[0].el.textContent)), 'sottotipologie: «1 conto», non «1 conti»');
+  await A(p, 'close');
+  ok(await p.evaluate(() => { const i = document.createElement('div'); i.className = 'fld r'; i.innerHTML = '<label>x</label><input type="date">'; document.body.appendChild(i); const ok = /url\(/.test(getComputedStyle(i.querySelector('input')).backgroundImage); i.remove(); return ok; }), 'campi data a riga: icona del calendario sempre presente');
 
   // ---------- 3. tema Automatico, barra di stato, formato dati ----------
   const meta = () => p.evaluate(() => document.querySelector('meta[name="theme-color"]').content);
@@ -130,10 +144,10 @@ async function page(b, w, h, o) {
   await A(p, 'tab', { tab: 'conti' }); await tick(p);
   const lng = await p.evaluate(() => {
     const row = document.querySelector('[data-act="acc"][data-id="' + __UF.S.accounts[0].id + '"]'), v = row.querySelector('.v'), nm = row.querySelector('.nm');
-    return { v: v.textContent, oneLine: v.getBoundingClientRect().height < 30, notCut: v.scrollWidth <= v.clientWidth + 1, ell: nm.scrollWidth > nm.clientWidth && getComputedStyle(nm).textOverflow === 'ellipsis', fits: row.getBoundingClientRect().right <= innerWidth };
+    return { v: v.textContent, oneLine: v.getBoundingClientRect().height < 30, notCut: v.scrollWidth <= v.clientWidth + 1, ell: nm.scrollHeight > nm.clientHeight && nm.getBoundingClientRect().height < 50 && getComputedStyle(nm).webkitLineClamp === '2', fits: row.getBoundingClientRect().right <= innerWidth };
   });
   ok(/−1\.23\d\.\d{3},\d\d/.test(lng.v) && lng.oneLine && lng.notCut, 'importo lungo (' + lng.v + ') su una riga e non troncato');
-  ok(lng.ell && lng.fits, 'nome lunghissimo del conto con i puntini, riga dentro lo schermo');
+  ok(lng.ell && lng.fits, 'nome lunghissimo del conto su due righe e poi «…», riga dentro lo schermo');
   ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'nessuno scorrimento orizzontale della pagina');
   await p.evaluate(() => { __UF.S.hide = true; __UF.render(); });
   ok(await p.evaluate(() => !/\d,\d\d/.test(document.querySelector('#view').textContent.replace(/\d+ conti/, '')) && document.documentElement.scrollWidth <= innerWidth), 'importi nascosti: nessuna cifra visibile in Conti, larghezza invariata');

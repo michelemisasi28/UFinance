@@ -136,7 +136,8 @@ Regole tecniche fondamentali:
 - Tema **Automatico** (segue l'iPhone) senza cambiare il formato dei dati.
 - Tutti i moduli stanno in una schermata anche su iPhone SE (375×667) e Pro Max (430×932); contrasto ≥ 4,5:1 verificato automaticamente; revisione indipendente (2 problemi importanti + 3 minori, corretti).
 - Prova d'uso completa del revisore (dita simulate, trascinamenti in ogni direzione, tastiera aperta su ogni campo): **nessuna schermata si muove**; corretti «Correggi saldo» (ora foglio a parte, pulsante sopra la tastiera), l'avviso in basso troppo stretto e 5 dettagli minori.
-- **Non ancora pubblicata**: build `98e2a617` sul ramo `funzioni`. Panoramica di tutte le schermate, con i pulsanti «OK / Problema»: https://claude.ai/artifact/B9vWPAonyC6jY3W3SLhtwh
+- 10 novembre: ricontrollo completo di codice e di tutte le schermate; sistemati una decina di dettagli (titoli, nomi troncati nel Portfolio, etichette, icona del calendario nei campi data, due errori di grammatica).
+- **Non ancora pubblicata**: build `c49fd666` sul ramo `funzioni`. Panoramica di tutte le schermate, con i pulsanti «OK / Problema»: https://claude.ai/artifact/B9vWPAonyC6jY3W3SLhtwh
 
 ---
 
@@ -145,7 +146,7 @@ Regole tecniche fondamentali:
 **Per ogni modifica:**
 1. Sviluppo + test automatici dedicati (ogni problema segnalato diventa prima un test).
 2. **Revisione indipendente** con l'agente `ufinance-reviewer` (sola lettura), poi correzioni.
-3. Suite completa `tests/esegui.sh` (~580 controlli), compreso il test che **aggiorna dalla versione online senza perdere dati**.
+3. Suite completa `tests/esegui.sh` (~590 controlli), compreso il test che **aggiorna dalla versione online senza perdere dati**.
 4. Il lavoro intermedio va sul ramo **`funzioni`** (non costa crediti).
 
 **Per pubblicare (una volta per rilascio):**
@@ -172,7 +173,7 @@ Regole tecniche fondamentali:
 
 ## 8. Lavoro aperto
 
-- **Nuova grafica (build `98e2a617`, non pubblicata):** guardo la panoramica (https://claude.ai/artifact/B9vWPAonyC6jY3W3SLhtwh) e segnalo le schermate con problemi; provo su iPhone in chiaro e scuro con la tastiera aperta; poi do l'OK alla pubblicazione (una sola).
+- **Nuova grafica (build `c49fd666`, non pubblicata):** guardo la panoramica (https://claude.ai/artifact/B9vWPAonyC6jY3W3SLhtwh) e segnalo le schermate con problemi; provo su iPhone in chiaro e scuro con la tastiera aperta; poi do l'OK alla pubblicazione (una sola).
 
 - **Da provare sull'iPhone** la build `986c5a05`: voce con conti/categorie nuovi, prezzo medio, cripto ogni minuto, schermate ferme con tastiera aperta (la tastiera iOS è stata solo simulata nei test).
 - **Voce:** raccogliere le frasi capite male (così come le ho dette) → test → correzione → un unico rilascio.
