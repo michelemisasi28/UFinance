@@ -18,6 +18,10 @@ const tick = (p, ms = 300) => p.waitForTimeout(ms);
   ok(sw.includes(`BUILD = '${BUILD}'`) && sw.includes('js/voice.js'), 'service worker della nuova versione (' + BUILD + ', con voice.js)');
   ok(/no-cache/.test(ix.headers()['cache-control'] || ''), 'index.html sempre ricontrollato (Cache-Control: ' + ix.headers()['cache-control'] + ')');
   ok((await r0.get(SITE + '.claude/agents/ufinance-reviewer.md')).status() === 404 && (await r0.get(SITE + 'netlify.toml')).status() === 404, 'file di progetto non pubblicati (.claude, netlify.toml)');
+  const csp = ix.headers()['content-security-policy'] || '', inl = /<script>([\s\S]*?)<\/script>/.exec(await ix.text());
+  const sha = inl ? require('crypto').createHash('sha256').update(inl[1], 'utf8').digest('base64') : '';
+  ok(/default-src 'self'/.test(csp) && /frame-ancestors 'none'/.test(csp) && ix.headers()['x-frame-options'] === 'DENY', 'intestazioni di sicurezza presenti (Content-Security-Policy, X-Frame-Options)');
+  ok(!!sha && csp.includes("'sha256-" + sha + "'"), 'la policy accetta lo script del tema così come lo serve Netlify (impronta ' + sha.slice(0, 10) + '…)');
   await ctx0.close();
   // ---- nuovo utente sul telefono ----
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'it-IT' });

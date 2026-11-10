@@ -26,3 +26,9 @@
   [headers.values]
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
+    # Difesa in profondità: l'app carica solo i propri file, parla solo con CoinGecko e non può essere incorporata
+    # in altre pagine. L'impronta sha256 è quella dello script in linea di index.html (tema all'avvio):
+    # la aggiorna tools/stamp.js, non modificarla a mano. https://developer.mozilla.org/docs/Web/HTTP/CSP
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'sha256-sBTFwd68k9mivMKIdZizorh7JKimWUAaKLv77bpn5LY='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.coingecko.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), geolocation=(), payment=(), usb=(), microphone=(self)"

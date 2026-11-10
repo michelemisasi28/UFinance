@@ -1,4 +1,4 @@
-window.UF_BUILD = '2026-11-10 · c49fd666';
+window.UF_BUILD = '2026-11-10 · f7ffe9b7';
 (function () {
   'use strict';
   /* ================= utilità ================= */
@@ -87,7 +87,11 @@ window.UF_BUILD = '2026-11-10 · c49fd666';
       if (typeof j.hide === 'boolean') S.hide = j.hide;
     } catch (e) {}
     var t = ''; try { t = (JSON.parse(localStorage.getItem('uf-proto') || '{}') || {}).theme; } catch (e) {}
-    S.theme = t === 'auto' ? 'auto' : document.documentElement.getAttribute('data-uf') === 'scuro' ? 'scuro' : 'chiaro';
+    // Se lo script d'avvio di index.html non è partito (es. bloccato), il tema si ricava qui allo stesso modo.
+    var at = document.documentElement.getAttribute('data-uf');
+    if (at !== 'chiaro' && at !== 'scuro') at = t === 'chiaro' || t === 'scuro' ? t : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'scuro' : 'chiaro');
+    S.theme = t === 'auto' ? 'auto' : at;
+    if (document.documentElement.getAttribute('data-uf') !== at) document.documentElement.setAttribute('data-uf', at);
   }
   // Tema effettivo: «auto» segue il sistema (anche se cambia con l'app aperta). Solo l'attributo della pagina cambia.
   var DARKQ = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;

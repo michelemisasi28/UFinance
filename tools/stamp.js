@@ -12,4 +12,11 @@ const sw = path.join(APP, 'sw.js');
 fs.writeFileSync(sw, fs.readFileSync(sw, 'utf8').replace(/const BUILD = '[^']*';/, `const BUILD = '${id}';`));
 const app = path.join(APP, 'js/app.js');
 fs.writeFileSync(app, fs.readFileSync(app, 'utf8').replace(/^window\.UF_BUILD = '.*';/, `window.UF_BUILD = '${day} · ${id}';`));
+// Content-Security-Policy: impronta dello script in linea di index.html (netlify.toml deve combaciare, altrimenti il browser lo blocca)
+const inline = /<script>([\s\S]*?)<\/script>/.exec(fs.readFileSync(path.join(APP, 'index.html'), 'utf8'));
+const toml = path.join(__dirname, '..', 'netlify.toml');
+if (inline) {
+  const sha = crypto.createHash('sha256').update(inline[1], 'utf8').digest('base64');
+  fs.writeFileSync(toml, fs.readFileSync(toml, 'utf8').replace(/'sha256-[^']*'/, `'sha256-${sha}'`));
+}
 console.log('build', day, id);

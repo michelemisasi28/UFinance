@@ -20,7 +20,8 @@ PIDS=""
 serve() { python3 -m http.server "$1" --bind 127.0.0.1 --directory "$2" </dev/null >/dev/null 2>&1 & PIDS="$PIDS $!"; }
 trap '[ -n "$PIDS" ] && kill $PIDS 2>/dev/null' EXIT INT TERM
 mkdir -p "$W/upg" "$W/ver"
-[ "$(up 8765)" = "200" ] || serve 8765 "$ROOT/app"
+# l'app è servita con le stesse intestazioni di sicurezza del sito (Content-Security-Policy compresa)
+[ "$(up 8765)" = "200" ] || { node "$T/servi.js" 8765 "$ROOT/app" </dev/null >/dev/null 2>&1 & PIDS="$PIDS $!"; }
 [ "$(up 8768)" = "200" ] || serve 8768 "$W/upg"
 # versioni di partenza per il test di aggiornamento (dalla cronologia git)
 #  originale = PWA importata dallo zip (build 6ef00147); pubblicata = prima versione su Netlify (c44b2187);
@@ -29,7 +30,7 @@ if git diff --quiet HEAD -- app; then ONLINE=$(git log -2 --format=%h -- app | t
 for v in "originale 6fe0dce" "pubblicata 069c258" "online $ONLINE"; do set -- $v; rm -rf "$W/ver/$1"; mkdir -p "$W/ver/$1"; git archive "$2" app | tar -x -C "$W/ver/$1" --strip-components=1; done
 sleep 1
 FAILS=0
-for s in ${SUITE:-funzioni regressioni investimenti voce_tutorial revisione3 revisione4 schermate_ferme novita3 grafica contrasto aggiornamento}; do
+for s in ${SUITE:-funzioni regressioni investimenti voce_tutorial revisione3 revisione4 schermate_ferme novita3 grafica contrasto sicurezza aggiornamento}; do
   node "$T/$s.js" > "/tmp/uf_$s.txt" 2>&1
   p=$(grep -c '^PASS' "/tmp/uf_$s.txt"); f=$(grep -c '^FAIL' "/tmp/uf_$s.txt")
   if ! grep -qE 'TUTTI PASSATI|FALLITI' "/tmp/uf_$s.txt"; then f=$((f+1)); echo "== $s: interrotto (vedi /tmp/uf_$s.txt)"; else echo "== $s: $p PASS, $f FAIL"; fi
